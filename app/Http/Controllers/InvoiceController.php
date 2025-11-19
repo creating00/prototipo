@@ -31,12 +31,12 @@ class InvoiceController extends Controller
 
         // Datos de la empresa (Sucursal)
         $company = [
-            'name'    => $branch->name,
-            'address' => $branch->address,
-            'city'    => 'AAA',
-            'phone'   => '333',
-            'email'   => '',
-            'tax_id'  => '131',
+            'name'    => 'TECNONAUTA',
+            'address' => $branch->address . ' - ' . $branch->name,
+            'city'    => '---',
+            'phone'   => '000',
+            'email'   => 'example@mail.com',
+            'tax_id'  => '',
         ];
 
         // Datos del cliente
@@ -67,7 +67,7 @@ class InvoiceController extends Controller
 
         // Totales
         $subtotal = $totalItem;
-        $tax_rate = 21;
+        $tax_rate = 0;
         $tax      = $subtotal * ($tax_rate / 100);
         $total    = $subtotal + $tax;
 
