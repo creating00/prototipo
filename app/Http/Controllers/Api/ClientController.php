@@ -17,8 +17,9 @@ class ClientController extends Controller
     {
         $validated = $request->validate([
             'document' => 'required|unique:clients',
-            'first_name' => 'required',
-            'last_name' => 'required',
+            'full_name' => 'required|string',
+            'phone' => 'nullable|string',
+            'address' => 'nullable|string',
         ]);
 
         return Client::create($validated);
@@ -33,17 +34,20 @@ class ClientController extends Controller
     {
         $validated = $request->validate([
             'document' => 'required|unique:clients,document,' . $client->id,
-            'first_name' => 'required',
-            'last_name' => 'required',
+            'full_name' => 'required|string',
+            'phone' => 'nullable|string',
+            'address' => 'nullable|string',
         ]);
 
         $client->update($validated);
+
         return $client;
     }
 
     public function destroy(Client $client)
     {
         $client->delete();
+
         return response()->json(['message' => 'Client deleted']);
     }
 }

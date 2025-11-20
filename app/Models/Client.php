@@ -13,8 +13,9 @@ class Client extends Model
     use HasFactory, SoftDeletes;
     protected $fillable = [
         'document',
-        'first_name',
-        'last_name',
+        'full_name',
+        'phone',
+        'address',
     ];
 
     public function orders()

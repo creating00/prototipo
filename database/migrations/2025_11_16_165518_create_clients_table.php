@@ -13,9 +13,10 @@ return new class extends Migration
     {
         Schema::create('clients', function (Blueprint $table) {
             $table->id();
-            $table->string('document')->unique(); // dni / cuit
-            $table->string('first_name');
-            $table->string('last_name');
+            $table->string('document')->unique();        // dni / cuit
+            $table->string('full_name');                 // nombre completo
+            $table->string('phone')->nullable();         // teléfono
+            $table->text('address')->nullable();         // dirección
             $table->softDeletes();
             $table->timestamps();
         });

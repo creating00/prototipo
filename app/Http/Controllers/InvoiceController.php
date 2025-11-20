@@ -41,10 +41,10 @@ class InvoiceController extends Controller
 
         // Datos del cliente
         $clientData = [
-            'name'    => $client->first_name . ' ' . $client->last_name,
-            'address' => '',
+            'name'    => $client->full_name,
+            'address' => $client->address,
             'city'    => '',
-            'phone'   => '',
+            'phone'   => $client->phone,
             'email'   => '',
             'tax_id'  => $client->document,
         ];

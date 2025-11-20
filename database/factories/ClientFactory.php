@@ -12,9 +12,10 @@ class ClientFactory extends Factory
     public function definition()
     {
         return [
-            'document'   => $this->faker->unique()->numerify('########'), // 8 dígitos
-            'first_name' => $this->faker->firstName(),
-            'last_name'  => $this->faker->lastName(),
+            'document' => $this->faker->unique()->numerify('########'),
+            'full_name' => $this->faker->firstName() . ' ' . $this->faker->lastName(),
+            'phone' => $this->faker->phoneNumber(),
+            'address' => $this->faker->address(),
         ];
     }
 }

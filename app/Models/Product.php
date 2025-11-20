@@ -12,9 +12,11 @@ class Product extends Model
     protected $fillable = [
         'code',
         'name',
+        'image',
         'description',
         'stock',
         'branch_id',
+        'category_id',
         'purchase_price',
         'sale_price',
     ];
@@ -22,5 +24,20 @@ class Product extends Model
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function ratings()
+    {
+        return $this->hasMany(Rating::class);
+    }
+
+    public function getAverageRatingAttribute()
+    {
+        return $this->ratings()->avg('rate') ?? 0;
     }
 }
