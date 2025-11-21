@@ -1,16 +1,22 @@
-// order-form-init.js
 document.addEventListener("DOMContentLoaded", function () {
     if (typeof OrderForm !== "undefined") {
         window.orderForm = new OrderForm();
         window.orderForm.init();
 
+        if (typeof OrderFormHandler !== "undefined") {
+            window.orderFormHandler = new OrderFormHandler(window.orderForm);
+            window.orderFormHandler.setupEventListeners();
+        }
+
         if (window.currentOrderId) {
             window.orderForm.loadOrderData(window.currentOrderId);
         }
+    } else {
+        console.error("OrderForm no está definido");
     }
 });
 
-// Hacer métodos disponibles globalmente
+// Hacer métodos disponibles globalmente (mantener compatibilidad)
 window.showNewClientForm = function () {
     if (window.orderForm) {
         window.orderForm.client.showNewClientForm();

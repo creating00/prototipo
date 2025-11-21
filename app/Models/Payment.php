@@ -18,7 +18,7 @@ class Payment extends Model
     ];
 
     protected $casts = [
-        'payment_type' => PaymentType::class, // Cast al enum
+        'payment_type' => PaymentType::class,
     ];
 
     public function order()

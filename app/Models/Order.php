@@ -41,4 +41,12 @@ class Order extends Model
     {
         return $this->hasMany(Payment::class);
     }
+
+    public function getAmountToChargeAttribute()
+    {
+        // Si quieres que sea igual al total_amount
+        return $this->total_amount;
+
+        // return $this->total_amount - $this->discount; 
+    }
 }

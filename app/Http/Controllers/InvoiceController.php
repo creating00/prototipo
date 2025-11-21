@@ -11,15 +11,17 @@ class InvoiceController extends Controller
     public function generate($paymentId)
     {
         $payment = Payment::with([
-            'order.product.branch',
+            'order.items.product.branch',
             'order.client',
             'order.user'
         ])->findOrFail($paymentId);
 
         $order   = $payment->order;
         $client  = $order->client;
-        $product = $order->product;
-        $branch  = $product->branch;
+        $items   = $order->items;
+
+        $firstItem = $items->first();
+        $branch = $firstItem ? $firstItem->product->branch : null;
 
         // Datos de factura
         $invoice = [
@@ -32,7 +34,7 @@ class InvoiceController extends Controller
         // Datos de la empresa (Sucursal)
         $company = [
             'name'    => 'TECNONAUTA',
-            'address' => $branch->address . ' - ' . $branch->name,
+            'address' => $branch ? ($branch->address . ' - ' . $branch->name) : 'Dirección no disponible',
             'city'    => '---',
             'phone'   => '000',
             'email'   => 'example@mail.com',
@@ -49,24 +51,19 @@ class InvoiceController extends Controller
             'tax_id'  => $client->document,
         ];
 
-        // Ítem único basado en amount_to_charge
-        $totalItem = $order->amount_to_charge;
-        $unitPrice = $order->quantity > 0
-            ? $totalItem / $order->quantity
-            : $totalItem;
-
-        $items = [
-            [
-                'description' => $product->name,
-                'quantity'    => $order->quantity,
+        // Múltiples ítems basados en los productos de la orden
+        $items = $order->items->map(function ($item) {
+            return [
+                'description' => $item->product->name,
+                'quantity'    => $item->quantity,
                 'unit'        => '',
-                'price'       => $unitPrice,
-                'total'       => $totalItem,
-            ],
-        ];
+                'price'       => $item->unit_price,
+                'total'       => $item->subtotal,
+            ];
+        })->toArray();
 
-        // Totales
-        $subtotal = $totalItem;
+        // Calcular totales
+        $subtotal = $order->total_amount;
         $tax_rate = 0;
         $tax      = $subtotal * ($tax_rate / 100);
         $total    = $subtotal + $tax;

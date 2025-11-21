@@ -22,7 +22,7 @@ class OrderController extends Controller
 
     public function index()
     {
-        return Order::with(['client', 'user', 'items.product'])->get();
+        return Order::with(['client', 'user', 'items.product', 'payments'])->get();
     }
 
     public function store(Request $request)
@@ -36,7 +36,7 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        return $order->load(['client', 'user', 'items.product']);
+        return $order->load(['client', 'user', 'items.product', 'payments']);
     }
 
     public function update(Request $request, Order $order)
