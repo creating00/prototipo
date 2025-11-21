@@ -3,7 +3,7 @@ name: Deploy Laravel to Hostinger via SSH
 on:
   push:
     branches:
-      - master   # tu repo usa master
+      - master
 
 jobs:
   deploy:
@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Deploy to Hostinger via SSH
-        uses: appleboy/ssh-action@v1.6.0
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -36,4 +36,3 @@ jobs:
             php artisan optimize
 
             echo "Deploy completado."
-
