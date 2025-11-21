@@ -11,7 +11,6 @@ class OrderProducts {
         try {
             const response = await axios.get("/api/products");
             this.allProducts = response.data;
-            // Asegurar que los precios sean números
             this.allProducts = this.allProducts.map((product) => ({
                 ...product,
                 sale_price: parseFloat(product.sale_price) || 0,
@@ -72,7 +71,6 @@ class OrderProducts {
         const product = this.allProducts.find((p) => p.id == productId);
         if (!product) return;
 
-        // Asegurar que el precio sea número
         const productPrice = parseFloat(product.sale_price) || 0;
 
         // Verificar si el producto ya fue agregado
@@ -86,15 +84,18 @@ class OrderProducts {
             this.addedProducts[existingProductIndex].subtotal =
                 this.addedProducts[existingProductIndex].quantity *
                 productPrice;
+            this.orderForm.handler.updateSubmitButtonState();
         } else {
             // Agregar nuevo producto
             this.addedProducts.push({
                 id: product.id,
                 name: product.name,
-                price: productPrice, // Aseguramos que sea número
+                price: productPrice,
                 quantity: quantity,
                 subtotal: productPrice * quantity,
             });
+
+            this.orderForm.handler.updateSubmitButtonState();
         }
 
         this.renderProductsTable();
@@ -122,7 +123,6 @@ class OrderProducts {
 
         const rows = this.addedProducts
             .map((product, index) => {
-                // Asegurar que price y subtotal sean números
                 const price = parseFloat(product.price) || 0;
                 const subtotal = parseFloat(product.subtotal) || 0;
 
@@ -199,6 +199,7 @@ class OrderProducts {
             const price = parseFloat(this.addedProducts[index].price) || 0;
             this.addedProducts[index].quantity = newQuantity;
             this.addedProducts[index].subtotal = price * newQuantity;
+            this.orderForm.handler.updateSubmitButtonState();
             this.renderProductsTable();
         }
     }
@@ -207,6 +208,7 @@ class OrderProducts {
     removeProduct(index) {
         if (index >= 0 && index < this.addedProducts.length) {
             this.addedProducts.splice(index, 1);
+            this.orderForm.handler.updateSubmitButtonState();
             this.renderProductsTable();
         }
     }
@@ -236,6 +238,8 @@ class OrderProducts {
         });
 
         this.renderProductsTable();
+
+        this.orderForm.handler.updateSubmitButtonState();
     }
 
     // Validar productos

@@ -1,16 +1,13 @@
-// order-form.js - versión segura
+// order-form.js
 class OrderForm {
     constructor() {
-        // Esperar a que todas las clases estén disponibles
         if (
             typeof OrderClient === "undefined" ||
-            typeof OrderProducts === "undefined" ||
-            typeof OrderFormHandler === "undefined"
+            typeof OrderProducts === "undefined"
         ) {
             console.error("Faltan dependencias:", {
                 OrderClient: typeof OrderClient,
                 OrderProducts: typeof OrderProducts,
-                OrderFormHandler: typeof OrderFormHandler,
             });
             return;
         }
@@ -18,25 +15,30 @@ class OrderForm {
         try {
             this.client = new OrderClient(this);
             this.products = new OrderProducts(this);
-            this.handler = new OrderFormHandler(this);
-            console.log("OrderForm inicializado correctamente");
+
+            // OrderFormHandler es opcional
+            if (typeof OrderFormHandler !== "undefined") {
+                this.handler = new OrderFormHandler(this);
+            }
         } catch (error) {
             console.error("Error inicializando OrderForm:", error);
         }
     }
 
     async init() {
-        if (!this.client || !this.products || !this.handler) {
+        if (!this.client || !this.products) {
             console.error("OrderForm no se inicializó correctamente");
             return;
         }
 
         await this.products.loadProducts();
         this.client.setupClientSearchModal();
-        this.handler.setupEventListeners();
+
+        if (this.handler) {
+            this.handler.setupEventListeners();
+        }
     }
 
-    // Cargar datos de orden existente (para editar)
     async loadOrderData(orderId) {
         try {
             const response = await axios.get(`/api/orders/${orderId}`);
@@ -50,7 +52,6 @@ class OrderForm {
                 );
             }
 
-            // Cargar productos de la orden
             this.products.loadProductsFromOrder(order.items);
         } catch (error) {
             console.error("Error loading order:", error);
@@ -58,3 +59,5 @@ class OrderForm {
         }
     }
 }
+
+window.OrderForm = OrderForm;

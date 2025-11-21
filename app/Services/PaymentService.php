@@ -48,9 +48,9 @@ class PaymentService
     private function validatePaymentAmount(Order $order, $amount): void
     {
         $amount = floatval($amount);
-
         $paid = $order->payments()->sum('amount');
-        $remaining = $order->amount_to_charge - $paid;
+
+        $remaining = $order->total_amount - $paid;
 
         if ($amount > $remaining) {
             throw ValidationException::withMessages([

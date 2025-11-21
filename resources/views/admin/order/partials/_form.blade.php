@@ -41,6 +41,21 @@
                 </div>
             </div>
 
+            <!-- Checkbox Aplicar Venta -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="apply_sale" name="apply_sale">
+                        <label class="form-check-label" for="apply_sale">
+                            <strong>Aplicar venta</strong>
+                        </label>
+                        <small class="form-text text-muted d-block">
+                            Al marcar esta opción, la orden se procesará como una venta inmediata
+                        </small>
+                    </div>
+                </div>
+            </div>
+
             <!-- Formulario Nuevo Cliente (oculto inicialmente) -->
             <div id="new_client_form" style="display: none;">
                 <div class="card mt-3">
@@ -161,7 +176,7 @@
 
             <!-- Botones -->
             <div class="mt-4">
-                <button type="submit" id="submitOrderBtn" class="btn btn-primary" disabled>
+                <button type="submit" id="submitOrderBtn" class="btn btn-primary">
                     {{ $order ? 'Actualizar' : 'Crear' }} Pedido
                 </button>
                 <a href="{{ route('order.index') }}" class="btn btn-secondary">Cancelar</a>

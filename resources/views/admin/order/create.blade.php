@@ -1,29 +1,18 @@
 @extends('adminlte::page')
 
-@section('title', 'Nueva Orden')
+@section('title', 'Nuevo Pedido')
 
 @section('content_header')
-    <h1>Nueva Orden</h1>
+    <h1>Nuevo Pedido</h1>
 @stop
 
 @section('content')
     @include('admin.order.partials._form', ['order' => $order])
+    @include('admin.payment.partials._payment')
 @stop
 
 @section('js')
-    <script src="{{ asset('js/order/order-client.js') }}"></script>
-    <script src="{{ asset('js/order/order-products.js') }}"></script>
-    <script src="{{ asset('js/order/order-form-handler.js') }}"></script>
-    <script src="{{ asset('js/order/order-form.js') }}"></script>
-    <script src="{{ asset('js/order-form-init.js') }}"></script>
-
-    <script>
-        window.authUserId = {{ auth()->id() }};
-        window.orderFormUrl = '{{ $order ? '/api/orders/' . $order->id : '/api/orders' }}';
-        window.orderFormMethod = '{{ $order ? 'PUT' : 'POST' }}';
-        window.orderIndexUrl = "{{ route('order.index') }}";
-        window.currentOrderId = {{ $order ? $order->id : 'null' }};
-    </script>
+    @include('admin.order.partials._scripts')
 
     <style>
         .product-row {

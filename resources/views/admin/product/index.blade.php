@@ -43,7 +43,7 @@
                 const products = Array.isArray(res.data) ? res.data : [];
                 const rows = products.map(p => {
                     const imageUrl = p.image ||
-                    '/images/placeholder.png'; // ajusta la ruta del placeholder si hace falta
+                        '/images/placeholder.webp';
                     const avg = (p.average_rating !== null && p.average_rating !== undefined) ?
                         Number(p.average_rating).toFixed(1) :
                         '—';
@@ -92,7 +92,6 @@
             }
         }
 
-        // pequeño helper para evitar inyección de HTML
         function escapeHtml(unsafe) {
             if (unsafe === null || unsafe === undefined) return '';
             return String(unsafe)

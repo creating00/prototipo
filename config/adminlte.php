@@ -303,6 +303,12 @@ return [
         ['header' => 'ADMINISTRACIÓN'],
 
         [
+            'text' => 'Categorías',
+            'url'  => 'admin/category',
+            'icon' => 'fas fa-tags',
+        ],
+
+        [
             'text' => 'Productos',
             'url'  => 'admin/product',
             'icon' => 'fas fa-boxes',
