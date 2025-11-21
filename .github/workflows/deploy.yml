@@ -18,7 +18,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd public_html/laravel-project
+            cd domains/prototipo.creatingsoft.net/public_html/laravel-project
 
             echo "Actualizando repositorio..."
             git pull origin master
