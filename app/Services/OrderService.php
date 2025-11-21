@@ -18,24 +18,17 @@ class OrderService
         $this->stockService = $stockService;
     }
 
-    /**
-     * Crea o actualiza una orden
-     */
     public function createOrUpdateOrder(array $validated, ?Order $order = null): Order
     {
-        // Si es actualización, liberar stock y eliminar items anteriores
         if ($order) {
             $this->releaseOrderStock($order);
             $order->items()->delete();
         }
 
-        // Obtener el cliente (ya sea del token o crear uno nuevo)
         $client = $this->getClientFromRequest($validated);
 
-        // Determinar user_id basado en el tipo de autenticación
         $userId = $this->getUserIdFromRequest($validated);
 
-        // Crear o actualizar la orden
         $orderData = [
             'client_id' => $client->id,
             'user_id' => $userId,
@@ -60,9 +53,6 @@ class OrderService
         return $order->load(['client', 'user', 'items.product']);
     }
 
-    /**
-     * Libera el stock de todos los productos de una orden
-     */
     public function releaseOrderStock(Order $order): void
     {
         foreach ($order->items as $item) {
