@@ -9,6 +9,8 @@ use App\Http\Controllers\Web\{
     CategoryWebController
 };
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -26,6 +28,46 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+Route::get('/create-storage-link', function () {
+    try {
+        if (file_exists(public_path('storage'))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El storage link ya existe'
+            ]);
+        }
+
+        Artisan::call('storage:link');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Storage link creado exitosamente'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al crear storage link: ' . $e->getMessage()
+        ]);
+    }
+})->name('storage.link.create');
+
+Route::get('/create-storage-link-secure', function () {
+    if (!app()->environment('local')) {
+        abort(403, 'Esta acción solo está permitida en entorno local');
+    }
+
+    try {
+        if (file_exists(public_path('storage'))) {
+            return "El storage link ya existe";
+        }
+
+        Artisan::call('storage:link');
+        return "Storage link creado exitosamente";
+    } catch (\Exception $e) {
+        return "Error: " . $e->getMessage();
+    }
 });
 
 Route::middleware(['auth'])->prefix('admin')->group(function () {
