@@ -59,12 +59,12 @@ class ClientAuthController extends Controller
             return response()->json(['message' => 'Credenciales incorrectas'], 401);
         }
 
-        // Generar token personal
         $token = $account->createToken('client-token')->plainTextToken;
 
         return response()->json([
             'message' => 'Login exitoso',
-            'client' => $account->load('client'),
+            'account' => $account,
+            'client_data' => $account->client,
             'token' => $token
         ]);
     }
