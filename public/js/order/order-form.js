@@ -16,7 +16,6 @@ class OrderForm {
             this.client = new OrderClient(this);
             this.products = new OrderProducts(this);
 
-            // OrderFormHandler es opcional
             if (typeof OrderFormHandler !== "undefined") {
                 this.handler = new OrderFormHandler(this);
             }

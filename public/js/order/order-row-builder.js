@@ -58,7 +58,13 @@ class OrderRowBuilder {
     }
 
     formatDate(dateString) {
-        return new Date(dateString).toLocaleDateString();
+        return new Date(dateString).toLocaleString("es-ES", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
     }
 
     createActionButtons(order) {
@@ -68,7 +74,6 @@ class OrderRowBuilder {
         </a>
     `;
 
-        // Verificar si la orden tiene pagos (usando payments en plural)
         const hasPayment = order.payments && order.payments.length > 0;
 
         const paymentBtn = hasPayment

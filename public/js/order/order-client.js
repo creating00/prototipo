@@ -39,8 +39,8 @@ class OrderClient {
 
         try {
             const url = query
-                ? `/api/clients?search=${encodeURIComponent(query)}`
-                : "/api/clients";
+                ? `/api/clients/search?search=${encodeURIComponent(query)}`
+                : "/api/clients/search";
             const res = await axios.get(url);
             const clients = res.data;
 

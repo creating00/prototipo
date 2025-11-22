@@ -39,6 +39,8 @@ class OrderFormEventHandler {
     }
 
     setupFormSubmitListener() {
+        //console.log("Listener registrado");
+
         const orderForm = document.getElementById("orderForm");
         if (orderForm) {
             orderForm.addEventListener("submit", (e) =>

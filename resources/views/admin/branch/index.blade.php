@@ -14,49 +14,36 @@
         </a>
     </div>
 
-    <table class="table table-bordered" id="tableBranches">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Dirección</th>
-                <th>Opciones</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+    <!-- Template para la fila -->
+    <template id="branch-row-template">
+        <tr>
+            <td class="col-id"></td>
+            <td class="col-name"></td>
+            <td class="col-address"></td>
+            <td class="col-actions"></td>
+        </tr>
+    </template>
+
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-bordered table-striped" id="tableBranches">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Dirección</th>
+                        <th>Opciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
 
 @endsection
 
 @section('js')
-    <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            const response = await axios.get('/api/branches');
-            const branches = response.data;
-
-            const tbody = document.querySelector('#tableBranches tbody');
-            tbody.innerHTML = '';
-
-            branches.forEach(branch => {
-                tbody.innerHTML += `
-            <tr>
-                <td>${branch.id}</td>
-                <td>${branch.name}</td>
-                <td>${branch.address ?? ''}</td>
-                <td>
-                    <a href="/admin/branch/${branch.id}/edit" class="btn btn-sm btn-warning">Editar</a>
-                    <button onclick="destroyBranch(${branch.id})" class="btn btn-sm btn-danger">Eliminar</button>
-                </td>
-            </tr>
-        `;
-            });
-        });
-
-        async function destroyBranch(id) {
-            if (!confirm("¿Eliminar sucursal?")) return;
-
-            await axios.delete(`/api/branches/${id}`);
-            location.reload();
-        }
-    </script>
+    <script src="/js/branch/branch-service.js"></script>
+    <script src="/js/branch/branch-table.js"></script>
+    <script src="/js/branch/branch-index.js"></script>
 @endsection

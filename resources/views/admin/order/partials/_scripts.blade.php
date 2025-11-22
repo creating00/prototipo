@@ -1,3 +1,5 @@
+{{-- <script src="/js/client/client-search-modal.js"></script> --}}
+
 <!-- Componentes base -->
 <script src="{{ asset('js/order/order-client.js') }}"></script>
 <script src="{{ asset('js/order/order-products.js') }}"></script>

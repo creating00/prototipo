@@ -13,6 +13,27 @@ class ClientController extends Controller
         return Client::all();
     }
 
+    public function search(Request $request)
+    {
+        $query = Client::query();
+
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('full_name', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('document', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('phone', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('address', 'LIKE', "%{$searchTerm}%");
+            });
+        }
+
+        // Límite por defecto 50, configurable via ?limit=20
+        $limit = $request->get('limit', 10);
+
+        return $query->limit($limit)->get();
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

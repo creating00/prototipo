@@ -1,6 +1,7 @@
 class PaymentModal {
-    constructor(orderFormHandler) {
+    constructor(orderFormHandler, getClientNameFn = null) {
         this.orderFormHandler = orderFormHandler;
+        this.getClientNameFn = getClientNameFn;
         this.modalElement = document.getElementById("paymentModal");
         this.modal = null;
         this.resolvePromise = null;
@@ -22,10 +23,22 @@ class PaymentModal {
     }
 
     getCurrentClientName() {
+        if (this.getClientNameFn) {
+            return this.getClientNameFn();
+        }
+
+        return this.getDefaultClientName();
+    }
+
+    getDefaultClientName() {
+        const clientNameDisplay = document.getElementById("clientNameDisplay");
         const clientFullName = document.getElementById("client_full_name");
-        return clientFullName
-            ? clientFullName.value
-            : "Cliente no seleccionado";
+
+        return (
+            clientNameDisplay?.textContent.trim() ||
+            clientFullName?.value.trim() ||
+            "Cliente no seleccionado"
+        );
     }
 
     setupModalData(orderId, orderTotal, clientName) {
@@ -58,7 +71,6 @@ class PaymentModal {
     }
 
     removeEventListeners() {
-        // Clonar elementos para remover event listeners previos
         const confirmBtn = document.getElementById("confirmPayment");
         const paymentTypeSelect = document.getElementById("paymentType");
 

@@ -4,7 +4,6 @@ class ProductService {
     }
 
     static async update(id, productData) {
-        // Usar PUT directamente
         return await ApiClient.put(`/api/products/${id}`, productData);
     }
 

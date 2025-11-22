@@ -129,6 +129,8 @@
         @endif
     @endif
 
+    <script src="{{ asset('js/datatables-initializer.js') }}"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
         axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';

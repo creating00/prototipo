@@ -41,6 +41,10 @@
     <script src="{{ asset('js/order/order-index-handler.js') }}"></script>
     <script src="{{ asset('js/order-index-init.js') }}"></script>
 
+    <script>
+        window.authUserId = {{ auth()->id() }};
+    </script>
+
     <style>
         #tableOrders td {
             vertical-align: middle;

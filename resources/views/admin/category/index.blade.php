@@ -14,47 +14,33 @@
         </a>
     </div>
 
-    <table class="table table-bordered" id="tableCategories">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Opciones</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+    <template id="category-row-template">
+        <tr>
+            <td class="col-id"></td>
+            <td class="col-name"></td>
+            <td class="col-actions"></td>
+        </tr>
+    </template>
+
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-bordered table-striped" id="tableCategories">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Opciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
 
 @endsection
 
 @section('js')
-    <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            const response = await axios.get('/api/categories');
-            const categories = response.data;
-
-            const tbody = document.querySelector('#tableCategories tbody');
-            tbody.innerHTML = '';
-
-            categories.forEach(category => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${category.id}</td>
-                        <td>${category.name}</td>
-                        <td>
-                            <a href="/admin/category/${category.id}/edit" class="btn btn-sm btn-warning">Editar</a>
-                            <button onclick="destroyCategory(${category.id})" class="btn btn-sm btn-danger">Eliminar</button>
-                        </td>
-                    </tr>
-                `;
-            });
-        });
-
-        async function destroyCategory(id) {
-            if (!confirm("¿Eliminar categoría?")) return;
-
-            await axios.delete(`/api/categories/${id}`);
-            location.reload();
-        }
-    </script>
+    <script src="/js/category/category-service.js"></script>
+    <script src="/js/category/category-table.js"></script>
+    <script src="/js/category/category-index.js"></script>
 @endsection

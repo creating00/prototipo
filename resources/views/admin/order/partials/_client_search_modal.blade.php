@@ -26,7 +26,7 @@
                             </tr>
                         </thead>
                         <tbody id="modalClientResults">
-                            <!-- Los resultados se cargarán aquí -->
+
                         </tbody>
                     </table>
                 </div>

@@ -5,6 +5,7 @@ class OrderIndexHandler {
         this.paymentProcessor = new OrderPaymentProcessor({
             getOrderTotal: () => 0,
         });
+        this.dataTable = null;
     }
 
     async loadOrders() {
@@ -14,24 +15,34 @@ class OrderIndexHandler {
                 this.rowBuilder.buildRow(order)
             );
             this.tableBody.innerHTML = rows.join("");
+
+            // Si DataTables ya está inicializado, destruirlo y recrearlo
+            if (this.dataTable) {
+                this.dataTable.destroy();
+            }
+
+            return res.data; // Retornar los datos para poder usar .then()
         } catch (error) {
             console.error("Error loading orders:", error);
             alert("Error al cargar los pedidos");
+            throw error;
         }
     }
 
     async createPayment(orderId) {
         try {
-            const paymentModal = new PaymentModal({
-                getOrderTotal: () => {
-                    const row = document.querySelector(
-                        `tr:has(button[onclick="orderIndexHandler.createPayment(${orderId})"])`
-                    );
-                    const amountText =
-                        row.querySelector("td:nth-child(5)").textContent;
-                    return parseFloat(amountText.replace("S/. ", ""));
+            const paymentModal = new PaymentModal(
+                {
+                    getOrderTotal: () => {
+                        const row = document.querySelector(
+                            `tr:has(button[onclick="orderIndexHandler.createPayment(${orderId})"])`
+                        );
+                        const amountText =
+                            row.querySelector("td:nth-child(5)").textContent;
+                        return parseFloat(amountText.replace("S/. ", ""));
+                    },
                 },
-                getCurrentClientName: () => {
+                () => {
                     const row = document.querySelector(
                         `tr:has(button[onclick="orderIndexHandler.createPayment(${orderId})"])`
                     );
@@ -39,8 +50,8 @@ class OrderIndexHandler {
                         "td:nth-child(2) strong"
                     ).textContent;
                     return clientName;
-                },
-            });
+                }
+            );
 
             const paymentType = await paymentModal.show(orderId);
 

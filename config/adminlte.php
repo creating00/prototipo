@@ -370,22 +370,22 @@ return [
 
     'plugins' => [
         'Datatables' => [
-            'active' => false,
+            'active' => true,
             'files' => [
                 [
                     'type' => 'js',
-                    'asset' => false,
-                    'location' => '//cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js',
+                    'asset' => true,
+                    'location' => 'vendor/adminlte/dist/datatables/dataTables.min.js',
                 ],
-                [
-                    'type' => 'js',
-                    'asset' => false,
-                    'location' => '//cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js',
-                ],
+                // [
+                //     'type' => 'js',
+                //     'asset' => false,
+                //     'location' => '//cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js',
+                // ],
                 [
                     'type' => 'css',
-                    'asset' => false,
-                    'location' => '//cdn.datatables.net/1.10.19/css/dataTables.bootstrap4.min.css',
+                    'asset' => true,
+                    'location' => 'vendor/adminlte/dist/datatables/dataTables.min.css',
                 ],
             ],
         ],

@@ -3,11 +3,6 @@ document.addEventListener("DOMContentLoaded", function () {
         window.orderForm = new OrderForm();
         window.orderForm.init();
 
-        if (typeof OrderFormHandler !== "undefined") {
-            window.orderFormHandler = new OrderFormHandler(window.orderForm);
-            window.orderFormHandler.setupEventListeners();
-        }
-
         if (window.currentOrderId) {
             window.orderForm.loadOrderData(window.currentOrderId);
         }
