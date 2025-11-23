@@ -370,11 +370,11 @@ return [
 
     'plugins' => [
         'Datatables' => [
-            'active' => true,
+            'active' => false,
             'files' => [
                 [
                     'type' => 'js',
-                    'asset' => true,
+                    'asset' => false,
                     'location' => 'vendor/adminlte/dist/datatables/dataTables.min.js',
                 ],
                 // [
@@ -384,7 +384,7 @@ return [
                 // ],
                 [
                     'type' => 'css',
-                    'asset' => true,
+                    'asset' => false,
                     'location' => 'vendor/adminlte/dist/datatables/dataTables.min.css',
                 ],
             ],
