@@ -5,7 +5,7 @@ class DataTableInitializer {
             responsive: true,
             order: [[6, 'desc']],
             language: {
-                url: "/vendor/adminlte/dist/datatables/spanish.json",
+                url: "/vendor/adminlte/dist/datatables/Spanish.json",
             },
         };
         this.options = { ...this.defaultOptions, ...options };
