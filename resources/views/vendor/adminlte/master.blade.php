@@ -89,7 +89,7 @@
         <meta name="msapplication-TileImage" content="{{ asset('favicons/ms-icon-144x144.png') }}">
     @endif
 
-    <link rel="stylesheet" href="{{ asset('datatables/dataTables.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('datatables/datatables.min.css') }}">
 
 </head>
 
@@ -131,7 +131,7 @@
         @endif
     @endif
 
-    <script src="{{ asset('datatables/dataTables.min.js') }}"></script>
+    <script src="{{ asset('datatables/datatables.min.js') }}"></script>
     <script src="{{ asset('js/datatables-initializer.js') }}"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
