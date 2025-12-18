@@ -1,0 +1,29 @@
+/* @tailwind base;
+@tailwind components;
+@tailwind utilities; */
+
+/* Bootstrap */
+@import "bootstrap/dist/css/bootstrap.min.css";
+
+/* AdminLTE */
+@import "admin-lte/dist/css/adminlte.min.css";
+
+/* Fuentes */
+@import "@fontsource/source-sans-3";
+
+/* OverlayScrollbars */
+@import "overlayscrollbars/styles/overlayscrollbars.css";
+
+/* Bootstrap Icons */
+@import "bootstrap-icons/font/bootstrap-icons.css";
+@import "@fortawesome/fontawesome-free/css/all.min.css";
+
+@import url("datatables.net-bs5");
+@import url("datatables.net-responsive-bs5");
+
+@import "custom-buttons.css";
+@import "custom-badges.css";
+@import "custom-select.css";
+/* @import "custom-choices.css"; */
+
+@import "sweetalert2/dist/sweetalert2.min.css";

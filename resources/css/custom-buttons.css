@@ -1,0 +1,318 @@
+.modal-backdrop.show {
+    background-color: rgba(0, 0, 0, 0.35) !important;
+}
+
+.input-group .form-floating > label {
+    z-index: 0 !important;
+}
+
+.btn-custom {
+    color: white !important;
+    background-color: var(--btn-bg) !important;
+    border-color: var(--btn-bg) !important;
+}
+
+.btn-custom:hover {
+    background-color: var(--btn-bg-hover) !important;
+    border-color: var(--btn-bg-hover) !important;
+}
+
+.btn-custom:focus,
+.btn-custom.focus {
+    background-color: var(--btn-bg-hover) !important;
+    border-color: var(--btn-bg-hover) !important;
+    color: white !important;
+    box-shadow: 0 0 0 0.2rem var(--btn-shadow) !important;
+}
+
+/* Base para botones custom outline */
+.btn-custom-outline {
+    color: var(--btn-bg) !important;
+    background-color: transparent !important;
+    border-color: var(--btn-bg) !important;
+}
+
+.btn-custom-outline:hover {
+    color: white !important;
+    background-color: var(--btn-bg) !important;
+    border-color: var(--btn-bg) !important;
+}
+
+.btn-custom-outline:focus,
+.btn-custom-outline.focus {
+    color: white !important;
+    background-color: var(--btn-bg-hover) !important;
+    border-color: var(--btn-bg-hover) !important;
+    box-shadow: 0 0 0 0.2rem var(--btn-shadow) !important;
+}
+
+/* Variantes */
+.btn-custom-purple {
+    --btn-bg: #6f42c1;
+    --btn-bg-hover: #5a2d91;
+    --btn-shadow: rgba(111, 66, 193, 0.5);
+}
+
+.btn-custom-teal {
+    --btn-bg: #20c997;
+    --btn-bg-hover: #1aa67d;
+    --btn-shadow: rgba(32, 201, 151, 0.5);
+}
+
+.btn-custom-indigo {
+    --btn-bg: #3f51b5;
+    --btn-bg-hover: #32408f;
+    --btn-shadow: rgba(63, 81, 181, 0.5);
+}
+
+/* Azul primary (exacto Bootstrap) */
+.btn-custom-blue {
+    --btn-bg: #0d6efd;
+    --btn-bg-hover: #0b5ed7;
+    --btn-shadow: rgba(13, 110, 253, 0.5);
+}
+
+/* Azul oscuro/elegante */
+.btn-custom-dark-blue {
+    --btn-bg: #2c3e50;
+    --btn-bg-hover: #1a252f;
+    --btn-shadow: rgba(44, 62, 80, 0.5);
+}
+
+/* Azul cielo/brillante */
+.btn-custom-sky {
+    --btn-bg: #3498db;
+    --btn-bg-hover: #2980b9;
+    --btn-shadow: rgba(52, 152, 219, 0.5);
+}
+
+/* Azul marino/profesional */
+.btn-custom-navy {
+    --btn-bg: #2c3e50;
+    --btn-bg-hover: #1c2833;
+    --btn-shadow: rgba(44, 62, 80, 0.5);
+}
+
+/* Azul eléctrico/moderno */
+.btn-custom-electric {
+    --btn-bg: #0099ff;
+    --btn-bg-hover: #0077cc;
+    --btn-shadow: rgba(0, 153, 255, 0.5);
+}
+
+/* Coral vibrante */
+.btn-custom-coral {
+    --btn-bg: #ff6b6b;
+    --btn-bg-hover: #ee5a52;
+    --btn-shadow: rgba(255, 107, 107, 0.5);
+}
+
+/* Lavanda suave */
+.btn-custom-lavender {
+    --btn-bg: #9b59b6;
+    --btn-bg-hover: #8e44ad;
+    --btn-shadow: rgba(155, 89, 182, 0.5);
+}
+
+/* Turquesa profundo */
+.btn-custom-turquoise {
+    --btn-bg: #1abc9c;
+    --btn-bg-hover: #16a085;
+    --btn-shadow: rgba(26, 188, 156, 0.5);
+}
+
+/* Magenta oscuro */
+.btn-custom-magenta {
+    --btn-bg: #c0392b;
+    --btn-bg-hover: #a93226;
+    --btn-shadow: rgba(192, 57, 43, 0.5);
+}
+
+/* Mostaza elegante */
+.btn-custom-mustard {
+    --btn-bg: #f39c12;
+    --btn-bg-hover: #e67e22;
+    --btn-shadow: rgba(243, 156, 18, 0.5);
+}
+
+/* Verde oliva */
+.btn-custom-olive {
+    --btn-bg: #7f8c8d;
+    --btn-bg-hover: #707b7c;
+    --btn-shadow: rgba(127, 140, 141, 0.5);
+}
+
+/* Fucsia intenso */
+.btn-custom-fuchsia {
+    --btn-bg: #e91e63;
+    --btn-bg-hover: #c2185b;
+    --btn-shadow: rgba(233, 30, 99, 0.5);
+}
+
+/* Ámbar cálido */
+.btn-custom-amber {
+    --btn-bg: #ff9800;
+    --btn-bg-hover: #f57c00;
+    --btn-shadow: rgba(255, 152, 0, 0.5);
+}
+
+/* Rosa moderno */
+.btn-custom-pink {
+    --btn-bg: #d63384;
+    --btn-bg-hover: #b02a6b;
+    --btn-shadow: rgba(214, 51, 132, 0.5);
+}
+
+/* Naranja cálido */
+.btn-custom-orange {
+    --btn-bg: #fd7e14;
+    --btn-bg-hover: #e8590c;
+    --btn-shadow: rgba(253, 126, 20, 0.5);
+}
+
+/* Verde esmeralda */
+.btn-custom-emerald {
+    --btn-bg: #50c878;
+    --btn-bg-hover: #3da55f;
+    --btn-shadow: rgba(80, 200, 120, 0.5);
+}
+
+/* Menta fresco */
+.btn-custom-mint {
+    --btn-bg: #48c9b0;
+    --btn-bg-hover: #36b39a;
+    --btn-shadow: rgba(72, 201, 176, 0.5);
+}
+
+/* Salmón suave */
+.btn-custom-salmon {
+    --btn-bg: #fa8072;
+    --btn-bg-hover: #e9695b;
+    --btn-shadow: rgba(250, 128, 114, 0.5);
+}
+
+/* Bronce metálico */
+.btn-custom-bronze {
+    --btn-bg: #cd7f32;
+    --btn-bg-hover: #b8722d;
+    --btn-shadow: rgba(205, 127, 50, 0.5);
+}
+
+/* Violeta profundo */
+.btn-custom-violet {
+    --btn-bg: #8e44ad;
+    --btn-bg-hover: #7d3c98;
+    --btn-shadow: rgba(142, 68, 173, 0.5);
+}
+
+/* Lima brillante */
+.btn-custom-lime {
+    --btn-bg: #27ae60;
+    --btn-bg-hover: #229954;
+    --btn-shadow: rgba(39, 174, 96, 0.5);
+}
+
+/* Ciruela oscuro */
+.btn-custom-plum {
+    --btn-bg: #8b4789;
+    --btn-bg-hover: #76397a;
+    --btn-shadow: rgba(139, 71, 137, 0.5);
+}
+
+/* Melocotón suave */
+.btn-custom-peach {
+    --btn-bg: #ff9a76;
+    --btn-bg-hover: #ff8563;
+    --btn-shadow: rgba(255, 154, 118, 0.5);
+}
+
+/* Slate moderno */
+.btn-custom-slate {
+    --btn-bg: #34495e;
+    --btn-bg-hover: #2c3e50;
+    --btn-shadow: rgba(52, 73, 94, 0.5);
+}
+
+/* Cereza oscuro */
+.btn-custom-cherry {
+    --btn-bg: #c0392b;
+    --btn-bg-hover: #a93226;
+    --btn-shadow: rgba(192, 57, 43, 0.5);
+}
+
+/* Aqua tropical */
+.btn-custom-aqua {
+    --btn-bg: #00bcd4;
+    --btn-bg-hover: #0097a7;
+    --btn-shadow: rgba(0, 188, 212, 0.5);
+}
+
+/* Burdeos elegante */
+.btn-custom-burgundy {
+    --btn-bg: #800020;
+    --btn-bg-hover: #6b001a;
+    --btn-shadow: rgba(128, 0, 32, 0.5);
+}
+
+/* Jade imperial */
+.btn-custom-jade {
+    --btn-bg: #00a86b;
+    --btn-bg-hover: #008c59;
+    --btn-shadow: rgba(0, 168, 107, 0.5);
+}
+
+/* Azafrán dorado */
+.btn-custom-saffron {
+    --btn-bg: #f4c430;
+    --btn-bg-hover: #daa520;
+    --btn-shadow: rgba(244, 196, 48, 0.5);
+}
+
+/* Grafito oscuro */
+.btn-custom-graphite {
+    --btn-bg: #3d3d3d;
+    --btn-bg-hover: #2a2a2a;
+    --btn-shadow: rgba(61, 61, 61, 0.5);
+}
+
+/* Carmesí intenso */
+.btn-custom-crimson {
+    --btn-bg: #990000;
+    --btn-bg-hover: #800000;
+    --btn-shadow: rgba(153, 0, 0, 0.5);
+}
+
+/* Aguamarina claro */
+.btn-custom-aquamarine {
+    --btn-bg: #7fffd4;
+    --btn-bg-hover: #66d9b8;
+    --btn-shadow: rgba(127, 255, 212, 0.5);
+}
+
+/* Granate profundo */
+.btn-custom-garnet {
+    --btn-bg: #733635;
+    --btn-bg-hover: #5f2c2b;
+    --btn-shadow: rgba(115, 54, 53, 0.5);
+}
+
+/* Periwinkle suave */
+.btn-custom-periwinkle {
+    --btn-bg: #ccccff;
+    --btn-bg-hover: #b3b3ff;
+    --btn-shadow: rgba(204, 204, 255, 0.5);
+}
+
+/* Terracota cálido */
+.btn-custom-terracotta {
+    --btn-bg: #e2725b;
+    --btn-bg-hover: #d25e47;
+    --btn-shadow: rgba(226, 114, 91, 0.5);
+}
+
+/* Esmeralda oscuro */
+.btn-custom-forest {
+    --btn-bg: #228b22;
+    --btn-bg-hover: #1a6b1a;
+    --btn-shadow: rgba(34, 139, 34, 0.5);
+}

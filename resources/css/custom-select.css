@@ -1,0 +1,55 @@
+.select-custom-turquoise {
+    background-color: #1abc9c !important;
+    color: #ffffff !important;
+    border-color: #16a085 !important;
+
+    /* Ajuste fino del espacio del texto respecto al ícono */
+    padding-right: 1.9rem !important;
+
+    font-weight: 600;
+    transition: all 0.25s ease;
+
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat;
+
+    /* Chevron ligeramente más hacia la derecha */
+    background-position: right 0.6rem center;
+
+    background-size: 1rem;
+
+    cursor: pointer;
+
+    width: auto !important;
+    min-width: 85px;
+    flex: 0 0 auto !important;
+}
+
+.select-custom-turquoise:hover {
+    background-color: #17b897 !important;
+    border-color: #13937a !important;
+}
+
+.select-custom-turquoise:focus {
+    background-color: #16a085 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 0.25rem rgba(26, 188, 156, 0.35) !important;
+    border-color: #16a085 !important;
+}
+
+.select-custom-turquoise option {
+    color: #08362d;
+    background-color: #e2faf4; /* tono más claro */
+    font-weight: 500;
+}
+
+.select-custom-turquoise option:checked {
+    color: #ffffff !important;
+    background-color: #157463 !important; /* hover más suave */
+}
+
+/* Opción seleccionada, marcada pero sin ser tan negra */
+.select-custom-turquoise option:hover {
+    color: #ffffff !important;
+    background-color: #0f5a4b !important; /* tono intermedio, no tan oscuro */
+    font-weight: 600;
+}

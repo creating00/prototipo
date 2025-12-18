@@ -1,0 +1,182 @@
+/* Choices.js - Estilos para Bootstrap 5 */
+.choices {
+    position: relative;
+    margin-bottom: 0;
+}
+
+.choices:focus {
+    outline: none;
+}
+
+.choices__inner {
+    display: inline-block;
+    vertical-align: top;
+    width: 100%;
+    background-color: #fff;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    min-height: 38px;
+    overflow: hidden;
+}
+
+.is-focused .choices__inner,
+.is-open .choices__inner {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.choices__list--single {
+    display: inline-block;
+    padding: 4px 16px 4px 4px;
+    width: 100%;
+}
+
+.choices__list--single .choices__item {
+    width: 100%;
+}
+
+.choices__list--multiple {
+    display: inline;
+}
+
+.choices__list--multiple .choices__item {
+    display: inline-block;
+    vertical-align: middle;
+    border-radius: 0.25rem;
+    padding: 2px 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-right: 5px;
+    margin-bottom: 3px;
+    background-color: #0d6efd;
+    border: 1px solid #0d6efd;
+    color: #fff;
+    word-break: break-all;
+}
+
+.choices__list--multiple .choices__item.is-highlighted {
+    background-color: #0a58ca;
+    border: 1px solid #0a58ca;
+}
+
+.choices__list--dropdown,
+.choices__list[aria-expanded] {
+    visibility: hidden;
+    z-index: 1050; /* Mayor que el z-index de Bootstrap */
+    position: absolute;
+    width: 100%;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    top: 100%;
+    margin-top: -1px;
+    border-bottom-left-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+    overflow: hidden;
+    word-break: break-all;
+}
+
+.is-active.choices__list--dropdown,
+.is-active.choices__list[aria-expanded] {
+    visibility: visible;
+}
+
+.choices__list--dropdown .choices__item,
+.choices__list[aria-expanded] .choices__item {
+    padding: 0.5rem 1rem;
+}
+
+.choices__list--dropdown .choices__item--selectable.is-highlighted,
+.choices__list[aria-expanded] .choices__item--selectable.is-highlighted {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+.choices__item--choice {
+    position: relative;
+    padding: 10px;
+    font-size: 14px;
+}
+
+.choices__heading {
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    padding: 10px;
+    border-bottom: 1px solid #e9ecef;
+    color: #6c757d;
+}
+
+.choices__button {
+    text-indent: -9999px;
+    appearance: none;
+    border: 0;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    cursor: pointer;
+}
+
+.choices__input {
+    display: inline-block;
+    vertical-align: baseline;
+    background-color: transparent;
+    font-size: 14px;
+    margin-bottom: 5px;
+    border: 0;
+    border-radius: 0;
+    max-width: 100%;
+    padding: 4px 0;
+}
+
+.choices__input:focus {
+    outline: 0;
+}
+
+.choices__placeholder {
+    opacity: 0.5;
+}
+
+/* Estados de validación de Bootstrap */
+.choices.is-invalid .choices__inner {
+    border-color: #dc3545;
+}
+
+.choices.is-invalid:focus .choices__inner {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+
+.choices.is-valid .choices__inner {
+    border-color: #198754;
+}
+
+.choices.is-valid:focus .choices__inner {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+}
+
+/* Para selects múltiples con muchos items */
+.choices[data-type*="select-multiple"] .choices__input {
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.choices[data-type*="select-multiple"] .choices__button {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23ffffff' d='M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm121.6 313.1c4.7 4.7 4.7 12.3 0 17L338 377.6c-4.7 4.7-12.3 4.7-17 0L256 312l-65.1 65.6c-4.7 4.7-12.3 4.7-17 0L134.4 338c-4.7-4.7-4.7-12.3 0-17l65.6-65-65.6-65.1c-4.7-4.7-4.7-12.3 0-17l39.6-39.6c4.7-4.7 12.3-4.7 17 0l65 65.7 65.1-65.6c4.7-4.7 12.3-4.7 17 0l39.6 39.6c4.7 4.7 4.7 12.3 0 17L312 256l65.6 65.1z'/%3E%3C/svg%3E");
+    background-size: 8px;
+    width: 8px;
+    height: 8px;
+    margin-left: 8px;
+    padding: 0;
+    opacity: 0.75;
+}
+
+.choices[data-type*="select-multiple"] .choices__button:hover,
+.choices[data-type*="select-multiple"] .choices__button:focus {
+    opacity: 1;
+}

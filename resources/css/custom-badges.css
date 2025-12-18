@@ -1,0 +1,206 @@
+/* Badge base */
+.badge-custom {
+    color: white !important;
+    background-color: var(--badge-bg) !important;
+    border: 1px solid var(--badge-bg) !important;
+    padding: 0.45em 0.65em;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 0.35rem;
+}
+
+/* Hover */
+.badge-custom:hover {
+    background-color: var(--badge-bg-hover) !important;
+    border-color: var(--badge-bg-hover) !important;
+}
+
+/* Focus */
+.badge-custom:focus,
+.badge-custom.focus {
+    background-color: var(--badge-bg-hover) !important;
+    border-color: var(--badge-bg-hover) !important;
+    box-shadow: 0 0 0 0.25rem var(--badge-shadow) !important;
+}
+
+/* Variantes */
+.badge-custom-purple {
+    --badge-bg: #6f42c1;
+    --badge-bg-hover: #5a2d91;
+    --badge-shadow: rgba(111, 66, 193, 0.5);
+}
+
+.badge-custom-green {
+    --badge-bg: #198754;
+    --badge-bg-hover: #146c43;
+    --badge-shadow: rgba(25, 135, 84, 0.5);
+}
+
+.badge-custom-yellow {
+    --badge-bg: #ffc107;
+    --badge-bg-hover: #e0a800;
+    --badge-shadow: rgba(255, 193, 7, 0.5);
+    color: #212529 !important;
+}
+
+.badge-custom-red {
+    --badge-bg: #dc3545;
+    --badge-bg-hover: #b02a37;
+    --badge-shadow: rgba(220, 53, 69, 0.5);
+}
+
+.badge-custom-gray {
+    --badge-bg: #6c757d;
+    --badge-bg-hover: #565e64;
+    --badge-shadow: rgba(108, 117, 125, 0.5);
+}
+
+.badge-custom-sky {
+    --badge-bg: #0dcaf0; /* Sky Blue */
+    --badge-bg-hover: #31d2f2;
+    --badge-shadow: rgba(13, 202, 240, 0.5);
+}
+
+.badge-custom-ocean {
+    --badge-bg: #0d6efd; /* Bootstrap primary but custom */
+    --badge-bg-hover: #0a58ca;
+    --badge-shadow: rgba(13, 110, 253, 0.5);
+}
+
+.badge-custom-cyan {
+    --badge-bg: #17a2b8; /* Teal/Cyan */
+    --badge-bg-hover: #138496;
+    --badge-shadow: rgba(23, 162, 184, 0.5);
+}
+
+.badge-custom-lime {
+    --badge-bg: #84cc16; /* Lime Green */
+    --badge-bg-hover: #65a30d;
+    --badge-shadow: rgba(132, 204, 22, 0.5);
+}
+
+.badge-custom-emerald {
+    --badge-bg: #10b981; /* Emerald */
+    --badge-bg-hover: #059669;
+    --badge-shadow: rgba(16, 185, 129, 0.45);
+}
+
+.badge-custom-mint {
+    --badge-bg: #20c997; /* Mint */
+    --badge-bg-hover: #169c72;
+    --badge-shadow: rgba(32, 201, 151, 0.5);
+}
+
+.badge-custom-orange {
+    --badge-bg: #fd7e14; /* Bright Orange */
+    --badge-bg-hover: #e96a05;
+    --badge-shadow: rgba(253, 126, 20, 0.5);
+}
+
+.badge-custom-apricot {
+    --badge-bg: #ff9f45; /* Smooth Apricot */
+    --badge-bg-hover: #e68526;
+    --badge-shadow: rgba(255, 159, 69, 0.5);
+}
+
+.badge-custom-amber {
+    --badge-bg: #ffbf00; /* Amber */
+    --badge-bg-hover: #e6ac00;
+    --badge-shadow: rgba(255, 191, 0, 0.5);
+}
+
+.badge-custom-rose {
+    --badge-bg: #e11d48; /* Rose / Burgundy */
+    --badge-bg-hover: #be123c;
+    --badge-shadow: rgba(225, 29, 72, 0.5);
+}
+
+.badge-custom-pink {
+    --badge-bg: #d63384; /* Bold Pink */
+    --badge-bg-hover: #b42a6f;
+    --badge-shadow: rgba(214, 51, 132, 0.45);
+}
+
+.badge-custom-crimson {
+    --badge-bg: #dc143c; /* Crimson */
+    --badge-bg-hover: #b31232;
+    --badge-shadow: rgba(220, 20, 60, 0.5);
+}
+
+.badge-custom-dark {
+    --badge-bg: #212529; /* Dark Charcoal */
+    --badge-bg-hover: #1a1e21;
+    --badge-shadow: rgba(33, 37, 41, 0.5);
+}
+
+.badge-custom-carbon {
+    --badge-bg: #2d333b; /* GitHub dark-ish */
+    --badge-bg-hover: #24292f;
+    --badge-shadow: rgba(45, 51, 59, 0.5);
+}
+
+.badge-custom-silver {
+    --badge-bg: #a8a9ad; /* Silver */
+    --badge-bg-hover: #8f9094;
+    --badge-shadow: rgba(168, 169, 173, 0.5);
+    color: #212529 !important;
+}
+
+.badge-custom-gradient-blue {
+    --badge-bg: linear-gradient(135deg, #3b82f6, #1e40af);
+    --badge-bg-hover: linear-gradient(135deg, #2563eb, #1d4ed8);
+    --badge-shadow: rgba(30, 64, 175, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-green {
+    --badge-bg: linear-gradient(135deg, #34d399, #059669);
+    --badge-bg-hover: linear-gradient(135deg, #10b981, #047857);
+    --badge-shadow: rgba(5, 150, 105, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-purple {
+    --badge-bg: linear-gradient(135deg, #a855f7, #6d28d9);
+    --badge-bg-hover: linear-gradient(135deg, #9333ea, #5b21b6);
+    --badge-shadow: rgba(109, 40, 217, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-pastel-blue {
+    --badge-bg: #cfe8ff;
+    --badge-bg-hover: #b3d9ff;
+    --badge-shadow: rgba(207, 232, 255, 0.5);
+    color: #084298 !important;
+}
+
+.badge-custom-pastel-green {
+    --badge-bg: #d1e7dd;
+    --badge-bg-hover: #badbcc;
+    --badge-shadow: rgba(209, 231, 221, 0.5);
+    color: #0f5132 !important;
+}
+
+.badge-custom-pastel-red {
+    --badge-bg: #f8d7da;
+    --badge-bg-hover: #f1bfc3;
+    --badge-shadow: rgba(248, 215, 218, 0.5);
+    color: #842029 !important;
+}
+
+.badge-custom-pastel-yellow {
+    --badge-bg: #fff3cd;
+    --badge-bg-hover: #ffe49c;
+    --badge-shadow: rgba(255, 243, 205, 0.5);
+    color: #664d03 !important;
+}
+
+.badge-custom-pastel-purple {
+    --badge-bg: #e8ddff;
+    --badge-bg-hover: #d5c4ff;
+    --badge-shadow: rgba(200, 175, 255, 0.5);
+    color: #4b0082 !important;
+}

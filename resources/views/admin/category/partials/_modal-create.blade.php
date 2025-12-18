@@ -1,0 +1,3 @@
+<x-admin-lte.dynamic-modal modalId="modalCategoria" title="Nueva Categoría" formId="formNuevaCategoria"
+    btnSaveId="btnGuardarCategoria" :route="route('categories.store')" :form-view="'admin.category.partials._form'" selectId="category_id">
+</x-admin-lte.dynamic-modal>

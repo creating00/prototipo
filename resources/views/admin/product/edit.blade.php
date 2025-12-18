@@ -1,0 +1,32 @@
+@extends('layouts.app')
+
+@section('page-title', 'Editar Producto')
+
+@section('content')
+    <x-admin-lte.alert-manager />
+    <x-admin-lte.form action="{{ route('web.products.update', $formData->product) }}" method="POST"
+        title="Editar Producto: {{ $formData->product->name }}" submit-text="Actualizar Producto"
+        submitting-text="Actualizando producto..." enctype="multipart/form-data" {{-- ¡Necesario para subir imágenes! --}}>
+        @method('PUT')
+        @include('admin.product.partials._form', [
+            'formData' => $formData,
+        ])
+    </x-admin-lte.form>
+
+    <x-admin-lte.toast-container>
+        <x-admin-lte.toast id="toastWarning" color="warning" title="Eliminar imagen" time="Ahora" icon="fas fa-trash">
+            <div class="toast-body">
+                <i class='fas fa-exclamation-triangle'></i> <strong>¡Atención!</strong><br>
+                La imagen actual será eliminada al guardar. Los campos de imagen han sido deshabilitados.
+            </div>
+        </x-admin-lte.toast>
+    </x-admin-lte.toast-container>
+
+    @include('admin.category.partials._modal-create')
+    @include('admin.branch.partials._modal-create')
+    @include('admin.product.partials._image-modal-preview')
+@endsection
+
+@push('scripts')
+    @vite('resources/js/modules/products/edit.js')
+@endpush
