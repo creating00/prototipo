@@ -1,4 +1,4 @@
-name: Deploy Laravel to Hostinger via SSH
+name: Deploy Laravel to Hostinger (MASTER)
 
 on:
   push:
@@ -6,11 +6,11 @@ on:
       - master
 
 jobs:
-  deploy:
+  deploy-master:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to Hostinger via SSH
+      - name: Deploy to Hostinger via SSH (MASTER)
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -18,23 +18,30 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-                  cd domains/prototipo.creatingsoft.net/public_html/laravel-project
+            set -e
 
-                  echo "Sincronizando repositorio..."
-                  git fetch origin
-                  git reset --hard origin/master
+            cd domains/prototipo.creatingsoft.net/public_html/laravel-project
 
-                  echo "Instalando dependencias (modo seguro)..."
-                  composer install --no-dev --no-scripts --no-progress --prefer-dist --optimize-autoloader || exit 1
+            echo "📥 Sincronizando repositorio..."
+            git fetch origin
+            git reset --hard origin/master
 
-                  echo "Limpiando cache..."
-                  php artisan optimize:clear
+            echo "📦 Instalando dependencias (producción)..."
+            composer install --no-dev --no-interaction --optimize-autoloader
 
-                  echo "Ejecutando migraciones..."
-                  php artisan migrate --force
+            echo "🧠 Verificando autoload optimizado..."
+            composer dump-autoload -o
 
-                  echo "Generando cache..."
-                  php artisan config:cache
-                  php artisan route:cache
-                  php artisan view:cache
+            echo "🧹 Limpiando cache..."
+            php artisan optimize:clear
 
+            echo "🗄️ Ejecutando migraciones..."
+            php artisan migrate --force
+
+            echo "⚡ Generando cache productivo..."
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan optimize
+
+            echo "🚀 Deploy MASTER completado con éxito"
