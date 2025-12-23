@@ -6,7 +6,7 @@ use Illuminate\View\Component;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
-class CompactTextArea extends Component
+class CompactTextarea extends Component
 {
     public string $id;
     public string $name;
@@ -70,4 +70,9 @@ class CompactTextArea extends Component
     {
         return view('components.bootstrap.compact-text-area');
     }
+/*    public function render(): View
+{
+    return view('components.bootstrap.compact-textarea');
+}*/
+
 }
