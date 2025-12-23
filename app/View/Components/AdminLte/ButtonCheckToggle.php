@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Closure;
 use Illuminate\Contracts\View\View;
@@ -25,6 +25,6 @@ class ButtonCheckToggle extends Component
      */
     public function render(): View|Closure|string
     {
-        return view('components.admin-lte.button-check-toggle');
+        return view('components.adminlte.button-check-toggle');
     }
 }

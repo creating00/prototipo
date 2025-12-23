@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Closure;
 use Illuminate\Contracts\View\View;
@@ -53,6 +53,6 @@ class ButtonRadioToggle extends Component
     // ... (El resto de la clase permanece igual)
     public function render(): View|Closure|string
     {
-        return view('components.admin-lte.button-radio-toggle');
+        return view('components.adminlte.button-radio-toggle');
     }
 }

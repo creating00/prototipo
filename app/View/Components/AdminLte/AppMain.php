@@ -1,7 +1,7 @@
 <?php
 // app/View/Components/AdminLte/AppMain.php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Illuminate\View\Component;
 use Illuminate\Support\Facades\View;
@@ -25,6 +25,6 @@ class AppMain extends Component
 
     public function render()
     {
-        return view('components.admin-lte.app-main');
+        return view('components.adminlte.app-main');
     }
 }

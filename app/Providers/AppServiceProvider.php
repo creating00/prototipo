@@ -13,10 +13,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        Blade::componentNamespace(
-            'App\\View\\Components\\AdminLte',
-            'adminlte'
-        );
+        // Blade::componentNamespace(
+        //     'App\\View\\Components\\AdminLte',
+        //     'adminlte'
+        // );
     }
 
     /**

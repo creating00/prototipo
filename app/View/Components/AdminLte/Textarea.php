@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Illuminate\View\Component;
 
@@ -34,6 +34,6 @@ class Textarea extends Component
 
     public function render()
     {
-        return view('components.admin-lte.textarea');
+        return view('components.adminlte.textarea');
     }
 }

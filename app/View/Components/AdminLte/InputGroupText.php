@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Closure;
 use Illuminate\Contracts\View\View;
@@ -42,6 +42,6 @@ class InputGroupText extends Component
 
     public function render(): View|Closure|string
     {
-        return view('components.admin-lte.input-group-text');
+        return view('components.adminlte.input-group-text');
     }
 }

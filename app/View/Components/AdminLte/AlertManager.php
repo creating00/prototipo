@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Closure;
 use Illuminate\Contracts\View\View;
@@ -24,6 +24,6 @@ class AlertManager extends Component
 
     public function render(): View|Closure|string
     {
-        return view('components.admin-lte.alert-manager');
+        return view('components.adminlte.alert-manager');
     }
 }

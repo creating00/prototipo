@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Closure;
 use Illuminate\Contracts\View\View;
@@ -41,7 +41,7 @@ class Button extends Component
      */
     public function render(): View|Closure|string
     {
-        return view('components.admin-lte.button', [
+        return view('components.adminlte.button', [
             'allowedColors' => $this->allowedColors
         ]);
     }

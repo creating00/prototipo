@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Illuminate\Support\Str;
 use Illuminate\View\Component;
@@ -53,6 +53,6 @@ class MenuBuilder extends Component
 
     public function render()
     {
-        return view('components.admin-lte.menu-builder');
+        return view('components.adminlte.menu-builder');
     }
 }

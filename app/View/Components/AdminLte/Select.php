@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Closure;
 use Illuminate\Contracts\View\View;
@@ -45,6 +45,6 @@ class Select extends Component
 
     public function render(): View|Closure|string
     {
-        return view('components.admin-lte.select');
+        return view('components.adminlte.select');
     }
 }

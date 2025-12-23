@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Closure;
 use Illuminate\Contracts\View\View;
@@ -126,7 +126,7 @@ class DataTable extends Component
 
     public function render(): View|Closure|string
     {
-        return view('components.admin-lte.data-table');
+        return view('components.adminlte.data-table');
     }
 
     public function getTableClass(): string

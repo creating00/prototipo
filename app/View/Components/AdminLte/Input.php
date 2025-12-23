@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Closure;
 use Illuminate\Contracts\View\View;
@@ -33,6 +33,6 @@ class Input extends Component
 
     public function render(): View|Closure|string
     {
-        return view('components.admin-lte.input');
+        return view('components.adminlte.input');
     }
 }

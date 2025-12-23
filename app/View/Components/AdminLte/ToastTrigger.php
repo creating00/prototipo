@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Closure;
 use Illuminate\Contracts\View\View;
@@ -23,6 +23,6 @@ class ToastTrigger extends Component
      */
     public function render(): View|Closure|string
     {
-        return view('components.admin-lte.toast-trigger');
+        return view('components.adminlte.toast-trigger');
     }
 }

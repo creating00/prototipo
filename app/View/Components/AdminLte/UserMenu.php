@@ -1,7 +1,7 @@
 <?php
 // app/View/Components/AdminLte/UserMenu.php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Closure;
 use Illuminate\Contracts\View\View;
@@ -71,6 +71,6 @@ class UserMenu extends Component
      */
     public function render(): View|Closure|string
     {
-        return view('components.admin-lte.user-menu');
+        return view('components.adminlte.user-menu');
     }
 }

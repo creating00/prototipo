@@ -1,7 +1,7 @@
 <?php
 // app/View/Components/AdminLte/ContentHeader.php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Illuminate\View\Component;
 
@@ -21,7 +21,7 @@ class ContentHeader extends Component
 
     public function render()
     {
-        return view('components.admin-lte.content-header', [
+        return view('components.adminlte.content-header', [
             'title' => $this->title,
             'breadcrumbs' => $this->breadcrumbs
         ]);

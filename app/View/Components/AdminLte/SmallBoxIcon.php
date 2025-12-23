@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Illuminate\View\Component;
 use Illuminate\Contracts\View\View;
@@ -24,6 +24,6 @@ class SmallBoxIcon extends Component
 
     public function render(): View|Closure|string
     {
-        return view('components.admin-lte.small-box-icon');
+        return view('components.adminlte.small-box-icon');
     }
 }

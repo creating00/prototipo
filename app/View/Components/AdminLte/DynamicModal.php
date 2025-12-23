@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Closure;
 use Illuminate\Contracts\View\View;
@@ -51,6 +51,6 @@ class DynamicModal extends Component
      */
     public function render(): View|Closure|string
     {
-        return view('components.admin-lte.dynamic-modal');
+        return view('components.adminlte.dynamic-modal');
     }
 }

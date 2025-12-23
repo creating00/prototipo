@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\AdminLte;
+namespace App\View\Components\Adminlte;
 
 use Closure;
 use Illuminate\Contracts\View\View;
@@ -21,6 +21,6 @@ class PrimaryButton extends Component
      */
     public function render(): View|Closure|string
     {
-        return view('components.admin-lte.primary-button');
+        return view('components.adminlte.primary-button');
     }
 }
