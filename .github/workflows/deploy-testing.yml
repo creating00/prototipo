@@ -1,0 +1,46 @@
+name: Deploy Laravel to Hostinger (TESTING)
+
+on:
+  push:
+    branches:
+      - testing
+
+jobs:
+  deploy-testing:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Hostinger via SSH (TESTING)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+
+            cd domains/prototipo.creatingsoft.net/public_html/testing
+
+            echo "📥 Sincronizando repositorio..."
+            git fetch origin
+            git reset --hard origin/testing
+
+            echo "📦 Instalando dependencias (con dev)..."
+            composer install --no-interaction
+
+            echo "🧠 Regenerando autoload (PSR-4 strict)..."
+            composer dump-autoload -o
+
+            echo "🧹 Limpiando cache..."
+            php artisan optimize:clear
+
+            echo "🗄️ Ejecutando migraciones..."
+            php artisan migrate --force
+
+            echo "⚡ Generando cache..."
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            echo "✅ Deploy TESTING completado"
