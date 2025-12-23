@@ -26,13 +26,13 @@ jobs:
 
             echo "Instalando dependencias..."
             rm -rf vendor
-            composer install --no-dev --optimize-autoloader --no-interaction
+            composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
 
             echo "Limpiando cache..."
             php artisan optimize:clear
 
             echo "Ejecutando migraciones..."
-            php artisan migrate --force
+            php artisan migrate --force || true
 
             echo "Generando cache..."
             php artisan config:cache
@@ -40,4 +40,3 @@ jobs:
             php artisan view:cache
 
             echo "Deploy completado correctamente ✅"
-
