@@ -20,19 +20,24 @@ jobs:
           script: |
             cd domains/prototipo.creatingsoft.net/public_html/laravel-project
 
-            echo "Actualizando repositorio..."
-            git pull origin master
+            echo "Sincronizando repositorio..."
+            git fetch origin
+            git reset --hard origin/master
 
             echo "Instalando dependencias..."
-            composer install --no-dev --optimize-autoloader
+            rm -rf vendor
+            composer install --no-dev --optimize-autoloader --no-interaction
+
+            echo "Limpiando cache..."
+            php artisan optimize:clear
 
             echo "Ejecutando migraciones..."
             php artisan migrate --force
 
-            echo "Optimizando..."
+            echo "Generando cache..."
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
-            php artisan optimize
 
-            echo "Deploy completado."
+            echo "Deploy completado correctamente ✅"
+
