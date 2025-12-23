@@ -18,25 +18,23 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd domains/prototipo.creatingsoft.net/public_html/laravel-project
+                  cd domains/prototipo.creatingsoft.net/public_html/laravel-project
 
-            echo "Sincronizando repositorio..."
-            git fetch origin
-            git reset --hard origin/master
+                  echo "Sincronizando repositorio..."
+                  git fetch origin
+                  git reset --hard origin/master
 
-            echo "Instalando dependencias..."
-            rm -rf vendor
-            composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+                  echo "Instalando dependencias (modo seguro)..."
+                  composer install --no-dev --no-scripts --no-progress --prefer-dist --optimize-autoloader || exit 1
 
-            echo "Limpiando cache..."
-            php artisan optimize:clear
+                  echo "Limpiando cache..."
+                  php artisan optimize:clear
 
-            echo "Ejecutando migraciones..."
-            php artisan migrate --force || true
+                  echo "Ejecutando migraciones..."
+                  php artisan migrate --force
 
-            echo "Generando cache..."
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+                  echo "Generando cache..."
+                  php artisan config:cache
+                  php artisan route:cache
+                  php artisan view:cache
 
-            echo "Deploy completado correctamente ✅"
