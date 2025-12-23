@@ -13,7 +13,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        Blade::componentNamespace(
+            'App\\View\\Components\\AdminLte',
+            'adminlte'
+        );
     }
 
     /**
@@ -24,9 +27,5 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(function ($user, $ability) {
             return $user->hasRole('admin') ? true : null;
         });
-        Blade::componentNamespace(
-            'App\\View\\Components\\AdminLte',
-            'adminlte'
-        );
     }
 }
