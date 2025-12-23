@@ -25,25 +25,47 @@ class OrderDataProcessor
     {
         $data = $validated;
 
-        if (($validated['source'] ?? null) == OrderSource::Ecommerce->value) {
-            // Si hay token, obtener cliente desde token
-            if (isset($validated['token'])) {
-                $this->handleTokenOrder($data);
-            }
-            // Si hay client, crear o buscar cliente desde los datos enviados
-            elseif (isset($validated['client'])) {
-                $this->handleEcommerceOrder($data);
-            }
-            // Si no hay ni token ni client, lanzar error
-            else {
-                throw new \Exception('Debes enviar token o client para pedidos Ecommerce');
+        if (($data['source'] ?? null) == OrderSource::Ecommerce->value) {
+
+            /**
+             * Ecommerce → Cliente
+             */
+            if (($data['customer_type'] ?? null) === Client::class) {
+
+                if (isset($data['token'])) {
+                    $this->handleTokenOrder($data);
+                } elseif (isset($data['client'])) {
+                    $this->handleEcommerceOrder($data);
+                } else {
+                    throw new \Exception(
+                        'Debes enviar token o client para pedidos Ecommerce a clientes'
+                    );
+                }
+
+                /**
+                 * Ecommerce → Branch (Branch to Branch)
+                 */
+            } elseif (($data['customer_type'] ?? null) === \App\Models\Branch::class) {
+
+                if (!isset($data['branch_recipient_id'])) {
+                    throw new \Exception('branch_recipient_id es obligatorio para pedidos entre sucursales');
+                }
+
+                $data['customer_id'] = $data['branch_recipient_id'];
+                $data['customer_type'] = \App\Models\Branch::class;
+                $data['user_id'] = $this->getDefaultEcommerceUser()->id;
+                $data['branch_id'] = $data['branch_id'] ?? $this->currentBranchId();
+            } else {
+                throw new \Exception('customer_type no soportado para Ecommerce');
             }
         } else {
+            // Backoffice
             $this->handleInternalOrder($data);
         }
 
         return $data;
     }
+
 
     protected function handleTokenOrder(array &$data): void
     {

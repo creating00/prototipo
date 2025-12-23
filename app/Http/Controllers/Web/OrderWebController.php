@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Web;
 
 use App\Enums\OrderStatus;
 use App\Http\Controllers\BaseOrderController;
+use App\Traits\AuthTrait;
 use Illuminate\Http\Request;
 
 class OrderWebController extends BaseOrderController
 {
+    use AuthTrait;
+
     public function index()
     {
         $rowData = $this->orderService->getAllOrdersForDataTable();
@@ -54,7 +57,7 @@ class OrderWebController extends BaseOrderController
 
     public function createBranch()
     {
-        $userBranchId = auth()->user()->branch_id;
+        $userBranchId = $this->currentBranchId();
 
         $branchService = app(\App\Services\BranchService::class);
 

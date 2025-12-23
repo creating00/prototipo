@@ -5,18 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\BaseOrderController;
 use Illuminate\Http\Request;
 use App\Enums\OrderSource;
+use App\Models\Client;
 
 class OrderController extends BaseOrderController
 {
     public function index()
     {
-        // Solo usuarios autenticados pueden ver todas las órdenes
-        if (!auth()->check()) {
-            return response()->json([
-                'error' => 'Authentication required to view orders'
-            ], 401);
-        }
-
         return response()->json(
             $this->orderService->getAllOrders()
         );
@@ -27,21 +21,18 @@ class OrderController extends BaseOrderController
         try {
             $data = $request->all();
 
-            // Validar que solo usuarios autenticados puedan crear órdenes Backoffice
-            if (!auth()->check()) {
-                return response()->json([
-                    'error' => 'Authentication required for Backoffice orders'
-                ], 401);
-            }
-
-            // Forzar source Backoffice para usuarios autenticados
+            // Forzar valores Backoffice
             $data['source'] = OrderSource::Backoffice->value;
-            $data['user_id'] = auth()->id();
+            $data['user_id'] = config('orders.system_user_id');
+            $data['customer_type'] = \App\Models\Branch::class;
 
             $order = $this->orderService->createOrder($data);
+
             return response()->json($order, 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['errors' => $e->errors()], 422);
+            return response()->json([
+                'errors' => $e->errors()
+            ], 422);
         }
     }
 
@@ -50,42 +41,49 @@ class OrderController extends BaseOrderController
         try {
             $data = $request->all();
 
-            // Forzar el source a Ecommerce antes de pasar a OrderService
             $data['source'] = OrderSource::Ecommerce->value;
 
-            // Crear la orden usando OrderService
+            // Validar customer_type explícito
+            if (!isset($data['customer_type'])) {
+                return response()->json([
+                    'error' => 'customer_type is required'
+                ], 422);
+            }
+
+            // Forzar reglas según customer_type
+            if ($data['customer_type'] === Client::class) {
+                if (!isset($data['client_id'])) {
+                    return response()->json([
+                        'error' => 'client_id is required for client orders'
+                    ], 422);
+                }
+            }
+
+            if ($data['customer_type'] === \App\Models\Branch::class) {
+                if (!isset($data['branch_recipient_id'])) {
+                    return response()->json([
+                        'error' => 'branch_recipient_id is required for branch orders'
+                    ], 422);
+                }
+            }
+
             $order = $this->orderService->createOrder($data);
 
-            // Solo retornar los campos que te interesan
-            $response = [
-                'id' => $order->id,
-                'branch_id' => $order->branch_id,
-                'customer_id' => $order->customer_id,
-                'status' => $order->status,
-                'total_amount' => $order->total_amount,
-                'notes' => $order->notes,
-                'created_at' => $order->created_at,
-            ];
-
-            return response()->json($response, 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['errors' => $e->errors()], 422);
-        } catch (\Exception $e) {
             return response()->json([
-                'error' => $e->getMessage()
-            ], $e->getCode() ?: 400);
+                'id' => $order->id,
+                'total_amount' => $order->total_amount,
+                'status' => $order->status,
+                'created_at' => $order->created_at,
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'errors' => $e->errors()
+            ], 422);
         }
     }
 
     public function show($id)
     {
-        // Solo usuarios autenticados pueden ver órdenes específicas
-        if (!auth()->check()) {
-            return response()->json([
-                'error' => 'Authentication required to view order details'
-            ], 401);
-        }
-
         return response()->json(
             $this->orderService->getOrderById($id)
         );
@@ -96,43 +94,29 @@ class OrderController extends BaseOrderController
         try {
             $data = $request->all();
 
-            // Prevenir cambios de source en actualizaciones
-            if (isset($data['source'])) {
-                unset($data['source']);
-            }
-
-            // Solo usuarios autenticados pueden actualizar órdenes
-            if (!auth()->check()) {
-                return response()->json([
-                    'error' => 'Authentication required to update orders'
-                ], 401);
-            }
+            // Nunca permitir cambiar el source
+            unset($data['source']);
 
             $order = $this->orderService->updateOrder($id, $data);
+
             return response()->json($order);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['errors' => $e->errors()], 422);
+            return response()->json([
+                'errors' => $e->errors()
+            ], 422);
         }
     }
 
     public function destroy($id)
     {
-        // Solo usuarios autenticados pueden eliminar órdenes
-        if (!auth()->check()) {
-            return response()->json([
-                'error' => 'Authentication required to delete orders'
-            ], 401);
-        }
-
         try {
             return response()->json(
                 $this->orderService->deleteOrder($id)
             );
         } catch (\Exception $e) {
-            return response()->json(
-                ['error' => $e->getMessage()],
-                $e->getCode() ?: 400
-            );
+            return response()->json([
+                'error' => $e->getMessage()
+            ], $e->getCode() ?: 400);
         }
     }
 }

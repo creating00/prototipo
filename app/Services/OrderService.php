@@ -15,11 +15,12 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use App\Services\Traits\DataTableFormatter;
+use App\Traits\AuthTrait;
 use Illuminate\Support\Str;
 
 class OrderService
 {
-    use DataTableFormatter;
+    use DataTableFormatter, AuthTrait;
 
     protected ProductStockService $stockService;
     protected OrderDataProcessor $dataProcessor;
@@ -38,11 +39,26 @@ class OrderService
         $this->clientService = $clientService ?? new ClientService();
     }
 
+    // public function getAllOrders()
+    // {
+    //     $branchId = $this->currentBranchId();
+    //     return Order::with(['branch', 'customer', 'user'])
+    //         ->orderBy('created_at', 'desc')
+    //         ->get();
+    // }
+
     public function getAllOrders()
     {
-        return Order::with(['branch', 'customer', 'user'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $branchId = $this->currentBranchId();
+
+        $query = Order::with(['branch', 'customer', 'user'])
+            ->orderBy('created_at', 'desc');
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        return $query->get();
     }
 
     public function getOrderById($id): Order
@@ -131,25 +147,37 @@ class OrderService
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|numeric|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
+            'customer_type' => 'required|in:App\Models\Client,App\Models\Branch',
         ];
 
-        if (($data['source'] ?? null) == OrderSource::Ecommerce->value) {
-            // Permitir token opcional
-            $rules['token'] = 'nullable|string';
+        /**
+         * Reglas específicas por tipo de customer
+         */
+        if (($data['customer_type'] ?? null) === Client::class) {
 
-            // Permitir client opcional, validar solo si se envía
-            $rules['client'] = 'nullable|array';
-            $rules['client.document'] = 'required_with:client|string';
-            $rules['client.full_name'] = 'required_with:client|string';
-        } else {
-            $rules['user_id'] = 'required|exists:users,id';
-            $rules['customer_type'] = 'required|in:App\Models\Client,App\Models\Branch';
-
-            if (($data['customer_type'] ?? null) === Client::class) {
+            // Ecommerce puede enviar client embebido
+            if (($data['source'] ?? null) == OrderSource::Ecommerce->value) {
+                $rules['client'] = 'required|array';
+                $rules['client.document'] = 'required|string';
+                $rules['client.full_name'] = 'required|string';
+            } else {
+                // Backoffice
                 $rules['client_id'] = 'required|exists:clients,id';
-            } elseif (($data['customer_type'] ?? null) === \App\Models\Branch::class) {
-                $rules['branch_recipient_id'] = 'required|exists:branches,id';
             }
+        } elseif (($data['customer_type'] ?? null) === \App\Models\Branch::class) {
+
+            $rules['branch_recipient_id'] = 'required|exists:branches,id';
+        }
+
+        /**
+         * Reglas específicas por source
+         */
+        if (($data['source'] ?? null) == OrderSource::Backoffice->value) {
+            $rules['user_id'] = 'required|exists:users,id';
+        }
+
+        if (($data['source'] ?? null) == OrderSource::Ecommerce->value) {
+            $rules['token'] = 'nullable|string';
         }
 
         return $rules;
