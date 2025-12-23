@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('provinces', function (Blueprint $table) {
-            $table->id();
-            $table->string('api_id')->unique(); // "82"
-            $table->string('name');             // "Córdoba"
-            $table->string('name_long')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('provinces')) {
+            Schema::create('provinces', function (Blueprint $table) {
+                $table->id();
+                $table->string('api_id')->unique(); // "82"
+                $table->string('name');             // "Córdoba"
+                $table->string('name_long')->nullable();
+                $table->timestamps();
+            });
+        }
 
         Schema::create('branches', function (Blueprint $table) {
             $table->id();
@@ -38,5 +40,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('branches');
+        Schema::dropIfExists('provinces');
     }
 };
