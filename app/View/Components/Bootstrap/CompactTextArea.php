@@ -66,13 +66,12 @@ class CompactTextarea extends Component
             : '';
     }
 
-    public function render(): View
+    /*public function render(): View
     {
         return view('components.bootstrap.compact-text-area');
+    }*/
+    public function render(): View
+    {
+        return view('components.bootstrap.compact-textarea');
     }
-/*    public function render(): View
-{
-    return view('components.bootstrap.compact-textarea');
-}*/
-
 }
