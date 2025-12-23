@@ -13,7 +13,7 @@
             <div class="row mb-4">
                 @foreach ($cards as $card)
                     <div class="col-md-3 col-sm-6 col-12">
-                        <x-admin-lte.small-box :title="$card['title']" :value="$card['value']" :color="$card['color']" :description="$card['description'] ?? null"
+                        <x-adminlte.small-box :title="$card['title']" :value="$card['value']" :color="$card['color']" :description="$card['description'] ?? null"
                             :icon="$card['icon'] ?? ''" :svgPath="$card['svgPath'] ?? ''" :viewBox="$card['viewBox'] ?? '0 0 24 24'" :url="$card['url'] ?? '#'" :customBgColor="$card['customBgColor'] ?? null" />
                     </div>
                 @endforeach

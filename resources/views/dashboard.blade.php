@@ -7,7 +7,7 @@
         {{-- Usamos $cards que viene del controlador --}}
         @foreach ($cards as $card)
             <div class="col-md-3 col-sm-6">
-                <x-admin-lte.small-box :title="$card['title']" :value="$card['value']" :color="$card['color']" :icon="$card['icon'] ?? ''"
+                <x-adminlte.small-box :title="$card['title']" :value="$card['value']" :color="$card['color']" :icon="$card['icon'] ?? ''"
                     :viewBox="$card['viewBox']" :url="route($card['route']['href'])" :footerLabel="$card['route']['label']" :description="$card['description'] ?? null" :customBgColor="$card['customBgColor'] ?? null" />
             </div>
         @endforeach

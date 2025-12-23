@@ -7,7 +7,7 @@
             <small class="text-opacity-75">{{ $description }}</small>
         @endif
     </div>
-    <x-admin-lte.small-box-icon :svgViewBox="$svgViewBox" :svgContent="$svgContent" :useFullPath="$useFullPath" />
+    <x-adminlte.small-box-icon :svgViewBox="$svgViewBox" :svgContent="$svgContent" :useFullPath="$useFullPath" />
 
-    <x-admin-lte.small-box-footer :url="$url" />
+    <x-adminlte.small-box-footer :url="$url" />
 </div>
