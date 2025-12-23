@@ -1,0 +1,38 @@
+name: Deploy Laravel to Hostinger via SSH
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Hostinger via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd domains/prototipo.creatingsoft.net/public_html/laravel-project
+
+            echo "Actualizando repositorio..."
+            git pull origin master
+
+            echo "Instalando dependencias..."
+            composer install --no-dev --optimize-autoloader
+
+            echo "Ejecutando migraciones..."
+            php artisan migrate --force
+
+            echo "Optimizando..."
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan optimize
+
+            echo "Deploy completado."
