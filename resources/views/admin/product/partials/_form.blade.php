@@ -51,7 +51,7 @@
 
         {{-- Descripción --}}
         <div class="col-md-8">
-            <x-bootstrap.compact-textarea name="description" label="Descripción"
+            <x-bootstrap.compact-text-area name="description" label="Descripción"
                 placeholder="Detalles y especificaciones del producto"
                 value="{{ old('description', $formData->product?->description ?? '') }}" rows="4" />
         </div>

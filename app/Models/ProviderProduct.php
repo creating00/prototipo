@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ProviderProductStatus;
+use App\Models\Traits\BelongsToBranch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProviderProduct extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, BelongsToBranch;
 
     protected $table = 'provider_products';
 

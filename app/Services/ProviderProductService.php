@@ -4,28 +4,37 @@ namespace App\Services;
 
 use App\Models\ProviderProduct;
 use App\Enums\ProviderProductStatus;
+use App\Traits\AuthTrait;
 use Illuminate\Validation\ValidationException;
 
 class ProviderProductService
 {
+    use AuthTrait;
+
     public function attachProductToProvider(array $data): ProviderProduct
     {
+        if (!isset($data['branch_id'])) {
+            throw new \InvalidArgumentException('El ID de la sucursal es requerido.');
+        }
+
+        // Validamos existencia solo dentro de la sucursal actual
         $exists = ProviderProduct::where('provider_id', $data['provider_id'])
             ->where('product_id', $data['product_id'])
             ->exists();
 
         if ($exists) {
             throw ValidationException::withMessages([
-                'product_id' => 'El proveedor ya tiene asociado este producto.',
+                'product_id' => 'El proveedor ya tiene asociado este producto en esta sucursal.',
             ]);
         }
 
         return ProviderProduct::create([
-            'provider_id'     => $data['provider_id'],
-            'product_id'      => $data['product_id'],
-            'provider_code'   => $data['provider_code'] ?? null,
-            'lead_time_days'  => $data['lead_time_days'] ?? null,
-            'status'          => ProviderProductStatus::ACTIVE,
+            'branch_id'      => $data['branch_id'],
+            'provider_id'    => $data['provider_id'],
+            'product_id'     => $data['product_id'],
+            'provider_code'  => $data['provider_code'] ?? null,
+            'lead_time_days' => $data['lead_time_days'] ?? null,
+            'status'         => ProviderProductStatus::ACTIVE,
         ]);
     }
 
