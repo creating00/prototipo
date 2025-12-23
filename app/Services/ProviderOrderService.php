@@ -9,11 +9,13 @@ use App\Models\{
     ProviderProduct
 };
 use App\Enums\ProviderOrderStatus;
+use App\Traits\AuthTrait;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class ProviderOrderService
 {
+    use AuthTrait;
     /**
      * Crear una orden de compra en estado DRAFT
      */
@@ -23,6 +25,7 @@ class ProviderOrderService
             'provider_id' => $provider->id,
             'order_date'  => now(),
             'status'      => ProviderOrderStatus::DRAFT->value,
+            // branch_id se hereda del Auth::user() mediante el Trait
         ]);
     }
 
@@ -36,11 +39,12 @@ class ProviderOrderService
         ?float $unitCost = null,
         ?int $currency = null
     ): ProviderOrderItem {
-        // Si no viene precio, tomamos el vigente
+
+        // El Global Scope asegura que solo tomamos precios de la sucursal actual
         $price = $providerProduct->currentPrice;
 
         if ($unitCost === null && !$price) {
-            throw new \RuntimeException('El producto no tiene precio vigente.');
+            throw new \RuntimeException('El producto no tiene precio vigente en esta sucursal.');
         }
 
         return $order->items()->create([

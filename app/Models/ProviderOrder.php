@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use App\Enums\ProviderOrderStatus;
+use App\Models\Traits\BelongsToBranch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProviderOrder extends Model
 {
+    use BelongsToBranch;
     protected $fillable = [
         'branch_id',
         'provider_id',

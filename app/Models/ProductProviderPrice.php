@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Enums\CurrencyType;
+use App\Models\Traits\BelongsToBranch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProductProviderPrice extends Model
 {
+    use BelongsToBranch;
     protected $table = 'product_provider_prices';
 
     protected $fillable = [

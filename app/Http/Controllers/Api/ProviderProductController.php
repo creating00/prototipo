@@ -8,6 +8,7 @@ use App\Models\ProviderProduct;
 use App\Services\ProviderProductService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class ProviderProductController extends Controller
 {
@@ -16,6 +17,30 @@ class ProviderProductController extends Controller
     public function __construct(ProviderProductService $providerProductService)
     {
         $this->providerProductService = $providerProductService;
+    }
+
+    public function store(Request $request, Provider $provider)
+    {
+        
+        try {
+            $data = $request->all();
+            $data['provider_id'] = $provider->id;
+
+            $providerProduct = $this->providerProductService->attachProductToProvider($data);
+
+            return response()->json([
+                'message' => 'Producto asociado correctamente',
+                'provider_product' => $providerProduct
+            ], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

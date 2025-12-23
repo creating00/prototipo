@@ -10,12 +10,20 @@ trait AuthTrait
     {
         return Auth::user();
     }
-    
+
     protected function currentBranchId(): ?int
     {
-        return Auth::user()?->branch_id;
+        // Forzamos Auth::user() y verificamos el atributo
+        $user = Auth::user();
+
+        if (!$user) {
+            return null;
+        }
+
+        // Si el id viene como string de la DB, nos aseguramos que sea int
+        return $user->branch_id ? (int) $user->branch_id : null;
     }
-    
+
     protected function userId(): ?int
     {
         return Auth::id();

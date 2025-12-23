@@ -38,7 +38,7 @@
 <h3 class="form-section-title">Ubicación (opcional)</h3>
 <div class="row g-3">
     <div class="col-md-12">
-        <x-bootstrap.compact-textarea id="address" name="address" label="Dirección"
+        <x-bootstrap.compact-text-area id="address" name="address" label="Dirección"
             placeholder="Ej: Av. Cabildo 1234, Buenos Aires" :value="old('address', $client->address ?? '')" rows="3" />
     </div>
 </div>
