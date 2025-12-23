@@ -1,4 +1,5 @@
 // resources/js/modules/sales/partials/sale-payment.js
+import { dispatchRepairCategoryChanged } from "@/helpers/repair-category-events";
 
 const SALE_TYPE = {
     SALE: "1",
@@ -13,11 +14,26 @@ const salePayment = {
     init: function () {
         this.detectSaleType();
         this.bindEvents();
+        dispatchRepairCategoryChanged(
+            this.saleType === SALE_TYPE.REPAIR
+                ? document.querySelector('select[name="repair_type_id"]')
+                      ?.value || null
+                : null
+        );
         this.initializePaymentFields();
         this.calculateChangeAndBalance();
     },
 
     bindEvents: function () {
+        const repairTypeSelect =
+            document.getElementById("repair_type") ||
+            document.querySelector('select[name="repair_type_id"]');
+
+        if (repairTypeSelect) {
+            repairTypeSelect.addEventListener("change", (e) => {
+                dispatchRepairCategoryChanged(e.target.value || null);
+            });
+        }
         const amountReceivedInput = document.getElementById("amount_received");
         if (amountReceivedInput) {
             ["input", "change"].forEach((event) =>
@@ -69,23 +85,50 @@ const salePayment = {
         const saleTotalWrapper = document.getElementById("sale-total-wrapper");
         const repairWrapper = document.getElementById("repair-amount-wrapper");
         const repairInput = document.getElementById("repair_amount");
+        const repairTypeWrapper = document.getElementById(
+            "repair-type-wrapper"
+        );
 
-        if (this.saleType === SALE_TYPE.REPAIR) {
+        const isRepair = this.saleType === SALE_TYPE.REPAIR;
+
+        const repairTypeSelect = repairTypeWrapper?.querySelector("select");
+
+        if (isRepair) {
             saleTotalWrapper?.classList.add("d-none");
             repairWrapper?.classList.remove("d-none");
+            repairTypeWrapper?.classList.remove("d-none");
 
             if (repairInput) {
                 repairInput.disabled = false;
             }
 
+            if (repairTypeSelect) {
+                repairTypeSelect.disabled = false;
+            }
+
             this.setSaleTotalFromRepair();
         } else {
             repairWrapper?.classList.add("d-none");
+            repairTypeWrapper?.classList.add("d-none");
             saleTotalWrapper?.classList.remove("d-none");
 
             if (repairInput) {
                 repairInput.disabled = true;
                 repairInput.value = "";
+            }
+
+            if (repairTypeSelect) {
+                repairTypeSelect.disabled = true;
+                repairTypeSelect.value = "";
+
+                if (repairTypeSelect._choices) {
+                    repairTypeSelect._choices.removeActiveItems();
+                    repairTypeSelect._choices.setChoiceByValue("");
+                }
+
+                if (this.saleType !== SALE_TYPE.REPAIR) {
+                    dispatchRepairCategoryChanged(null);
+                }
             }
 
             this.setSaleTotalFromSale();

@@ -1,32 +1,34 @@
 import { TableManager } from "../../components/TableManager";
 import { deleteItem } from "../../utils/deleteHelper";
 
-// Configuración específica de categorías
 const TABLE_CONFIG = {
     tableId: "providers-table",
     rowActions: {
         edit: {
             selector: ".btn-edit",
-            handler: (row) => {
-                const { id, name } = row.dataset;
+            handler: (row, baseUrl) => {
+                const { id } = row.dataset;
 
-                // Redirigir a la página de edición
-                window.location.href = `/web/providers/${id}/edit`;
+                // Redirección dinámica usando la URL capturada
+                window.location.href = `${baseUrl}/${id}/edit`;
             },
         },
         delete: {
             selector: ".btn-delete",
-            handler: (row) => {
+            handler: (row, baseUrl) => {
                 const { id, name } = row.dataset;
-                deleteItem(`/web/providers/${id}`, `la categoría "${name}"`);
+
+                // Eliminación dinámica con mensaje corregido
+                deleteItem(`${baseUrl}/${id}`, `el proveedor "${name}"`);
             },
         },
     },
     headerActions: {
         new: {
             selector: ".btn-header-new",
-            handler: () => {
-                window.location.href = "/web/providers/create";
+            handler: (baseUrl) => {
+                // Ruta de creación dinámica
+                window.location.href = `${baseUrl}/create`;
             },
         },
     },

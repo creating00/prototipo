@@ -125,5 +125,6 @@ return [
     ],
 
     'ecommerce_default_user_email' => env('ECOMMERCE_DEFAULT_USER_EMAIL', 'ecommerce@system.com'),
-
+    'default_client_document' => env('DEFAULT_CLIENT_DOCUMENT', '00000000'),
+    'default_client_name'     => env('DEFAULT_CLIENT_NAME', 'Consumidor Final'),
 ];

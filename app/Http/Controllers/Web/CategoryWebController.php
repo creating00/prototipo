@@ -13,7 +13,7 @@ class CategoryWebController extends BaseCategoryController
         $categories = $this->categoryService->getAllCategories();
 
         $headers = ['#', 'Nombre', 'Creado en:'];
-        $hiddenFields = ['id'];
+        $hiddenFields = ['id', 'is_system'];
 
         return view('admin.category.index', compact('categories', 'rowData', 'headers', 'hiddenFields'));
     }

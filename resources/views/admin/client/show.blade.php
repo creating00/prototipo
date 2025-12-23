@@ -66,7 +66,7 @@
 
             {{-- Órdenes del Cliente (si existen) --}}
             @if ($client->orders && $client->orders->count() > 0)
-                <hr class="my-4">
+                <hr class="my-3">
                 <div class="row">
                     <div class="col-md-12">
                         <h5 class="text-primary">Órdenes Asociadas</h5>

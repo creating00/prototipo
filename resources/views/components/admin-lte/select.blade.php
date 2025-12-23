@@ -29,11 +29,23 @@
             placeholderValue: {!! $placeholderJson !!},
             removeItemButton: {{ $removeItemButtonJs }},
             shouldSort: false
-        })'
+        }); 
+        $el._choices = choices;
+
+        $el.addEventListener("change", () => {
+            if ($el.value !== "") {
+                // Quitar clase de error del select (que afecta al CSS de Choices)
+                $el.classList.remove("is-invalid");
+                
+                // Ocultar el mensaje de error de Laravel que está debajo
+                let errorMsg = $el.closest(".mb-3").querySelector(".invalid-feedback");
+                if (errorMsg) errorMsg.style.display = "none";
+            }
+        });'
         name="{{ $inputName }}" id="{{ $name }}" class="form-control @error($name) is-invalid @enderror"
         {{ $required ? 'required' : '' }} {{ $multiple ? 'multiple' : '' }} {{ $attributes }}>
         @if ($placeholder && !$multiple)
-            <option value="">{{ $placeholder }}</option>
+            <option value="" disabled selected hidden>{{ $placeholder }}</option>
         @endif
 
         @foreach ($options as $key => $value)

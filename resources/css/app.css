@@ -24,6 +24,9 @@
 @import "custom-buttons.css";
 @import "custom-badges.css";
 @import "custom-select.css";
+@import "compact-input.css";
+@import "choices-bootstrap-bridge.css";
+@import "helpers/only-numbers.css";
 /* @import "custom-choices.css"; */
 
 @import "sweetalert2/dist/sweetalert2.min.css";

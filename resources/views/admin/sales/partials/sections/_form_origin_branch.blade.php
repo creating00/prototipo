@@ -1,4 +1,4 @@
-<div class="row g-3 mb-4 equal-height-selects align-items-end">
+<div class="row g-3 equal-height-selects align-items-end">
     <input type="hidden" name="branch_id" value="{{ auth()->user()->branch_id }}">
     <!-- Sucursal Destinataria -->
     <div class="col-md-4" id="branch-select-wrapper">

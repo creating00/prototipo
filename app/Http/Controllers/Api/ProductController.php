@@ -24,14 +24,23 @@ class ProductController extends BaseProductController
     public function findByCode(string $code, Request $request)
     {
         try {
-            $branchId = $request->get('branch_id');
+            $branchId   = $request->get('branch_id');
+            $categoryId = $request->get('category_id');
 
             if (!$branchId) {
                 return response()->json(['error' => 'Branch ID is required'], 400);
             }
 
-            // Buscar producto
-            $product = Product::where('code', $code)->first();
+            // Buscar producto por código
+            $productQuery = Product::where('code', $code);
+
+            // Filtro por categoría (misma lógica que list)
+            if ($categoryId) {
+                $productQuery->where('category_id', $categoryId);
+            }
+
+            $product = $productQuery->first();
+
             if (!$product) {
                 return response()->json(['error' => 'Product not found'], 404);
             }
@@ -45,23 +54,19 @@ class ProductController extends BaseProductController
                 return response()->json(['error' => 'Product not found in this branch'], 404);
             }
 
-            // Obtener precio de venta (ProductBranchPrice)
+            // Obtener precio de venta
             $priceModel = $product->salePriceModel($branchId);
 
-            // Precio numérico (float)
             $salePrice = $priceModel?->amount ?? 0;
-
-            // Precio formateado (ej: "$ 1.234,00")
             $formattedPrice = $priceModel?->getFormattedAmount() ?? '$ 0,00';
 
-            // Construimos un "view model" para el Blade
             $viewProduct = (object)[
-                'id'         => $product->id,
-                'code'       => $product->code,
-                'name'       => $product->name,
-                'stock'      => $branch->stock,
-                'sale_price' => $salePrice,
-                'sale_price_formatted' => $formattedPrice,
+                'id'                     => $product->id,
+                'code'                   => $product->code,
+                'name'                   => $product->name,
+                'stock'                  => $branch->stock,
+                'sale_price'             => $salePrice,
+                'sale_price_formatted'   => $formattedPrice,
             ];
 
             return response()->json([
@@ -77,29 +82,34 @@ class ProductController extends BaseProductController
         }
     }
 
+
     /**
-     * Lista de productos filtrada por branch
+     * Lista de productos filtrada por branch y opcionalmente por categoría
      */
     public function list(Request $request)
     {
         $branchId = $request->get('branch_id');
+        $categoryId = $request->get('category_id');
 
         if (!$branchId) {
             return response()->json(['error' => 'Branch ID is required'], 400);
         }
 
-        // Cargar ProductBranch + precios
-        $products = Product::with(['productBranches' => function ($q) use ($branchId) {
-            $q->where('branch_id', $branchId)
-                ->with('prices');
+        $query = Product::query();
+
+        // Filtro por categoría si viene en la petición
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
+        }
+
+        $products = $query->with(['productBranches' => function ($q) use ($branchId) {
+            $q->where('branch_id', $branchId)->with('prices');
         }])->get();
 
         $response = $products->map(function ($product) use ($branchId) {
-
             $branch = $product->productBranches->first();
             if (!$branch) return null;
 
-            // Obtener precio de venta
             $price = $branch->prices
                 ->where('type', \App\Enums\PriceType::SALE)
                 ->first();

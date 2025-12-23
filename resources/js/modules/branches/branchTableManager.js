@@ -1,24 +1,31 @@
 import { TableManager } from "../../components/TableManager";
 import { deleteItem } from "../../utils/deleteHelper";
 
-// Configuración específica para Sucursales
+// 1. Extraemos la URL base del contenedor de la tabla (inyectada por el componente Blade)
+const tableContainer = document.querySelector("[data-base-url]");
+const baseUrl = tableContainer ? tableContainer.dataset.baseUrl : "";
+
 const TABLE_CONFIG = {
     tableId: "branches-table",
 
     rowActions: {
         edit: {
             selector: ".btn-edit",
-            handler: (row) => {
+            handler: (row, baseUrl) => {
                 const { id } = row.dataset;
-                window.location.href = `/web/branches/${id}/edit`;
+
+                // Redirección dinámica usando la URL capturada del DOM
+                window.location.href = `${baseUrl}/${id}/edit`;
             },
         },
 
         delete: {
             selector: ".btn-delete",
-            handler: (row) => {
+            handler: (row, baseUrl) => {
                 const { id, name } = row.dataset;
-                deleteItem(`/web/branches/${id}`, `la sucursal "${name}"`);
+
+                // Ruta de eliminación dinámica
+                deleteItem(`${baseUrl}/${id}`, `la sucursal "${name}"`);
             },
         },
     },
@@ -26,8 +33,9 @@ const TABLE_CONFIG = {
     headerActions: {
         new: {
             selector: ".btn-header-new",
-            handler: () => {
-                window.location.href = "/web/branches/create";
+            handler: (baseUrl) => {
+                // Ruta de creación dinámica
+                window.location.href = `${baseUrl}/create`;
             },
         },
     },

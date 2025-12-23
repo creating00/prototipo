@@ -7,6 +7,8 @@ use App\Models\Branch;
 use App\Models\User;
 use App\Models\Province;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
+
 
 class BranchAndUserSeeder extends Seeder
 {
@@ -34,7 +36,7 @@ class BranchAndUserSeeder extends Seeder
         );
 
         // Crear un usuario asociado a esa sucursal
-        User::firstOrCreate(
+        $user = User::firstOrCreate(
             ['email' => 'admin@admin.com'],
             [
                 'name' => 'Administrador Jujuy',
@@ -42,6 +44,8 @@ class BranchAndUserSeeder extends Seeder
                 'branch_id' => $branch->id,
             ]
         );
+
+        $user->assignRole('admin');
 
         $this->command->info('Sucursal en Jujuy y usuario administrador creados.');
     }

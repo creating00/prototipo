@@ -27,6 +27,7 @@ return new class extends Migration
 
             // 1 = Venta / 2 = Reparación (Usando SaleType Enum)
             $table->unsignedTinyInteger('sale_type')->default(1)->comment('1=Venta, 2=Reparación');
+            $table->unsignedTinyInteger('repair_type')->nullable()->comment('1=Pantalla, 2=Batería, 3=Limpieza, 4=Otros');
 
             // 1 = pagado / 2 = pendiente / 3 = cancelado
             $table->unsignedTinyInteger('status')->default(2)->comment('1=Pagado, 2=Pendiente, 3=Cancelado');
@@ -36,7 +37,6 @@ return new class extends Migration
             $table->decimal('remaining_balance', 10, 2)->default(0);
 
             $table->decimal('total_amount', 10, 2);
-
 
             $table->timestamps();
             $table->softDeletes();

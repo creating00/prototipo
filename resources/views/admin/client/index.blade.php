@@ -2,6 +2,25 @@
 
 @section('page-title', 'Clientes')
 
+@push('styles')
+    <style>
+        /* Ocultar botones en filas de sistema */
+        tr[data-is_system="1"] .btn-edit,
+        tr[data-is_system="1"] .btn-delete {
+            display: none !important;
+        }
+
+        /* Mostrar un candado para indicar que está protegido */
+        tr[data-is_system="1"] td.text-center::before {
+            content: "\f023";
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+            color: #adb5bd;
+            margin-right: 5px;
+        }
+    </style>
+@endpush
+
 @section('content')
     <div class="container-fluid">
         <x-admin-lte.alert-manager />

@@ -1,5 +1,5 @@
-<div class="mb-3 currency-price-input">
-    <label for="{{ $name }}_amount" class="form-label">{{ $label }}</label>
+<div class="currency-price-input compact-input-group-wrapper">
+    <label for="{{ $name }}_amount" class="compact-input-label">{{ $label }}</label>
     <div class="input-group">
 
         {{-- Select de Moneda --}}

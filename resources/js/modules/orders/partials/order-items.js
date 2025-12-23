@@ -1,4 +1,5 @@
 import { fetchProduct } from "./order-fetch";
+import { Toast } from "@/config/notifications";
 import {
     addRow as addRowRow,
     updateQuantity,
@@ -34,16 +35,23 @@ export default {
 
     async addProductByCode(code) {
         try {
-            // Obtener el branch_id actual
             const branchId = getCurrentBranchId();
 
             if (!branchId) {
-                throw new Error(
-                    "No se ha seleccionado una sucursal. Por favor, seleccione una sucursal primero."
-                );
+                // Error local: No hay sucursal
+                const msg =
+                    "No se ha seleccionado una sucursal. Por favor, seleccione una sucursal primero.";
+                Toast.fire({
+                    icon: "warning",
+                    title: "Atención",
+                    text: msg,
+                });
+                throw new Error(msg);
             }
 
+            // fetchProduct ya dispara su propio Toast (success o error)
             const { html } = await fetchProduct(code, branchId);
+
             this.clearInput();
 
             const row = this.findRow(code);
@@ -63,8 +71,11 @@ export default {
             this.updateRowIndices();
             this.updateTotal();
         } catch (e) {
-            console.error("Error al agregar producto:", e);
-            alert(e.message || "Error al buscar el producto.");
+            // Si hay error (404, red, etc), limpiamos el input para el siguiente escaneo
+            this.clearInput();
+
+            // Opcional: registrar en consola para debug personal
+            console.debug("Operación de producto detenida:", e.message);
         }
     },
 

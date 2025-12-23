@@ -6,6 +6,8 @@ import customerType from "../../modules/orders/partials/customer-type";
 import branchFilter from "../../modules/orders/partials/branch-filter";
 import salePayment from "./partials/sale-payment";
 
+import AccordionAutoScroll from "../../helpers/AccordionAutoScroll.js";
+
 document.addEventListener("DOMContentLoaded", () => {
     // Inicializar en un orden lógico:
     // 1. Elementos básicos del formulario
@@ -23,4 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 5. Filtros de sucursal (dependen del modal)
     branchFilter.init();
+
+    // Inicializar scroll automático del acordeón
+    new AccordionAutoScroll("saleFormAccordion", 100);
 });

@@ -6,7 +6,7 @@
     @endif
 
     <form action="{{ $action }}" method="{{ strtoupper($method) === 'GET' ? 'GET' : 'POST' }}" {{ $attributes }}
-        x-on:submit="submitting = true" x-bind:class="{ 'opacity-50': submitting }">
+        novalidate x-on:submit="submitting = true" x-bind:class="{ 'opacity-50': submitting }">
         @if (strtoupper($method) !== 'GET')
             @csrf
             @if (!in_array(strtoupper($method), ['POST', 'GET']))

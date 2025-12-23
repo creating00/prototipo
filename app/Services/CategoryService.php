@@ -73,6 +73,7 @@ class CategoryService
         return $categories->map(function ($category, $index) {
             return [
                 'id' => $category->id,                    // Oculto pero disponible como data-id
+                'is_system' => $category->is_system ? 1 : 0,
                 'number' => $index + 1,                   // Número incremental visible
                 'name' => $category->name,                // Visible
                 'created_at' => $category->created_at->format('Y-m-d'), // Visible

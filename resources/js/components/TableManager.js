@@ -1,9 +1,17 @@
 export class TableManager {
     static initTable(config) {
-        if (!document.getElementById(config.tableId)) {
+        const tableElement = document.getElementById(config.tableId);
+
+        if (!tableElement) {
             console.warn(`Table with ID '${config.tableId}' not found`);
             return null;
         }
+
+        // Obtener la base URL del componente Blade ---
+        const container = tableElement.closest("[data-base-url]");
+        const baseUrl = container ? container.dataset.baseUrl : "";
+
+        config.baseUrl = baseUrl;
 
         const rowManager = this.initRowActions(config);
         this.initHeaderActions(config);
@@ -16,12 +24,11 @@ export class TableManager {
 
     static initRowActions(config) {
         const rowActionsMap = Object.fromEntries(
-            Object.entries(config.rowActions).map(
-                ([key, { selector, handler }]) => [
-                    selector.replace(".", ""),
-                    handler,
-                ]
-            )
+            Object.entries(config.rowActions).map(([key, action]) => [
+                action.selector.replace(".", ""),
+                // Pasamos el config.baseUrl al handler si el módulo lo necesita
+                (row) => action.handler(row, config.baseUrl),
+            ])
         );
         return new DataTableActionsManager(config.tableId, rowActionsMap);
     }
@@ -33,7 +40,7 @@ export class TableManager {
                 button?.addEventListener("click", (e) => {
                     e.preventDefault();
                     if (handler) {
-                        handler();
+                        handler(config.baseUrl);
                     } else {
                         alert(message);
                     }

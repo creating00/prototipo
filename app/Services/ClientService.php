@@ -104,6 +104,7 @@ class ClientService
         return $clients->map(function ($client, $index) {
             return [
                 'id' => $client->id,                    // Oculto pero disponible como data-id
+                'is_system' => $client->is_system ? 1 : 0,
                 'number' => $index + 1,                 // Número incremental visible
                 'document' => $client->document,        // Visible
                 'full_name' => $client->full_name,      // Visible

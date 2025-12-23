@@ -1,33 +1,29 @@
 import { TableManager } from "../../components/TableManager";
 import { deleteItem } from "../../utils/deleteHelper";
 
-// Configuración específica de categorías
+// categories/index.js
 const TABLE_CONFIG = {
     tableId: "categories-table",
     rowActions: {
         edit: {
             selector: ".btn-edit",
-            handler: (row) => {
-                const { id, name } = row.dataset;
-                console.log("Editando categoría:", row.dataset);
-
-                // Redirigir a la página de edición
-                window.location.href = `/web/categories/${id}/edit`;
+            handler: (row, baseUrl) => {
+                window.location.href = `${baseUrl}/${row.dataset.id}/edit`;
             },
         },
         delete: {
             selector: ".btn-delete",
-            handler: (row) => {
+            handler: (row, baseUrl) => {
                 const { id, name } = row.dataset;
-                deleteItem(`/web/categories/${id}`, `la categoría "${name}"`);
+                deleteItem(`${baseUrl}/${id}`, `la categoría "${name}"`);
             },
         },
     },
     headerActions: {
         new: {
             selector: ".btn-header-new",
-            handler: () => {
-                window.location.href = "/web/categories/create";
+            handler: (baseUrl) => {
+                window.location.href = `${baseUrl}/create`;
             },
         },
     },

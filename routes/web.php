@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
+    DashboardController,
     ProfileController,
     HomeController
 };
@@ -14,7 +15,9 @@ use App\Http\Controllers\Web\{
     ProviderWebController,
     SaleWebController,
     ExpenseWebController,
-    ExpenseTypeWebController
+    ExpenseTypeWebController,
+    ProviderProductWebController,
+    UserWebController,
 };
 
 // Página principal
@@ -24,6 +27,8 @@ Route::get('/', [HomeController::class, 'index']);
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
 
+    // Asegúrate de importar el controlador arriba o usar el path completo
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     // Perfil
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'edit'])->name('edit');
@@ -39,6 +44,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
         webResource('clients', ClientWebController::class);
         webResource('expenses', ExpenseWebController::class);
         webResource('expense-types', ExpenseTypeWebController::class);
+        webResource('users', UserWebController::class);
+
+        Route::prefix('providers/{provider}')->group(function () {
+            Route::post('products', [ProviderProductWebController::class, 'store'])
+                ->name('web.providers.products.store');
+
+            Route::get('provider-products/{providerProduct}/edit', [ProviderProductWebController::class, 'edit'])
+                ->name('web.providers.products.edit');
+
+            Route::prefix('provider-products/{providerProduct}')->group(function () {
+                Route::get('prices', [ProviderProductWebController::class, 'prices'])->name('provider-products.prices');
+                Route::post('prices', [ProviderProductWebController::class, 'storePrice'])->name('provider-products.prices.store');
+            });
+
+            Route::put('provider-products/{providerProduct}', [ProviderProductWebController::class, 'update'])
+                ->name('web.providers.products.update');
+        });
 
         resourceWithExtras('orders', OrderWebController::class, [
             'create-client' => 'createClient',

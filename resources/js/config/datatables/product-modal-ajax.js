@@ -1,109 +1,50 @@
+import { getRepairCategoryId } from "@/helpers/repair-category";
+
 /**
- * Función AJAX para cargar productos filtrados por sucursal
- * @param {Object} data - Datos de DataTables
- * @param {Function} callback - Callback para devolver datos
- * @param {Object} settings - Configuración de DataTables
- * @returns {Object} Objeto con método abort para cancelar la solicitud
+ * Carga productos vía AJAX filtrando por sucursal y tipo de reparación.
+ * @param {Object} data - Parámetros de DataTables.
+ * @param {Function} callback - Retorno de datos a la tabla.
  */
 export function productModalAjax(data, callback, settings) {
-    // Obtener el branch_id actual considerando ambos formularios
-    let branchId = null;
+    const branchId = getCurrentBranchId();
+    const categoryId = getRepairCategoryId();
 
-    // Detectar qué tipo de formulario estamos usando
-    const branchRecipientSelect = document.querySelector(
-        'select[name="branch_recipient_id"]'
-    );
-    const hiddenBranchInput = document.querySelector('input[name="branch_id"]');
-    const branchSelect = document.querySelector('select[name="branch_id"]');
-
-    // Formulario de sucursal (branch-to-branch)
-    if (branchRecipientSelect) {
-        // Los productos deben venir de la sucursal DESTINATARIA
-        branchId = branchRecipientSelect.value;
-        //console.log("Modal AJAX - Formulario sucursal, usando branch_recipient_id:", branchId);
-    }
-    // Formulario de cliente
-    else if (branchSelect) {
-        // Los productos deben venir de la sucursal ORIGEN (seleccionada)
-        branchId = branchSelect.value;
-        // console.log(
-        //     "Modal AJAX - Formulario cliente, usando branch_id:",
-        //     branchId
-        // );
-    }
-
-    // Si no hay branchId, devolver array vacío inmediatamente
-    if (!branchId || branchId === "") {
-        // console.warn(
-        //     "Modal AJAX - Branch ID not found or empty, returning empty product list"
-        // );
+    if (!branchId) {
         callback({ data: [] });
         return null;
     }
 
-    let url = "/api/inventory/list";
-    url += `?branch_id=${branchId}`;
+    const url = new URL("/api/inventory/list", window.location.origin);
+    url.searchParams.append("branch_id", branchId);
 
-    //console.log("Modal AJAX - Fetching products from URL:", url);
+    if (categoryId) {
+        url.searchParams.append("category_id", categoryId);
+    }
 
-    // Crear un controlador para poder abortar la solicitud
     const controller = new AbortController();
-    const signal = controller.signal;
 
-    // Realizar la solicitud
-    fetch(url, { signal })
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+    fetch(url.toString(), { signal: controller.signal })
+        .then((res) => (res.ok ? res.json() : Promise.reject(res)))
+        .then((json) => callback({ data: Array.isArray(json) ? json : [] }))
+        .catch((err) => {
+            if (err.name !== "AbortError") {
+                console.error("Error productos:", err);
             }
-            return response.json();
-        })
-        .then((json) => {
-            // Verificar si la respuesta es un array
-            if (Array.isArray(json)) {
-                //console.log("Modal AJAX - Products loaded:", json.length);
-                callback({ data: json });
-            } else {
-                console.error(
-                    "Modal AJAX - Invalid response format, expected array:",
-                    json
-                );
-                callback({ data: [] });
-            }
-        })
-        .catch((error) => {
-            if (error.name === "AbortError") {
-                //console.log("Modal AJAX - Request aborted");
-            } else {
-                //console.error("Modal AJAX - Error loading products:", error);
-                callback({ data: [] });
-            }
+            callback({ data: [] });
         });
 
-    // Devolver un objeto con método abort para DataTables
-    return {
-        abort: function () {
-            controller.abort();
-            console.log("Modal AJAX - DataTables abort called");
-        },
-    };
+    return { abort: () => controller.abort() };
 }
 
 /**
- * Obtener el branch_id actual para otras funciones
- * @returns {string|null} El branch_id actual
+ * Obtiene el ID de sucursal activo según el formulario presente.
+ * @returns {string|null}
  */
 export function getCurrentBranchId() {
-    const branchRecipientSelect = document.querySelector(
+    const recipient = document.querySelector(
         'select[name="branch_recipient_id"]'
     );
-    const branchSelect = document.querySelector('select[name="branch_id"]');
+    const sender = document.querySelector('select[name="branch_id"]');
 
-    if (branchRecipientSelect) {
-        return branchRecipientSelect.value;
-    } else if (branchSelect) {
-        return branchSelect.value;
-    }
-
-    return null;
+    return recipient?.value || sender?.value || null;
 }

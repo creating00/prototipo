@@ -33,7 +33,7 @@
     </div>
 </div>
 
-<hr class="my-4">
+<hr class="my-3">
 
 <h3>Referencia</h3>
 <div class="row g-3 mb-4">

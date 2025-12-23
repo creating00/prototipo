@@ -2,119 +2,98 @@
 
 return [
     'cards' => [
+        'sales' => [
+            'title' => 'Ventas Totales',
+            'value' => 0,
+            'color' => 'success',
+            'icon' => 'cart-check',
+            'viewBox' => '0 0 24 24',
+            'route' => ['href' => 'web.sales.index', 'label' => 'Ver Ventas'],
+            'description' => 'Ventas realizadas hoy'
+        ],
         'orders' => [
-            'title' => 'New Orders',
-            'value' => 150,
+            'title' => 'Pedidos',
+            'value' => 0,
             'color' => 'primary',
             'icon' => 'cart',
             'viewBox' => '0 0 24 24',
-            'url' => '/admin/orders',
-            'description' => 'Total orders today'
-        ],
-        'revenue' => [
-            'title' => 'Revenue',
-            'value' => '$2,340',
-            'color' => 'success',
-            'icon' => 'dollar',
-            'viewBox' => '0 0 24 24',
-            'url' => '/admin/revenue',
-            'description' => 'Monthly earnings'
-        ],
-        'users' => [
-            'title' => 'User Registrations',
-            'value' => 44,
-            'color' => 'warning',
-            'icon' => 'users',
-            'viewBox' => '0 0 24 24',
-            'url' => '/admin/users',
-            'description' => 'New users this week'
-        ],
-        'tickets' => [
-            'title' => 'Support Tickets',
-            'value' => 12,
-            'color' => 'custom',
-            'customBgColor' => "#69e76fff",
-            'icon' => 'ticket',
-            'viewBox' => '0 0 24 24',
-            'url' => '/admin/tickets',
-            'description' => 'Pending tickets'
+            'route' => ['href' => 'web.orders.index', 'label' => 'Gestionar Pedidos'],
+            'description' => 'Pedidos pendientes'
         ],
         'products' => [
-            'title' => 'Total Products',
-            'value' => 856,
+            'title' => 'Productos',
+            'value' => 0,
             'color' => 'info',
             'icon' => 'box',
             'viewBox' => '0 0 24 24',
-            'url' => '/admin/products',
-            'description' => 'Active products'
+            'route' => ['href' => 'web.products.index', 'label' => 'Listar Productos'],
+            'description' => 'Total de productos en catálogo'
         ],
-        'visitors' => [
-            'title' => 'Website Visitors',
-            'value' => '3.2K',
-            'color' => 'secondary',
-            'icon' => 'analytics',
+        'clients' => [
+            'title' => 'Clientes',
+            'value' => 0,
+            'color' => 'warning',
+            'icon' => 'users',
             'viewBox' => '0 0 24 24',
-            'url' => '/admin/analytics',
-            'description' => 'Today visitors'
+            'route' => ['href' => 'web.clients.index', 'label' => 'Ver Clientes'],
+            'description' => 'Clientes registrados'
         ],
-        'messages' => [
-            'title' => 'Unread Messages',
-            'value' => 23,
+        'expenses' => [
+            'title' => 'Gastos',
+            'value' => '$0',
+            'color' => 'danger',
+            'icon' => 'trending-down',
+            'viewBox' => '0 0 24 24',
+            'route' => ['href' => 'web.expenses.index', 'label' => 'Control de Gastos'],
+            'description' => 'Gastos del mes actual'
+        ],
+        'providers' => [
+            'title' => 'Proveedores',
+            'value' => 0,
+            'color' => 'secondary',
+            'icon' => 'truck',
+            'viewBox' => '0 0 24 24',
+            'route' => ['href' => 'web.providers.index', 'label' => 'Ver Proveedores'],
+            'description' => 'Proveedores activos'
+        ],
+        'branches' => [
+            'title' => 'Sucursales',
+            'value' => 0,
             'color' => 'custom',
             'customBgColor' => "#6f42c1",
-            'icon' => 'email',
+            'icon' => 'geo-alt',
             'viewBox' => '0 0 24 24',
-            'url' => '/admin/messages',
-            'description' => 'New messages'
+            'route' => ['href' => 'web.branches.index', 'label' => 'Listar Sucursales'],
+            'description' => 'Puntos de venta'
         ],
-        'growth' => [
-            'title' => 'Growth Rate',
-            'value' => '65%',
-            'color' => 'danger',
-            'icon' => 'trending',
-            'viewBox' => '0 0 24 24',
-            'url' => '/admin/growth',
-            'description' => 'This month'
-        ],
-        'storage' => [
-            'title' => 'Storage Used',
-            'value' => '78%',
-            'color' => 'custom',
-            'customBgColor' => "#fd7e14",
-            'icon' => 'storage',
-            'viewBox' => '0 0 24 24',
-            'url' => '/admin/storage',
-            'description' => 'Cloud storage'
-        ],
-        'downloads' => [
-            'title' => 'Total Downloads',
-            'value' => '1.2K',
-            'color' => 'custom',
-            'customBgColor' => "#20c997",
-            'icon' => 'download',
-            'viewBox' => '0 0 24 24',
-            'url' => '/admin/downloads',
-            'description' => 'This week'
-        ],
-        'performance' => [
-            'title' => 'Performance',
-            'value' => '92%',
-            'color' => 'custom',
-            'customBgColor' => "#6610f2",
-            'icon' => 'performance',
-            'viewBox' => '0 0 24 24',
-            'url' => '/admin/performance',
-            'description' => 'System performance'
-        ],
+        // 'payments' => [
+        //     'title' => 'Pagos Recibidos',
+        //     'value' => 0,
+        //     'color' => 'custom',
+        //     'customBgColor' => "#20c997",
+        //     'icon' => 'cash-stack',
+        //     'viewBox' => '0 0 24 24',
+        //     'route' => ['href' => 'web.payments.index', 'label' => 'Ver Pagos'],
+        //     'description' => 'Cobros procesados'
+        // ],
+        // 'ratings' => [
+        //     'title' => 'Valoraciones',
+        //     'value' => 0,
+        //     'color' => 'custom',
+        //     'customBgColor' => "#fd7e14",
+        //     'icon' => 'star',
+        //     'viewBox' => '0 0 24 24',
+        //     'route' => ['href' => 'web.ratings.index', 'label' => 'Ver Reseñas'],
+        //     'description' => 'Opiniones de clientes'
+        // ],
     ],
 
     'colors' => [
-        'primary' => 'text-bg-primary',
-        'success' => 'text-bg-success',
-        'warning' => 'text-bg-warning',
-        'danger' => 'text-bg-danger',
-        'info' => 'text-bg-info',
+        'primary'   => 'text-bg-primary',
+        'success'   => 'text-bg-success',
+        'warning'   => 'text-bg-warning',
+        'danger'    => 'text-bg-danger',
+        'info'      => 'text-bg-info',
         'secondary' => 'text-bg-secondary',
     ],
-
 ];

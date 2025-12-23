@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('phone')->nullable();         // teléfono
             $table->text('address')->nullable();         // dirección
             $table->string('email')->nullable();
+            $table->boolean('is_system')->default(false);
             $table->timestamps();
             $table->softDeletes();
         });

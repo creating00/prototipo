@@ -1,32 +1,38 @@
 import { TableManager } from "../../components/TableManager";
 import { deleteItem } from "../../utils/deleteHelper";
 
-// Configuración específica de clientes
+// 1. Extraemos la URL base (ej: /web/clients) desde el componente Blade
+const tableContainer = document.querySelector("[data-base-url]");
+const baseUrl = tableContainer ? tableContainer.dataset.baseUrl : "";
+
 const TABLE_CONFIG = {
     tableId: "clients-table",
     rowActions: {
         edit: {
             selector: ".btn-edit",
-            handler: (row) => {
-                const { id, full_name } = row.dataset;
+            handler: (row, baseUrl) => {
+                const { id } = row.dataset;
 
-                // Redirigir a la página de edición
-                window.location.href = `/web/clients/${id}/edit`;
+                // Redirigir dinámicamente usando la base URL capturada
+                window.location.href = `${baseUrl}/${id}/edit`;
             },
         },
         delete: {
             selector: ".btn-delete",
-            handler: (row) => {
+            handler: (row, baseUrl) => {
                 const { id, full_name } = row.dataset;
-                deleteItem(`/web/clients/${id}`, `el cliente "${full_name}"`);
+
+                // Eliminación dinámica
+                deleteItem(`${baseUrl}/${id}`, `el cliente "${full_name}"`);
             },
         },
     },
     headerActions: {
         new: {
             selector: ".btn-header-new",
-            handler: () => {
-                window.location.href = "/web/clients/create";
+            handler: (baseUrl) => {
+                // Creación dinámica
+                window.location.href = `${baseUrl}/create`;
             },
         },
     },

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Enums\CurrencyType;
 use App\Enums\ProductStatus;
 use App\Http\Controllers\BaseProductController;
+use App\Models\Product;
 use App\Models\ProductBranch;
 use App\Models\Province;
 use App\Services\BranchService;
@@ -19,6 +20,7 @@ class ProductWebController extends BaseProductController
 
     public function index()
     {
+        $this->authorize('viewAny', Product::class);
         $rowData = $this->productService->getAllForDataTable();
 
         $headers = ['#', 'Código', 'Nombre', 'Precio Compra', 'Precio Venta', 'Stock', 'Estado'];
@@ -29,6 +31,7 @@ class ProductWebController extends BaseProductController
 
     public function create()
     {
+        $this->authorize('create', Product::class);
         $branchUserId = $this->currentBranchId();
 
         $productBranch = new ProductBranch([
@@ -56,6 +59,7 @@ class ProductWebController extends BaseProductController
 
     public function store(Request $request)
     {
+        $this->authorize('create', Product::class);
         try {
             $product = $this->productService->create(
                 data: $request->except(['imageFile', 'imageUrl', 'removeImage']),
@@ -85,7 +89,8 @@ class ProductWebController extends BaseProductController
 
         $product = $this->productService->getProductForEdit($id, $branchUserId);
 
-        // En edit DEBE existir
+        $this->authorize('update', $product);
+
         $productBranch = $product->productBranches->firstOrFail();
 
         $formData = new ProductFormData(
@@ -104,6 +109,8 @@ class ProductWebController extends BaseProductController
 
     public function update(Request $request, int $id)
     {
+        $product = $this->productService->getById($id);
+        $this->authorize('update', $product);
         try {
             $product = $this->productService->update(
                 product: $this->productService->getById($id),
@@ -128,6 +135,8 @@ class ProductWebController extends BaseProductController
 
     public function destroy(int $id)
     {
+        $product = $this->productService->getById($id);
+        $this->authorize('delete', $product);
         try {
             $this->productService->delete(
                 $this->productService->getById($id)

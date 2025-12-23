@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('provider_products', function (Blueprint $table) {
             $table->id();
-
+            $table->foreignId('branch_id')->constrained('branches');
             $table->foreignId('product_id')->constrained('products');
             $table->foreignId('provider_id')->constrained('providers');
 
@@ -24,7 +24,8 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->unique(['product_id', 'provider_id']);
+            //$table->unique(['product_id', 'provider_id']);
+            $table->unique(['branch_id', 'product_id', 'provider_id'], 'idx_branch_prod_prov_unique');
         });
     }
 

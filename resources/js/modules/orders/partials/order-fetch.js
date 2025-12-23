@@ -1,21 +1,73 @@
-// resources/js/modules/orders/partials/order-fetch.js
+import { getRepairCategoryId } from "@/helpers/repair-category";
+import { Toast } from "@/config/notifications";
+
 export async function fetchProduct(code, branchId) {
     if (!branchId) {
+        // Disparamos la alerta antes de lanzar el error
+        Toast.fire({
+            icon: 'warning',
+            title: 'Configuración requerida',
+            text: 'La sucursal es necesaria para buscar productos'
+        });
         throw new Error("branchId es requerido y no fue proporcionado");
     }
 
-    const url = `/api/inventory/by-code/${code}?branch_id=${branchId}`;
+    const categoryId = getRepairCategoryId();
 
-    const response = await fetch(url);
+    const url = new URL(
+        `/api/inventory/by-code/${code}`,
+        window.location.origin
+    );
 
-    if (!response.ok) {
-        if (response.status === 404) {
-            throw new Error(
-                "Producto no encontrado en la sucursal seleccionada"
-            );
-        }
-        throw new Error("Error al buscar el producto");
+    url.searchParams.append("branch_id", branchId);
+
+    if (categoryId) {
+        url.searchParams.append("category_id", categoryId);
     }
 
-    return await response.json();
+    try {
+        const response = await fetch(url.toString());
+
+        if (!response.ok) {
+            let errorMessage = "Error al buscar el producto";
+            
+            if (response.status === 404) {
+                errorMessage = "Producto no encontrado en la sucursal seleccionada";
+            }
+
+            // Notificamos al usuario mediante el Toast importado
+            Toast.fire({
+                icon: 'error',
+                title: 'No encontrado',
+                text: errorMessage
+            });
+
+            throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+
+        // Opcional: Notificar éxito al encontrarlo
+        Toast.fire({
+            icon: 'success',
+            title: 'Producto encontrado',
+            text: data.name,
+            timer: 1500 // Más rápido para no distraer
+        });
+
+        return data;
+
+    } catch (error) {
+        // Captura errores de red (CORS, sin internet, etc.) que no fueron atrapados por response.ok
+        if (error.message === "Failed to fetch") {
+            Toast.fire({
+                icon: 'error',
+                title: 'Error de conexión',
+                text: 'No se pudo conectar con el servidor'
+            });
+        }
+        
+        // Re-lanzamos el error por si la función que llama a fetchProduct necesita manejarlo
+        throw error;
+    }
 }

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('product_provider_prices', function (Blueprint $table) {
             $table->id();
-
+            $table->foreignId('branch_id')->constrained('branches');
             $table->foreignId('provider_product_id')->constrained('provider_products');
 
             $table->decimal('cost_price', 10, 2);
@@ -25,9 +25,14 @@ return new class extends Migration
             $table->timestamps();
 
             // Un precio por fecha de inicio por proveedor-producto
+            // $table->unique(
+            //     ['provider_product_id', 'effective_date'],
+            //     'uniq_provider_prod_effdate'
+            // );
+
             $table->unique(
-                ['provider_product_id', 'effective_date'],
-                'uniq_provider_prod_effdate'
+                ['branch_id', 'provider_product_id', 'effective_date'],
+                'uniq_branch_prov_prod_effdate'
             );
         });
     }

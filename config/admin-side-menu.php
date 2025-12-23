@@ -35,38 +35,38 @@ return [
         ],
         [
             'type' => 'submenu',
-            'icon' => 'bi bi-list-ol',
-            'label' => 'Sucursales',
-            'subitems' => [
-                ['href' => 'web.branches.index', 'label' => 'Listar Sucursales'],
-            ],
-        ],
-        [
-            'type' => 'submenu',
             'icon' => 'bi bi-people-fill',
-            'label' => 'Usuarios (No definido)',
+            'label' => 'Usuarios',
             'subitems' => [
-                ['href' => '#', 'label' => 'Listar Usuarios'],
-                ['href' => '#', 'label' => 'Crear Usuario'],
+                ['href' => 'web.users.index', 'label' => 'Listar Usuarios'],
+                ['href' => 'web.users.create', 'label' => 'Crear Usuario'],
                 ['href' => '#', 'label' => 'Roles'],
             ],
         ],
-        [
-            'type' => 'submenu',
-            'icon' => 'bi bi-cart-fill',
-            'label' => 'Proveedores',
-            'subitems' => [
-                ['href' => 'web.providers.index', 'label' => 'Listar Proveedores'],
-            ],
-        ],
-        [
-            'type' => 'submenu',
-            'icon' => 'bi bi-cart-fill',
-            'label' => 'Gastos',
-            'subitems' => [
-                ['href' => 'web.expenses.index', 'label' => 'Listar Gastos'],
-            ],
-        ],
+        // [
+        //     'type' => 'submenu',
+        //     'icon' => 'bi bi-list-ol',
+        //     'label' => 'Sucursales',
+        //     'subitems' => [
+        //         ['href' => 'web.branches.index', 'label' => 'Listar Sucursales'],
+        //     ],
+        // ],
+        // [
+        //     'type' => 'submenu',
+        //     'icon' => 'bi bi-cart-fill',
+        //     'label' => 'Proveedores',
+        //     'subitems' => [
+        //         ['href' => 'web.providers.index', 'label' => 'Listar Proveedores'],
+        //     ],
+        // ],
+        // [
+        //     'type' => 'submenu',
+        //     'icon' => 'bi bi-cart-fill',
+        //     'label' => 'Gastos',
+        //     'subitems' => [
+        //         ['href' => 'web.expenses.index', 'label' => 'Listar Gastos'],
+        //     ],
+        // ],
         // [
         //     'type' => 'submenu',
         //     'icon' => 'bi bi-cart-fill',

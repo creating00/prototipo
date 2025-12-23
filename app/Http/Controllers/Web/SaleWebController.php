@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\RepairType;
 use App\Enums\SaleStatus;
 use App\Enums\SaleType;
 use App\Http\Controllers\BaseSaleController;
@@ -45,9 +46,13 @@ class SaleWebController extends BaseSaleController
     {
         $branches = app(\App\Services\BranchService::class)->getAllBranches();
         $categories = app(\App\Services\CategoryService::class)->getAllCategories();
-        $clients = app(\App\Services\ClientService::class)->getAllClients();
+        $clientService = app(\App\Services\ClientService::class);
+        $clients = $clientService->getAllClients();
+        $defaultClientDocument = config('app.default_client_document');
+        $defaultClientId = $clients->where('document', $defaultClientDocument)->first()?->id;
         $statusOptions = SaleStatus::forSelect();
         $saleTypeOptions = SaleType::forSelect();
+        $repairTypes = RepairType::forSelect();
 
         $customer_type = 'App\Models\Client';
 
@@ -62,11 +67,13 @@ class SaleWebController extends BaseSaleController
             'customer_type',
             'branches',
             'categories',
+            'defaultClientId',
             'clients',
             'statusOptions',
             'saleTypeOptions',
             'saleDate',
-            'paymentOptions'
+            'paymentOptions',
+            'repairTypes'
         ));
     }
 
@@ -82,6 +89,13 @@ class SaleWebController extends BaseSaleController
         $categories = app(\App\Services\CategoryService::class)->getAllCategories();
         $statusOptions = SaleStatus::forSelect();
 
+        $saleDate = now()->format('Y-m-d');
+
+        $paymentOptions = [
+            \App\Enums\PaymentType::Cash->value => \App\Enums\PaymentType::Cash->label(),
+            \App\Enums\PaymentType::Transfer->value => \App\Enums\PaymentType::Transfer->label(),
+        ];
+
         $customer_type = 'App\Models\Branch';
 
         return view('admin.sales.create-branch', compact(
@@ -90,6 +104,8 @@ class SaleWebController extends BaseSaleController
             'categories',
             'statusOptions',
             'customer_type',
+            'saleDate',
+            'paymentOptions'
         ));
     }
 

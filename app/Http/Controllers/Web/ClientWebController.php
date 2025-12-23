@@ -13,7 +13,7 @@ class ClientWebController extends BaseClientController
         $clients = $this->clientService->getAllClients();
 
         $headers = ['#', 'Documento', 'Nombre Completo', 'Teléfono', 'Email', 'Creado en:'];
-        $hiddenFields = ['id'];
+        $hiddenFields = ['id', 'is_system'];
 
         return view('admin.client.index', compact('clients', 'rowData', 'headers', 'hiddenFields'));
     }

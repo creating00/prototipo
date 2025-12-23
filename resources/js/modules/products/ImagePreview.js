@@ -262,7 +262,7 @@ export class ImagePreview {
             this.previewButton.disabled = isLoading;
             this.previewButton.innerHTML = isLoading
                 ? '<i class="fas fa-spinner fa-spin"></i> Cargando...'
-                : '<i class="fas fa-eye"></i> Vista previa';
+                : '<i class="fas fa-eye"></i>';
         }
     }
 

@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\ClientAuthController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SalePaymentController;
 use App\Http\Controllers\Api\ExpenseTypeController;
+use App\Http\Controllers\Api\ProviderProductController;
 
 Route::apiResource('branches', BranchController::class);
 Route::apiResource('categories', CategoryController::class);
@@ -25,6 +26,9 @@ Route::prefix('inventory')->group(function () {
 });
 
 Route::apiResource('products', ProductController::class);
+
+Route::post('providers/{provider}/products', [ProviderProductController::class, 'store'])
+    ->name('providers.products.store');
 
 Route::get('/clients/search', [ClientController::class, 'search']);
 Route::apiResource('clients', ClientController::class);

@@ -10,3 +10,7 @@
         ])
     </x-admin-lte.form>
 @endsection
+
+@push('scripts')
+    @vite('resources/js/modules/clients/create.js')
+@endpush
