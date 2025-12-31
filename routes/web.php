@@ -59,8 +59,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('receive', [ProviderOrderWebController::class, 'receive'])
                 ->name('web.provider-orders.receive');
 
-            Route::get('details', [ProviderOrderWebController::class, 'show'])
-                ->name('web.provider-orders.show');
+            Route::get('details', [ProviderOrderWebController::class, 'details'])
+                ->name('web.provider-orders.details');
         });
 
         Route::prefix('providers/{provider}')->group(function () {

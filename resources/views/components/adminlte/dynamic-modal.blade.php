@@ -45,7 +45,7 @@
                 <button type="button" id="{{ $btnSaveId }}" class="btn btn-primary rounded-3 px-4 py-2 shadow-sm"
                     data-dynamic-modal-submit data-modal-id="{{ $modalId }}" data-form-id="{{ $formId }}"
                     @if ($route) data-route="{{ $route }}" @endif
-                    @if ($localSubmit) data-local-submit="true" @endif
+                    @if (!empty($localSubmit) && $localSubmit) data-local-submit="true" @endif
                     @if ($selectId) data-select-id="{{ $selectId }}" @endif
                     data-field-name="display_name" data-refresh-on-save="{{ $refreshOnSave ? 'true' : 'false' }}"
                     data-refresh-url="{{ $refreshUrl ?? '' }}">

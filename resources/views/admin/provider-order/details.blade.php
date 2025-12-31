@@ -60,12 +60,24 @@
             </div>
 
             <div class="card-footer">
-                <div class="float-right">
-                    {{-- Calculamos el total sumando los items --}}
+                <div class="float-right text-right">
                     @php
-                        $total = $order->items->sum(fn($i) => $i->quantity * $i->unit_cost);
+                        // Agrupamos los totales por moneda para no sumar peras con manzanas
+                        $totalsByCurrency = $order->items->groupBy('currency')->map(function ($group) {
+                            return [
+                                'symbol' => $group->first()->currency->symbol(),
+                                'amount' => $group->sum(fn($i) => $i->quantity * $i->unit_cost),
+                            ];
+                        });
                     @endphp
-                    <h4 class="mb-0">Total Estimado: <strong>${{ number_format($total, 2, ',', '.') }}</strong></h4>
+
+                    <h5 class="text-muted mb-1">Resumen de Totales:</h5>
+                    @foreach ($totalsByCurrency as $total)
+                        <h4 class="mb-0">
+                            Total {{ $loop->first ? '' : '&' }}
+                            <strong>{{ $total['symbol'] }} {{ number_format($total['amount'], 2, ',', '.') }}</strong>
+                        </h4>
+                    @endforeach
                 </div>
             </div>
         </div>

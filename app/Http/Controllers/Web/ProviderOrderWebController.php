@@ -181,7 +181,7 @@ class ProviderOrderWebController extends Controller
         return $maxLeadTime;
     }
 
-    public function show($id)
+    public function details($id)
     {
         $order = ProviderOrder::with(['provider', 'branch', 'items.providerProduct.product'])->findOrFail($id);
 
