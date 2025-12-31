@@ -28,6 +28,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(function ($user, $ability) {
             return $user->hasRole('admin') ? true : null;
         });
-        Blade::component('adminlte.form', Form::class);
+        //Blade::component('adminlte.form', Form::class);
     }
 }
