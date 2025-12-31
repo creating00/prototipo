@@ -37,18 +37,18 @@ class SaleCreator
         $prepared = $this->dataProcessor->prepare($data);
 
         return DB::transaction(function () use ($prepared, $addPaymentCallback) {
+            $skipStock = isset($data['source_order_id']);
             $sale = $this->createSaleRecord($prepared);
-            $this->itemProcessor->sync($sale, $prepared['items']);
+            $this->itemProcessor->sync($sale, $prepared['items'], $skipStock);
+            $subtotal = (float) $prepared['subtotal'];
+            $discountAmount = (float) $prepared['discount_amount'];
             $total = (float) $prepared['total'];
 
-            Log::debug('Total de venta resuelto', [
-                'sale_id' => $sale->id,
-                'sale_type' => $sale->sale_type->name,
-                'total' => $total,
-            ]);
-
-            // Calcular los campos de pago basados en el total real
             $updateData = $this->calculatePaymentFields($total, $prepared);
+
+            $updateData['subtotal_amount'] = $subtotal;
+            $updateData['discount_id'] = $prepared['discount_id'] ?? null;
+            $updateData['discount_amount'] = $discountAmount;
             $updateData['total_amount'] = $total;
 
             $sale->update($updateData);
@@ -89,6 +89,9 @@ class SaleCreator
             'sale_type'       => $saleData['sale_type'],
             'status'          => $saleData['status'],
             'internal_number' => $internalNumber,
+            'subtotal_amount'   => 0,
+            'discount_id'       => null,
+            'discount_amount'   => 0,
             'total_amount'    => 0,
             'customer_id'     => $saleData['customer_id'],
             'customer_type'   => $saleData['customer_type'],
@@ -109,16 +112,19 @@ class SaleCreator
      */
     protected function calculatePaymentFields(float $total, array $prepared): array
     {
-        $amountReceived = (float) ($prepared['amount_received'] ?? 0);
+        // BUSCAMOS primero en $prepared, porque ahí tu Processor ya guardó el total 
+        // si el campo venía vacío.
+        $amountReceived = (float) (isset($prepared['amount_received'])
+            ? $prepared['amount_received']
+            : 0);
 
-        $changeReturned = max(0, $amountReceived - $total);
-        $remainingBalance = max(0, $total - $amountReceived);
+        $remainingBalance = round(max(0, $total - $amountReceived), 2);
 
         return [
             'amount_received'   => $amountReceived,
-            'change_returned'   => $changeReturned,
+            'change_returned'   => max(0, $amountReceived - $total),
             'remaining_balance' => $remainingBalance,
-            'status' => $remainingBalance == 0
+            'status' => $remainingBalance <= 0
                 ? SaleStatus::Paid->value
                 : SaleStatus::Pending->value,
         ];

@@ -9,6 +9,7 @@ enum ProviderOrderStatus: int
     case PARTIAL   = 3;
     case RECEIVED  = 4;
     case CANCELLED = 5;
+    case PENDING = 6;
 
     public function label(): string
     {
@@ -18,6 +19,7 @@ enum ProviderOrderStatus: int
             self::PARTIAL   => 'Recibido Parcial',
             self::RECEIVED  => 'Recibido',
             self::CANCELLED => 'Cancelado',
+            self::PENDING => 'Pendiente',
         };
     }
 

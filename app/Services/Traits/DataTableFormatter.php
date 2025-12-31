@@ -92,6 +92,10 @@ trait DataTableFormatter
 
             'status'      => $this->resolveStatus($model, $options),
 
+            'status_raw'  => is_object($model->status)
+                ? $model->status->value
+                : $model->status,
+
             'created_at'  => $model->created_at->format('Y-m-d'),
         ];
     }

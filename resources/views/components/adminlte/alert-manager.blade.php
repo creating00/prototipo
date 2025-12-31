@@ -30,17 +30,17 @@
 
 @foreach (['success', 'error', 'warning', 'info'] as $type)
     @if (session($type))
-        <x-admin-lte.alert :type="$alertConfig[$type]['type']" :message="session($type)" :dismissible="$dismissible" :autoClose="$autoClose ? $alertConfig[$type]['autoClose'] : false" :icon="$alertConfig[$type]['icon']" />
+        <x-adminlte.alert :type="$alertConfig[$type]['type']" :message="session($type)" :dismissible="$dismissible" :autoClose="$autoClose ? $alertConfig[$type]['autoClose'] : false" :icon="$alertConfig[$type]['icon']" />
     @endif
 @endforeach
 
 @if ($errors->any() && session('show_validation_errors', true))
-    <x-admin-lte.alert type="danger" :dismissible="$dismissible" :autoClose="$autoClose ? 10000 : false" icon="fas fa-times-circle">
+    <x-adminlte.alert type="danger" :dismissible="$dismissible" :autoClose="$autoClose ? 10000 : false" icon="fas fa-times-circle">
         <strong>Errores de validación:</strong>
         <ul class="mb-0 mt-2">
             @foreach ($errors->all() as $error)
                 <li>{{ $error }}</li>
             @endforeach
         </ul>
-    </x-admin-lte.alert>
+    </x-adminlte.alert>
 @endif

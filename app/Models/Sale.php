@@ -26,6 +26,9 @@ class Sale extends Model
         'amount_received',
         'change_returned',
         'remaining_balance',
+        'subtotal_amount',
+        'discount_id',
+        'discount_amount',
         'total_amount',
         'customer_id',
         'customer_type',
@@ -42,6 +45,11 @@ class Sale extends Model
     ];
 
     // ===== RELACIONES =====
+
+    public function discount()
+    {
+        return $this->belongsTo(Discount::class);
+    }
 
     /**
      * Obtiene la sucursal a la que pertenece la venta.
@@ -120,5 +128,15 @@ class Sale extends Model
                 : $this->customer->full_name ?? '';
         }
         return '';
+    }
+
+    public function hasDiscount(): bool
+    {
+        return $this->discount_id !== null && $this->discount_amount > 0;
+    }
+    
+    public function scopeForBranch($query, int $branchId)
+    {
+        return $query->where('branch_id', $branchId);
     }
 }

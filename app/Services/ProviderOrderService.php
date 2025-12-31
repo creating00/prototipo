@@ -2,7 +2,11 @@
 
 namespace App\Services;
 
+use App\Enums\PriceType;
+use App\Enums\ProductStatus;
 use App\Models\{
+    ProductBranch,
+    ProductBranchPrice,
     Provider,
     ProviderOrder,
     ProviderOrderItem,
@@ -36,22 +40,31 @@ class ProviderOrderService
         ProviderOrder $order,
         ProviderProduct $providerProduct,
         int $quantity,
-        ?float $unitCost = null,
-        ?int $currency = null
+        $unitCost = null,
+        $currency = null
     ): ProviderOrderItem {
 
-        // El Global Scope asegura que solo tomamos precios de la sucursal actual
-        $price = $providerProduct->currentPrice;
+        // Intentamos obtener el precio actual de la DB como backup
+        $currentPrice = $providerProduct->currentPrice;
 
-        if ($unitCost === null && !$price) {
-            throw new \RuntimeException('El producto no tiene precio vigente en esta sucursal.');
+        // Lógica de decisión:
+        // 1. Usamos lo que viene por parámetro (del formulario)
+        // 2. Si es null, usamos lo que tiene el producto en la DB
+        $finalCost = $unitCost ?? ($currentPrice ? $currentPrice->cost_price : null);
+        $finalCurrency = $currency ?? ($currentPrice ? $currentPrice->currency->value : null);
+
+        // Si después de intentar ambos, seguimos sin tener datos, error
+        if ($finalCost === null || $finalCurrency === null) {
+            throw new \RuntimeException(
+                "El producto {$providerProduct->product->name} no tiene precio definido ni se recibió uno válido."
+            );
         }
 
         return $order->items()->create([
             'provider_product_id' => $providerProduct->id,
             'quantity'            => $quantity,
-            'unit_cost'           => $unitCost ?? $price->cost_price,
-            'currency'            => $currency ?? $price->currency->value,
+            'unit_cost'           => $finalCost,
+            'currency'            => $finalCurrency,
         ]);
     }
 
@@ -83,16 +96,51 @@ class ProviderOrderService
      */
     public function receiveOrder(ProviderOrder $order): ProviderOrder
     {
-        return DB::transaction(function () use ($order) {
+        if ($order->status === ProviderOrderStatus::RECEIVED) {
+            throw new \RuntimeException('Esta orden ya ha sido marcada como recibida.');
+        }
 
-            // Aquí luego impactará stock
+        return DB::transaction(function () use ($order) {
+            $order->load('items.providerProduct.product');
+
+            foreach ($order->items as $item) {
+                $product = $item->providerProduct->product;
+
+                // 1. Obtener o crear el registro de sucursal
+                $productBranch = ProductBranch::firstOrCreate(
+                    [
+                        'product_id' => $product->id,
+                        'branch_id'  => $order->branch_id,
+                    ],
+                    [
+                        'stock'               => 0,
+                        'low_stock_threshold' => 5,
+                        'status'              => ProductStatus::Available,
+                    ]
+                );
+
+                // 2. Incrementar Stock
+                $productBranch->increment('stock', $item->quantity);
+
+                // 3. Actualizar Precio de Compra
+               ProductBranchPrice::updateOrCreate(
+                    [
+                        'product_branch_id' => $productBranch->id,
+                        'type'              => PriceType::PURCHASE,
+                        'currency'          => $item->currency,
+                    ],
+                    [
+                        'amount'            => $item->unit_cost,
+                    ]
+                );
+            }
 
             $order->update([
-                'status' => ProviderOrderStatus::RECEIVED->value,
+                'status'        => ProviderOrderStatus::RECEIVED->value,
                 'received_date' => now(),
             ]);
 
-            return $order;
+            return $order->fresh();
         });
     }
 }

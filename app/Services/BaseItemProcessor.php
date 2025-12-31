@@ -22,18 +22,19 @@ abstract class BaseItemProcessor
      * @param array $items Array de items a procesar
      * @return float Total calculado
      */
-    final public function sync(Model $model, array $items): float
+    final public function sync(Model $model, array $items, bool $skipStockMovement = false): float
     {
         $total = 0;
         $branchId = $model->branch_id;
 
         foreach ($items as $item) {
             $product = $this->getLockedProduct($item['product_id']);
-            $this->validateStock($product, $branchId, $item['quantity']);
+            if (!$skipStockMovement) {
+                $this->validateStock($product, $branchId, $item['quantity']);
+                $this->stockService->reserve($product, $item['quantity'], $branchId);
+            }
 
             $unitPrice = $this->getProductPrice($product, $branchId);
-            $this->stockService->reserve($product, $item['quantity'], $branchId);
-
             $subtotal = $unitPrice * $item['quantity'];
             $total += $subtotal;
 

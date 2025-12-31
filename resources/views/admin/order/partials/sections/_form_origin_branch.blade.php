@@ -2,12 +2,12 @@
     <input type="hidden" name="branch_id" value="{{ auth()->user()->branch_id }}">
     <!-- Sucursal Destinataria -->
     <div class="col-md-4" id="branch-select-wrapper">
-        <x-admin-lte.select name="branch_recipient_id" label="Sucursal Destinataria" :options="$destinationBranches->pluck('name', 'id')->toArray()" :value="old('branch_recipient_id', $order->branch_recipient_id ?? null)"
+        <x-adminlte.select name="branch_recipient_id" label="Sucursal Destinataria" :options="$destinationBranches->pluck('name', 'id')->toArray()" :value="old('branch_recipient_id', $order->branch_recipient_id ?? null)"
             required />
     </div>
 
     <!-- Estado -->
     <div class="col-md-4">
-        <x-admin-lte.select name="status" label="Estado del Pedido" :options="$statusOptions" :value="old('status', $order->status->value ?? 0)" required />
+        <x-adminlte.select name="status" label="Estado del Pedido" :options="$statusOptions" :value="old('status', $order->status->value ?? 1)" required />
     </div>
 </div>

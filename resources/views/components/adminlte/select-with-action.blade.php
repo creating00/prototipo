@@ -9,13 +9,13 @@
             </label>
 
             @if ($buttonLabel)
-                <x-admin-lte.button :id="$buttonId" :color="$buttonColor" size="sm" :icon="$buttonIcon"
+                <x-adminlte.button :id="$buttonId" :color="$buttonColor" size="sm" :icon="$buttonIcon"
                     :label="$buttonLabel" :class="$buttonClass" :title="$buttonTitle" />
             @endif
 
         </div>
     @endif
 
-    <x-admin-lte.select :name="$name" :options="$options" :placeholder="$placeholder" :value="$value" :required="$required"
+    <x-adminlte.select :name="$name" :options="$options" :placeholder="$placeholder" :value="$value" :required="$required"
         :searchEnabled="$searchEnabled" :multiple="$multiple" :label="false" :attributes="$attributes ?? []" />
 </div>

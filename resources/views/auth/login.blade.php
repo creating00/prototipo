@@ -1,6 +1,6 @@
-<x-admin-lte.guest-layout>
+<x-adminlte.guest-layout>
     <!-- Session Status -->
-    <x-admin-lte.auth-session-status class="mb-4" :status="session('status')" />
+    <x-adminlte.auth-session-status class="mb-4" :status="session('status')" />
 
     <p class="login-box-msg">Sign in to start your session</p>
 
@@ -8,11 +8,11 @@
         @csrf
 
         <!-- Email Address -->
-        <x-admin-lte.input-group id="email" type="email" name="email" label="Email" icon="envelope"
+        <x-adminlte.input-group id="email" type="email" name="email" label="Email" icon="envelope"
             :value="old('email')" required autofocus autocomplete="username" />
 
         <!-- Password -->
-        <x-admin-lte.input-group id="password" type="password" name="password" label="Password" icon="lock-fill"
+        <x-adminlte.input-group id="password" type="password" name="password" label="Password" icon="lock-fill"
             required autocomplete="current-password" />
 
         <!-- Remember Me -->
@@ -29,9 +29,9 @@
             <!-- /.col -->
             <div class="col-4">
                 <div class="d-grid gap-2">
-                    <x-admin-lte.primary-button class="btn-block">
+                    <x-adminlte.primary-button class="btn-block">
                         {{ __('Log in') }}
-                    </x-admin-lte.primary-button>
+                    </x-adminlte.primary-button>
                 </div>
             </div>
             <!-- /.col -->
@@ -57,4 +57,4 @@
             </div>
         </div>
     </form>
-</x-admin-lte.guest-layout>
+</x-adminlte.guest-layout>

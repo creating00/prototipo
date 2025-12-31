@@ -25,7 +25,7 @@ class DataTable extends Component
         array $headers = [],
         array $rowData = [],
         bool $responsive = true,
-        bool $withActions = false,
+        $withActions = false,
         array $hiddenFields = []
     ) {
         $this->tableId = $tableId;
@@ -34,7 +34,7 @@ class DataTable extends Component
         $this->headers = $headers;
         $this->rowData = $rowData;
         $this->responsive = $responsive;
-        $this->withActions = $withActions;
+        $this->withActions = filter_var($withActions, FILTER_VALIDATE_BOOLEAN);
         $this->hiddenFields = $hiddenFields ?: $this->detectHiddenFields($rowData);
 
         $this->rows = $this->generateRowsFromRowData();

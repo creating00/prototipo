@@ -7,13 +7,13 @@ use App\Enums\SaleStatus;
 use App\Enums\SaleType;
 use App\Models\Branch;
 use App\Models\Client;
-use App\Traits\CalculatesTotalFromItems;
+use App\Traits\CalculatesSubtotalFromItems;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class SaleValidator
 {
-    use CalculatesTotalFromItems;
+    use CalculatesSubtotalFromItems;
 
     /**
      * Valida los datos de la venta.
@@ -72,6 +72,8 @@ class SaleValidator
             'customer_type' => 'required|in:App\Models\Client,App\Models\Branch',
             'sale_date'     => 'required|date',
             'notes'         => 'nullable|string|max:500',
+            'source_order_id' => 'nullable|exists:orders,id',
+            'discount_id' => 'nullable|exists:discounts,id',
         ];
     }
 
@@ -87,7 +89,6 @@ class SaleValidator
             'items.*.product_id'  => 'required|exists:products,id',
             'items.*.quantity'    => 'required|numeric|min:1',
             'items.*.unit_price'  => 'required|numeric|min:0',
-            'items.*.discount'    => 'nullable|numeric|min:0|max:100',
         ];
     }
 
@@ -162,6 +163,7 @@ class SaleValidator
     {
         $this->validatePaymentAmounts($validator, $data);
         $this->validateInterBranchSale($validator, $data);
+        $this->validateDiscount($validator, $data);
     }
 
     /**
@@ -173,56 +175,60 @@ class SaleValidator
      */
     protected function validatePaymentAmounts($validator, array $data): void
     {
-        if (empty($data['items'])) {
-            return;
-        }
-
-        $total = $this->calculateTotalFromItems($data['items']);
+        // 1. Resolver el total redondeado a 2 decimales
+        $total = round(app(SaleTotalResolver::class)->resolve($data), 2);
 
         if (isset($data['amount_received'])) {
-            $amountReceived = $data['amount_received'];
+            // Forzar float y redondeo
+            $amountReceived = round((float)$data['amount_received'], 2);
+            $changeReturned = isset($data['change_returned']) ? round((float)$data['change_returned'], 2) : 0;
 
             if ($amountReceived < 0) {
                 $validator->errors()->add('amount_received', 'El monto recibido no puede ser negativo');
             }
 
-            if (isset($data['change_returned'])) {
-                $changeReturned = $data['change_returned'];
+            if ($changeReturned > 0) {
+                // USAR UNA TOLERANCIA (Epsilon) para evitar errores de precisión de centavos
+                // La condición lógica correcta es: Recibido - Total debe ser igual al Cambio
+                $diff = round($amountReceived - $total, 2);
 
-                if ($changeReturned < 0) {
-                    $validator->errors()->add('change_returned', 'El cambio devuelto no puede ser negativo');
-                }
-
-                if ($changeReturned > 0 && $amountReceived <= $total) {
-                    $validator->errors()->add('amount_received', 'Si hay cambio devuelto, el monto recibido debe ser mayor al total de la venta');
-                }
-
-                if ($changeReturned > $amountReceived) {
-                    $validator->errors()->add('change_returned', 'El cambio devuelto no puede ser mayor al monto recibido');
+                if ($diff < $changeReturned) {
+                    $validator->errors()->add('amount_received', "Monto insuficiente para el cambio entregado. Total: $total, Recibido: $amountReceived, Cambio: $changeReturned");
                 }
             }
         }
 
         if (isset($data['remaining_balance'])) {
-            $remainingBalance = $data['remaining_balance'];
+            $remainingBalance = round((float)$data['remaining_balance'], 2);
+            $expectedBalance = round(max(0, $total - (float)($data['amount_received'] ?? 0)), 2);
 
-            if ($remainingBalance < 0) {
-                $validator->errors()->add('remaining_balance', 'El saldo pendiente no puede ser negativo');
+            if (abs($remainingBalance - $expectedBalance) > 0.01) {
+                $validator->errors()->add('remaining_balance', sprintf(
+                    'El saldo pendiente (%.2f) no coincide. Se esperaba: %.2f (Total: %.2f - Recibido: %.2f)',
+                    $remainingBalance,
+                    $expectedBalance,
+                    $total,
+                    $data['amount_received'] ?? 0
+                ));
             }
+        }
+    }
 
-            if (isset($data['amount_received'])) {
-                $expectedBalance = max(0, $total - $data['amount_received']);
+    protected function validateDiscount($validator, array $data): void
+    {
+        if (!isset($data['discount_id'])) {
+            return;
+        }
 
-                if (abs($remainingBalance - $expectedBalance) > 0.01) {
-                    $validator->errors()->add('remaining_balance', sprintf(
-                        'El saldo pendiente (%.2f) no coincide. Se esperaba: %.2f (Total: %.2f - Recibido: %.2f)',
-                        $remainingBalance,
-                        $expectedBalance,
-                        $total,
-                        $data['amount_received']
-                    ));
-                }
-            }
+        $discount = \App\Models\Discount::where('id', $data['discount_id'])
+            ->where('is_active', true)
+            ->first();
+
+        if (!$discount) {
+            $validator->errors()->add(
+                'discount_id',
+                'El descuento seleccionado no es válido o no está activo'
+            );
         }
     }
 

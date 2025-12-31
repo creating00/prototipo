@@ -14,11 +14,19 @@ use App\Http\Controllers\Api\ClientAuthController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SalePaymentController;
 use App\Http\Controllers\Api\ExpenseTypeController;
+use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\ProviderProductController;
+use App\Http\Controllers\Api\DiscountController;
+use App\Http\Controllers\Api\ProfileApiController;
 
 Route::apiResource('branches', BranchController::class);
 Route::apiResource('categories', CategoryController::class);
 Route::apiResource('expense-types', ExpenseTypeController::class);
+Route::apiResource('discounts', DiscountController::class);
+
+Route::post('/profile/change-password', [ProfileApiController::class, 'updatePassword'])
+    ->name('api.profile.password.update')
+    ->middleware('web', 'auth');
 
 Route::prefix('inventory')->group(function () {
     Route::get('list', [ProductController::class, 'list']);
@@ -27,13 +35,29 @@ Route::prefix('inventory')->group(function () {
 
 Route::apiResource('products', ProductController::class);
 
-Route::post('providers/{provider}/products', [ProviderProductController::class, 'store'])
-    ->name('providers.products.store');
+Route::apiResource('providers', ProviderController::class);
+
+Route::prefix('providers/{provider}')->group(function () {
+    // Obtener lista de productos (usada por tu Select dinámico)
+    Route::get('products', [ProviderController::class, 'getProducts'])
+        ->name('providers.products.index');
+
+    // Gestión de asociación de productos (ProviderProductController)
+    Route::post('products', [ProviderProductController::class, 'store'])
+        ->name('providers.products.store');
+
+    Route::get('products/{providerProduct}', [ProviderProductController::class, 'show'])
+        ->name('providers.products.show');
+
+    Route::put('products/{providerProduct}', [ProviderProductController::class, 'update'])
+        ->name('providers.products.update');
+});
 
 Route::get('/clients/search', [ClientController::class, 'search']);
 Route::apiResource('clients', ClientController::class);
 // Rutas públicas para e-commerce (creación de órdenes)
 Route::post('orders/ecommerce', [OrderController::class, 'storeFromEcommerce']);
+Route::post('orders/{id}/convert', [OrderController::class, 'convert']);
 
 Route::apiResource('orders', OrderController::class)->except(['store']);
 Route::post('orders', [OrderController::class, 'store'])->middleware('auth:sanctum');

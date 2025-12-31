@@ -9,13 +9,13 @@
 <div class="row g-3 mb-4">
     <div class="col-md-6">
         {{-- Sucursal --}}
-        <x-admin-lte.select-with-action name="branch_id" label="Sucursal" :options="$formData->branches->pluck('name', 'id')->toArray()" :value="old('branch_id', $formData->expense?->branch_id ?? $formData->branchUserId)" required
+        <x-adminlte.select-with-action name="branch_id" label="Sucursal" :options="$formData->branches->pluck('name', 'id')->toArray()" :value="old('branch_id', $formData->expense?->branch_id ?? $formData->branchUserId)" required
             buttonId="btn-new-branch" />
     </div>
 
     <div class="col-md-6">
         {{-- Tipo de Gasto --}}
-        <x-admin-lte.select-with-action name="expense_type_id" label="Tipo de Gasto" :options="$formData->expenseTypes->pluck('display_name', 'id')->toArray()" :value="old('expense_type_id', $formData->expense?->expense_type_id)"
+        <x-adminlte.select-with-action name="expense_type_id" label="Tipo de Gasto" :options="$formData->expenseTypes->pluck('display_name', 'id')->toArray()" :value="old('expense_type_id', $formData->expense?->expense_type_id)"
             required buttonId="btn-new-expense-type" />
     </div>
 </div>
@@ -29,7 +29,7 @@
 
     <div class="col-md-6">
         {{-- Forma de Pago --}}
-        <x-admin-lte.select name="payment_type" label="Forma de Pago" :options="PaymentType::forSelect()" :value="old('payment_type', $formData->expense?->payment_type->value ?? PaymentType::Cash->value)" required />
+        <x-adminlte.select name="payment_type" label="Forma de Pago" :options="PaymentType::forSelect()" :value="old('payment_type', $formData->expense?->payment_type->value ?? PaymentType::Cash->value)" required />
     </div>
 </div>
 
@@ -39,7 +39,7 @@
 <div class="row g-3 mb-4">
     <div class="col-md-12">
         {{-- Referencia (ej: número de factura) --}}
-        <x-admin-lte.input-group id="reference" name="reference" label="Referencia / Factura"
+        <x-adminlte.input-group id="reference" name="reference" label="Referencia / Factura"
             placeholder="Ej: Factura #123" :value="old('reference', $formData->expense?->reference)" />
     </div>
 </div>

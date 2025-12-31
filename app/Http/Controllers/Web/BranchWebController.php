@@ -13,7 +13,7 @@ class BranchWebController extends BaseBranchController
         $branches = $this->branchService->getAllBranches();
         $rowData = $this->branchService->getAllBranchesForDatatable();
 
-        $headers = ['#', 'Sucursal', 'Dirección', 'Provincia'];
+        $headers = ['#', 'Sucursal', 'Teléfono', 'Dirección', 'Provincia'];
         $hiddenFields = ['id', 'province_id']; // opcional
 
         return view('admin.branch.index', compact('headers', 'rowData', 'hiddenFields'));

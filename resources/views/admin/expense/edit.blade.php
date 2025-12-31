@@ -3,15 +3,15 @@
 @section('page-title', 'Editar Gasto')
 
 @section('content')
-    <x-admin-lte.alert-manager />
+    <x-adminlte.alert-manager />
 
-    <x-admin-lte.form action="{{ route('web.expenses.update', $formData->expense) }}" method="POST" title="Editar Gasto"
+    <x-adminlte.form action="{{ route('web.expenses.update', $formData->expense) }}" method="POST" title="Editar Gasto"
         submit-text="Actualizar Gasto" submitting-text="Actualizando gasto...">
         @method('PUT')
         @include('admin.expense.partials._form', [
             'formData' => $formData,
         ])
-    </x-admin-lte.form>
+    </x-adminlte.form>
 
     {{-- Modales auxiliares --}}
     @include('admin.branch.partials._modal-create')

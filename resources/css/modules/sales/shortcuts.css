@@ -1,0 +1,25 @@
+.kbd-shortcut {
+    display: inline-block;
+    padding: 1px 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #334155 !important;
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1);
+    margin-left: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    text-transform: uppercase;
+}
+
+/* Para kbd dentro de botones de colores */
+.btn .kbd-shortcut {
+    margin-left: 5px;
+    padding: 0px 3px;
+    font-size: 0.79rem;
+    vertical-align: middle;
+    opacity: 0.9;
+    border-color: rgba(0, 0, 0, 0.2);
+}

@@ -68,4 +68,26 @@ BootstrapSwal.error = function (title = "Error", text = "") {
     });
 };
 
+BootstrapSwal.confirmReceive = function (orderNumber = "") {
+    return this.fire({
+        title: "¿Confirmar recepción?",
+        html: `
+            <div class="text-center">
+                <i class="fas fa-truck-loading text-success fa-3x mb-3"></i>
+                <p class="mb-0">¿Deseas marcar la orden <strong>${orderNumber}</strong> como recibida?</p>
+                <p class="text-muted small mt-1">El stock de los productos se incrementará automáticamente.</p>
+            </div>
+        `,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText:
+            '<i class="fas fa-check me-2"></i>Sí, recibir mercadería',
+        cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar',
+        customClass: {
+            confirmButton: "btn btn-success btn-lg",
+            cancelButton: "btn btn-secondary btn-lg me-2",
+        },
+    });
+};
+
 export default BootstrapSwal;

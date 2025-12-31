@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
     DashboardController,
     ProfileController,
-    HomeController
+    HomeController,
 };
 use App\Http\Controllers\Web\{
     BranchWebController,
@@ -18,6 +18,9 @@ use App\Http\Controllers\Web\{
     ExpenseTypeWebController,
     ProviderProductWebController,
     UserWebController,
+    ProviderOrderWebController,
+    DiscountWebController,
+    AnalyticsController
 };
 
 // Página principal
@@ -45,6 +48,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         webResource('expenses', ExpenseWebController::class);
         webResource('expense-types', ExpenseTypeWebController::class);
         webResource('users', UserWebController::class);
+        webResource('discounts', DiscountWebController::class);
+        webResource('provider-orders', ProviderOrderWebController::class);
+        webResource('analytics', AnalyticsController::class);
+
+        Route::prefix('provider-orders/{id}')->group(function () {
+            Route::post('send', [ProviderOrderWebController::class, 'send'])
+                ->name('web.provider-orders.send');
+
+            Route::post('receive', [ProviderOrderWebController::class, 'receive'])
+                ->name('web.provider-orders.receive');
+
+            Route::get('details', [ProviderOrderWebController::class, 'show'])
+                ->name('web.provider-orders.show');
+        });
 
         Route::prefix('providers/{provider}')->group(function () {
             Route::post('products', [ProviderProductWebController::class, 'store'])
@@ -61,6 +78,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('provider-products/{providerProduct}', [ProviderProductWebController::class, 'update'])
                 ->name('web.providers.products.update');
         });
+
+        Route::get('orders/purchases', [OrderWebController::class, 'purchases'])->name('web.orders.purchases');
+        Route::get('orders/purchases/{id}/details', [OrderWebController::class, 'purchaseDetails'])
+            ->name('web.orders.purchases.details');
+        Route::get('orders/{id}/details', [OrderWebController::class, 'show'])->name('web.orders.show');
 
         resourceWithExtras('orders', OrderWebController::class, [
             'create-client' => 'createClient',

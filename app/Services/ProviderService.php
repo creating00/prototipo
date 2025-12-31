@@ -24,6 +24,25 @@ class ProviderService
         return Provider::findOrFail($id);
     }
 
+    // App\Services\ProviderService.php
+
+    public function getProviderProducts(int $providerId)
+    {
+        $provider = Provider::findOrFail($providerId);
+
+        return $provider->providerProducts()
+            ->with(['product', 'currentPrice'])
+            ->get()
+            ->map(function ($pp) {
+                return [
+                    'id' => $pp->id,
+                    'name' => "{$pp->product->name} " . ($pp->provider_code ? "({$pp->provider_code})" : "(S/C)"),
+                    'price' => $pp->currentPrice->cost_price ?? 0,
+                    'currency' => $pp->currentPrice->currency?->value ?? null,
+                ];
+            });
+    }
+
     public function updateProvider($id, array $data): Provider
     {
         $provider = $this->getProviderById($id);

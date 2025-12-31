@@ -63,4 +63,9 @@ class Expense extends Model
     {
         return $this->belongsTo(ExpenseType::class);
     }
+
+    public function scopeForBranch($query, int $branchId)
+    {
+        return $query->where('branch_id', $branchId);
+    }
 }

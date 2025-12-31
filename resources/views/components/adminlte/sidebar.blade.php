@@ -20,7 +20,7 @@
             <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="navigation"
                 aria-label="Main navigation" data-accordion="false" id="navigation">
 
-                <x-admin-lte.menu-builder />
+                <x-adminlte.menu-builder />
 
             </ul>
         </nav>

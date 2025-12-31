@@ -43,6 +43,7 @@ class BranchService
                 'province_id' => $branch->province_id,       // Oculto si quieres
                 'number' => $index + 1,                      // Columna visible #
                 'name' => $branch->name,                     // Nombre de la sucursal
+                'phone' => $branch->phone,
                 'address' => $branch->address ?? '-',        // Dirección
                 'province' => $branch->province->name ?? '-', // Nombre de la provincia
             ];
@@ -74,7 +75,8 @@ class BranchService
         $rules = [
             'province_id' => 'required|exists:provinces,id',
             'name' => 'required|unique:branches,name' . ($ignoreId ? ",$ignoreId" : ''),
-            'address' => 'nullable|string'
+            'address' => 'nullable|string',
+            'phone' => 'nullable|string'
         ];
 
         $validator = Validator::make($data, $rules);

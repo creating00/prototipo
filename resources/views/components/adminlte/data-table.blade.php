@@ -36,7 +36,8 @@
 
                             @if ($withActions)
                                 <td class="text-center">
-                                    {{ $slot }}
+                                    {{-- {{ $slot }} --}}
+                                    {{ $actions ?? $slot }}
                                 </td>
                             @endif
                         </tr>

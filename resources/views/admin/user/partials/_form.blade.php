@@ -41,13 +41,13 @@
     <div class="row g-3">
         {{-- Sucursal --}}
         <div class="col-md-6">
-            <x-admin-lte.select-with-action name="branch_id" label="Sucursal Asignada" :options="$formData->branches->pluck('name', 'id')->toArray()"
+            <x-adminlte.select-with-action name="branch_id" label="Sucursal Asignada" :options="$formData->branches->pluck('name', 'id')->toArray()"
                 :value="old('branch_id', $formData->user?->branch_id ?? '')" required buttonId="btn-new-branch" />
         </div>
 
         {{-- Rol del Usuario --}}
         <div class="col-md-6">
-            <x-admin-lte.select name="role" label="Rol del Usuario" :options="$formData->roles
+            <x-adminlte.select name="role" label="Rol del Usuario" :options="$formData->roles
                 ->pluck('name')
                 ->mapWithKeys(
                     fn($name) => [
@@ -59,7 +59,7 @@
 
         {{-- Estado del Usuario (Activo/Inactivo) --}}
         {{-- <div class="col-md-6">
-            <x-admin-lte.select name="status" label="Estado de Cuenta" :options="$formData->statusOptions"
+            <x-adminlte.select name="status" label="Estado de Cuenta" :options="$formData->statusOptions"
                 placeholder="Seleccione estado" :value="old('status', $formData->user?->status ?? 'active')" required />
         </div> --}}
     </div>

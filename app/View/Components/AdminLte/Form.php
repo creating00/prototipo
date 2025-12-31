@@ -8,34 +8,38 @@ use Illuminate\View\Component;
 
 class Form extends Component
 {
-    public $action;
-    public $method;
-    public $title;
-    public $submitText;
-    public $submittingText;
+    public string $id;
+    public string $submitText;
 
+    /**
+     * @param string|null $action URL de destino del formulario
+     * @param string $method Método HTTP (POST, PUT, DELETE, etc.)
+     * @param string|null $title Título de la Card
+     * @param string|null $submitText Texto del botón principal
+     * @param string $submittingText Texto mostrado al procesar
+     * @param string|null $id ID del formulario (para vinculación externa)
+     * @param bool|null $showFooter Fuerza la visibilidad del footer
+     */
     public function __construct(
-        $action = null,
-        $method = 'POST',
-        $title = null,
-        $submitText = null,
-        $submittingText = null
+        public ?string $action = null,
+        public string $method = 'POST',
+        public ?string $title = null,
+        ?string $submitText = null,
+        public string $submittingText = 'Guardando...',
+        ?string $id = null,
+        public ?bool $showFooter = null
     ) {
-        $this->action = $action;
-        $this->method = $method;
-        $this->title = $title;
+        $this->id = $id ?? 'form_' . bin2hex(random_bytes(4));
         $this->submitText = $submitText ?? $this->getDefaultSubmitText();
-        $this->submittingText = $submittingText ?? 'Guardando...';
     }
 
-    private function getDefaultSubmitText()
+    private function getDefaultSubmitText(): string
     {
-        // Determinar texto basado en el método HTTP
         return match (strtoupper($this->method)) {
-            'POST' => 'Crear',
+            'POST'         => 'Crear',
             'PUT', 'PATCH' => 'Actualizar',
-            'DELETE' => 'Eliminar',
-            default => 'Enviar'
+            'DELETE'       => 'Eliminar',
+            default        => 'Enviar',
         };
     }
 

@@ -3,9 +3,9 @@
 @section('page-title', 'Crear Pedido')
 
 @section('content')
-    <x-admin-lte.alert-manager />
+    <x-adminlte.alert-manager />
 
-    <x-admin-lte.form action="{{ route('web.orders.store') }}" method="POST" title="Crear Nuevo Pedido"
+    <x-adminlte.form action="{{ route('web.orders.store') }}" method="POST" title="Crear Nuevo Pedido"
         submit-text="Guardar Pedido" submitting-text="Registrando pedido...">
         @include('admin.order.partials._form', [
             'order' => null,
@@ -13,7 +13,7 @@
             'clients' => $clients,
             'statusOptions' => $statusOptions,
         ])
-    </x-admin-lte.form>
+    </x-adminlte.form>
 
     @include('admin.product.partials._modal_product_search')
     @include('admin.client.partials._modal-create')

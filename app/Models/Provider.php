@@ -21,6 +21,24 @@ class Provider extends Model
         'address',
     ];
 
+    protected $appends = ['display_name'];
+
+    public function getDisplayNameAttribute(): string
+    {
+        return "[{$this->tax_id}] {$this->business_name} - {$this->short_name}";
+    }
+
+    public function getDisplayNameHtmlAttribute(): string
+    {
+        // Solo ponemos el documento en negritas
+        return "<strong>[{$this->tax_id}]</strong> {$this->business_name}";
+    }
+
+    public function displayName(bool $html = false): string
+    {
+        return $html ? $this->display_name_html : $this->display_name;
+    }
+
     public function providerProducts(): HasMany
     {
         return $this->hasMany(ProviderProduct::class);

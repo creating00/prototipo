@@ -11,16 +11,23 @@ export default {
     table: null,
 
     init() {
+        if (this._initialized) return;
+        this._initialized = true;
+
         this.table = document.querySelector("#order-items-table tbody");
+        if (!this.table) return;
 
-        if (this.table) {
-            this.table.addEventListener("click", (e) => {
-                const btn = e.target.closest(".btn-remove-item");
-                if (btn) this.removeRow(btn.closest("tr"));
-            });
+        this.table.addEventListener("click", (e) => {
+            const btn = e.target.closest(".btn-remove-item");
+            if (btn) this.removeRow(btn.closest("tr"));
+        });
 
-            this.updateRowIndices();
-        }
+        document.addEventListener("product:searchByCode", (e) => {
+            if (!e.detail?.code) return;
+            this.addProductByCode(e.detail.code);
+        });
+
+        this.updateRowIndices();
     },
 
     addRow(html) {
@@ -105,6 +112,8 @@ export default {
         if (!this.table) {
             this.table = document.querySelector("#order-items-table tbody");
         }
+
+        console.log("Jamon");
 
         if (!this.table) return;
 

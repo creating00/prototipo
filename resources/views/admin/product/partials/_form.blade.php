@@ -30,11 +30,69 @@
             transform: scale(1.05);
         }
     </style>
+
+    <style>
+        .compact-select-wrapper {
+            position: relative;
+            /* Alineamos el margen inferior con tus .compact-input-wrapper */
+            margin-bottom: 0.4rem;
+            padding-top: 0.25rem;
+        }
+
+        /* Simula la etiqueta flotante superior (Clon de .compact-input-label) */
+        .compact-select-label {
+            position: absolute;
+            left: 0.75rem;
+            top: -0.25rem;
+            /* Ajustado para nivelar con tus otros inputs */
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #4b5563;
+            background-color: #fff;
+            padding: 0 0.3rem;
+            z-index: 30;
+            pointer-events: none;
+            letter-spacing: 0.025em;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+
+        /* Reseteo del componente base */
+        .compact-select-wrapper .mb-3 {
+            margin-bottom: 0 !important;
+        }
+
+        /* Ajuste estructural de Choices.js */
+        .compact-select-wrapper .choices__inner {
+            /* Altura idéntica a .compact-input: calc(2.8rem + 2px) */
+            min-height: calc(2.8rem + 2px) !important;
+            background-color: #fff !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.375rem !important;
+            padding: 0.65rem 0.75rem 0.4rem !important;
+            /* Mismo padding que .compact-input */
+            display: flex;
+            align-items: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Simulación de Focus (Mismo color que .compact-input:focus) */
+        .compact-select-wrapper .choices.is-focused .choices__inner {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        }
+
+        /* Ajuste de la flecha de Choices para que no quede descentrada */
+        .compact-select-wrapper .choices__list--single {
+            padding: 0 !important;
+            font-size: 0.875rem;
+        }
+    </style>
 @endpush
 <div class="form-section">
     <h3 class="form-section-title">Información Básica</h3>
 
-    <div class="row g-3">
+    <div class="row g-3 align-items-center">
 
         {{-- Código --}}
         <div class="col-md-6">
@@ -104,14 +162,14 @@
 
     <h3 class="form-section-title">Inventario y Estado</h3>
 
-    <div class="row g-3">
-        <div class="col-md-4 align-self-end">
+    <div class="row g-3 ">
+        <div class="col-md-4">
             {{-- Stock --}}
             <x-bootstrap.compact-input id="stock" name="stock" type="number" label="Stock Actual" placeholder="0"
                 value="{{ old('stock', $formData->productBranch->stock ?? '') }}" min="0" />
         </div>
 
-        <div class="col-md-4 align-self-end">
+        <div class="col-md-4">
             {{-- Umbral de Stock Mínimo (Low Stock Threshold) --}}
             <x-bootstrap.compact-input id="low_stock_threshold" name="low_stock_threshold" type="number"
                 label="Stock Mínimo de Alerta" placeholder="5"
@@ -119,10 +177,10 @@
                 min="0" />
         </div>
 
-        <div class="col-md-4 compact-select align-self-end">
-            {{-- Estado (Status - Select con alineación forzada) --}}
-            <x-admin-lte.select name="status" label="Estado del Producto" :options="$formData->statusOptions"
-                placeholder="Seleccione el estado" :value="old('status', $formData->productBranch->status->value)" required />
+        <div class="col-md-4 compact-select-wrapper">
+            {{-- Estado (Status - Select con alineación forzada) placeholder="Seleccione el estado" --}}
+            <x-adminlte.select name="status" label="" :options="$formData->statusOptions" :value="old('status', $formData->productBranch->status->value)" :showPlaceholder="false"
+                required />
         </div>
     </div>
 </div>
@@ -137,7 +195,6 @@
         <div class="col-md-4">
             <x-currency-price-input name="purchase_price" label="Precio de Compra (Costo)" :amount-value="old('purchase_price.amount', $formData->price(PriceType::PURCHASE->value))"
                 :currency-value="old('purchase_price.currency', $formData->currency(PriceType::PURCHASE->value))" :currency-options="$formData->currencyOptions" />
-
         </div>
         <div class="col-md-4">
             <x-currency-price-input name="sale_price" label="Precio de Venta (Minorista)" :amount-value="old('sale_price.amount', $formData->price(PriceType::SALE->value))"
@@ -156,16 +213,16 @@
 
     <h3 class="form-section-title">Ubicación y Clasificación</h3>
 
-    <div class="row">
+    <div class="row align-items-center">
         {{-- Sucursal --}}
         <div class="col-md-6">
-            <x-admin-lte.select-with-action name="branch_id" label="Sucursal Principal" :options="$formData->branches->pluck('name', 'id')->toArray()"
+            <x-adminlte.select-with-action name="branch_id" label="Sucursal Principal" :options="$formData->branches->pluck('name', 'id')->toArray()"
                 :value="old('branch_id', $formData->product?->branch_id ?? $formData->branchUserId)" required buttonId="btn-new-branch" />
         </div>
 
         {{-- Categoría --}}
         <div class="col-md-6">
-            <x-admin-lte.select-with-action name="category_id" label="Categoría" :options="$formData->categories->pluck('name', 'id')->toArray()" :value="old('category_id', $formData->product?->category_id)"
+            <x-adminlte.select-with-action name="category_id" label="Categoría" :options="$formData->categories->pluck('name', 'id')->toArray()" :value="old('category_id', $formData->product?->category_id)"
                 buttonId="btn-new-category" />
         </div>
     </div>

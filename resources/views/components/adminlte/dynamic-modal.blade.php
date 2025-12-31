@@ -44,11 +44,11 @@
 
                 <button type="button" id="{{ $btnSaveId }}" class="btn btn-primary rounded-3 px-4 py-2 shadow-sm"
                     data-dynamic-modal-submit data-modal-id="{{ $modalId }}" data-form-id="{{ $formId }}"
-                    data-route="{{ $route }}"
+                    @if ($route) data-route="{{ $route }}" @endif
+                    @if ($localSubmit) data-local-submit="true" @endif
                     @if ($selectId) data-select-id="{{ $selectId }}" @endif
                     data-field-name="display_name" data-refresh-on-save="{{ $refreshOnSave ? 'true' : 'false' }}"
                     data-refresh-url="{{ $refreshUrl ?? '' }}">
-
                     <span class="spinner-border spinner-border-sm d-none me-2"></span>
                     <span class="btn-text fw-semibold">Guardar</span>
                 </button>

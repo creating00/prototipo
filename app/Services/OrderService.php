@@ -3,10 +3,13 @@
 namespace App\Services;
 
 use App\Enums\OrderSource;
+use App\Enums\OrderStatus;
+use App\Models\Branch;
 use App\Models\Client;
 use App\Models\ClientAccount;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Sale;
 use App\Models\User;
 use App\Services\Order\OrderDataProcessor;
 use App\Services\Order\OrderItemProcessor;
@@ -117,6 +120,63 @@ class OrderService
         });
     }
 
+    /**
+     * Convierte una orden en venta permitiendo personalizar el pago y el usuario.
+     *
+     * @param int $id ID de la orden
+     * @param array $options Datos opcionales (payment_type, user_id, amount_received)
+     * @return Sale
+     */
+    public function convertToSale($id, array $options = [])
+    {
+        return DB::transaction(function () use ($id, $options) {
+            $order = $this->getOrderById($id);
+
+            if ($order->status === OrderStatus::ConvertedToSale->value) {
+                throw new \Exception("Esta orden ya fue convertida a venta.");
+            }
+
+            // Determinamos el tipo de pago por defecto si no se envía uno
+            $defaultPaymentType = ($order->customer_type === Branch::class)
+                ? \App\Enums\PaymentType::Transfer->value
+                : \App\Enums\PaymentType::Cash->value;
+
+            $data = [
+                'source_order_id' => $order->id,
+                'branch_id'       => $order->branch_id,
+                'user_id'         => $options['user_id'] ?? ($this->userId() ?? $order->user_id),
+                'customer_type'   => $order->customer_type,
+                'client_id'           => ($order->customer_type === Client::class) ? $order->customer_id : null,
+                'branch_recipient_id' => ($order->customer_type === Branch::class) ? $order->customer_id : null,
+
+                'sale_type' => \App\Enums\SaleType::Sale->value,
+                'sale_date' => now()->format('Y-m-d'),
+                'status'    => \App\Enums\SaleStatus::Paid->value,
+
+                'items'     => $order->items->map(fn($i) => [
+                    'product_id' => $i->product_id,
+                    'quantity'   => $i->quantity,
+                    'unit_price' => $i->unit_price,
+                ])->toArray(),
+
+                // 2. Prioridad al payment_type enviado
+                'payment_type'    => $options['payment_type'] ?? $defaultPaymentType,
+
+                // 3. Monto recibido (por defecto el total de la orden)
+                'amount_received' => $options['amount_received'] ?? $order->total_amount,
+            ];
+
+            $sale = app(SaleService::class)->createSale($data);
+
+            $order->update([
+                'status' => OrderStatus::ConvertedToSale->value,
+                'sale_id' => $sale->id
+            ]);
+
+            return $sale;
+        });
+    }
+
     public function validateOrderData(array $data, $ignoreId = null): array
     {
         $validator = Validator::make($data, $this->getValidationRules($data));
@@ -133,6 +193,62 @@ class OrderService
         return $this->getAllOrders()->map(
             fn($order, $index) => $this->formatForDataTable($order, $index)
         )->toArray();
+    }
+
+    /**
+     * Prepara los datos de los items del pedido para la DataTable en la vista de detalle.
+     */
+    public function getOrderItemsData(Order $order): array
+    {
+        $headers = ['#', 'Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
+
+        $rowData = $order->items->map(function ($item, $index) {
+            return [
+                'id'         => $item->id,
+                'number'     => $index + 1, // <--- Cambiado de 'index' a 'number'
+                'product'    => $item->product->name,
+                'quantity'   => $item->quantity,
+                // Usamos formatCurrency si quieres mantener el estilo con colores
+                'unit_price' => $this->formatCurrency($item->unit_price, '$', 'text-dark'),
+                'subtotal'   => $this->formatCurrency($item->subtotal, '$', 'fw-bold text-dark'),
+            ];
+        })->toArray();
+
+        return [
+            'headers'      => $headers,
+            'rowData'      => $rowData,
+            'hiddenFields' => ['id']
+        ];
+    }
+
+    /**
+     * Obtiene las órdenes donde la sucursal actual es el cliente (Compras Internas).
+     */
+    public function getPurchasedOrders()
+    {
+        $branchId = $this->currentBranchId();
+
+        return Order::with(['branch', 'customer', 'user'])
+            ->where('customer_id', $branchId)
+            ->where('customer_type', \App\Models\Branch::class)
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    /**
+     * Formatea las compras para la DataTable.
+     */
+    public function getPurchasedOrdersForDataTable(): array
+    {
+        return $this->getPurchasedOrders()->map(function ($order, $index) {
+            // Usamos el formatter del trait
+            $data = $this->formatForDataTable($order, $index, [
+                'currencyClass' => 'fw-bold text-info' // Azul para diferenciarlo de ventas (verde)
+            ]);
+
+            // Ajuste: En esta vista, 'branch' es el PROVEEDOR (quien nos vende)
+            return $data;
+        })->toArray();
     }
 
     protected function getValidationRules(array $data): array

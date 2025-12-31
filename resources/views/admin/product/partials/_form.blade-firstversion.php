@@ -36,13 +36,13 @@
 <div class="row g-3 mb-4">
     <div class="col-md-6">
         {{-- Código (Code) --}}
-        <x-admin-lte.input-group id="code" name="code" label="Código de Producto" placeholder="Ej: PRD-001"
+        <x-adminlte.input-group id="code" name="code" label="Código de Producto" placeholder="Ej: PRD-001"
             :value="old('code', $formData->product?->code ?? '')" required />
     </div>
 
     <div class="col-md-6">
         {{-- Nombre (Name) --}}
-        <x-admin-lte.input-group id="name" name="name" label="Nombre del Producto"
+        <x-adminlte.input-group id="name" name="name" label="Nombre del Producto"
             placeholder="Ej: Monitor LED 27''" :value="old('name', $formData->product?->name ?? '')" required />
     </div>
 </div>
@@ -67,7 +67,7 @@
 
     <div class="col-md-4">
         <!-- Opción 1: Subir archivo -->
-        <x-admin-lte.input name="imageFile" type="file" label="Subir Imagen" accept="image/*" />
+        <x-adminlte.input name="imageFile" type="file" label="Subir Imagen" accept="image/*" />
 
         <!-- Opción 2: Pegar URL -->
         <div class="form-group">
@@ -120,18 +120,18 @@
 <div class="row">
     <div class="col-md-4 align-self-end">
         {{-- Stock --}}
-        <x-admin-lte.input-group id="stock" name="stock" type="number" label="Stock Actual" placeholder="0"
+        <x-adminlte.input-group id="stock" name="stock" type="number" label="Stock Actual" placeholder="0"
             :value="old('stock', $formData->productBranch->stock)" min="0" />
     </div>
     <div class="col-md-4 align-self-end">
         {{-- Umbral de Stock Mínimo (Low Stock Threshold) --}}
-        <x-admin-lte.input-group id="low_stock_threshold" name="low_stock_threshold" type="number"
+        <x-adminlte.input-group id="low_stock_threshold" name="low_stock_threshold" type="number"
             label="Stock Mínimo de Alerta" placeholder="5" :value="old('low_stock_threshold', $formData->productBranch->low_stock_threshold)" min="0" />
     </div>
 
     <div class="col-md-4 align-self-end">
         {{-- Estado (Status - Select con alineación forzada) --}}
-        <x-admin-lte.select name="status" label="Estado del Producto" :options="$formData->statusOptions"
+        <x-adminlte.select name="status" label="Estado del Producto" :options="$formData->statusOptions"
             placeholder="Seleccione el estado" :value="old('status', $formData->productBranch->status->value)" required />
     </div>
 </div>
@@ -165,13 +165,13 @@
 <div class="row">
     {{-- Sucursal --}}
     <div class="col-md-6">
-        <x-admin-lte.select-with-action name="branch_id" label="Sucursal Principal" :options="$formData->branches->pluck('name', 'id')->toArray()"
+        <x-adminlte.select-with-action name="branch_id" label="Sucursal Principal" :options="$formData->branches->pluck('name', 'id')->toArray()"
             :value="old('branch_id', $formData->product?->branch_id ?? $formData->branchUserId)" required buttonId="btn-new-branch" />
     </div>
 
     {{-- Categoría --}}
     <div class="col-md-6">
-        <x-admin-lte.select-with-action name="category_id" label="Categoría" :options="$formData->categories->pluck('name', 'id')->toArray()" :value="old('category_id', $formData->product?->category_id)"
+        <x-adminlte.select-with-action name="category_id" label="Categoría" :options="$formData->categories->pluck('name', 'id')->toArray()" :value="old('category_id', $formData->product?->category_id)"
             buttonId="btn-new-category" />
     </div>
 </div>

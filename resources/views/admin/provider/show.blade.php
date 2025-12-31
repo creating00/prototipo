@@ -14,7 +14,7 @@
 
     <div class="container-fluid">
 
-        <x-admin-lte.alert-manager />
+        <x-adminlte.alert-manager />
 
         <div class="card mb-4">
             <div class="card-header">
@@ -48,22 +48,22 @@
             </div>
         </div>
 
-        <x-admin-lte.data-table tableId="provider-products-table" title="Productos asociados" :headers="$headers"
+        <x-adminlte.data-table tableId="provider-products-table" title="Productos asociados" :headers="$headers"
             :rowData="$rowData" :hiddenFields="$hiddenFields" withActions="true">
             {{-- Acciones por fila --}}
-            <x-admin-lte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
+            <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
 
-            {{-- <x-admin-lte.button color="custom-emerald" size="sm" icon="fas fa-dollar-sign" class="btn-price" /> --}}
+            {{-- <x-adminlte.button color="custom-emerald" size="sm" icon="fas fa-dollar-sign" class="btn-price" /> --}}
 
             {{-- Botones del header --}}
             <x-slot name="headerButtons">
-                <x-admin-lte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-attach-product"
+                <x-adminlte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-attach-product"
                     data-bs-toggle="modal" data-bs-target="#attachProductModal">
                     Asociar producto
-                </x-admin-lte.button>
+                </x-adminlte.button>
 
             </x-slot>
-        </x-admin-lte.data-table>
+        </x-adminlte.data-table>
 
     </div>
 @endsection

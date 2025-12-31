@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\{Sale, Order, Product, Client, Expense, Branch, Provider};
+use App\Traits\AuthTrait;
 
 class DashboardController extends Controller
 {
+    use AuthTrait;
     public function index()
     {
         $cards = config('dashboardCards.cards');
@@ -22,6 +24,8 @@ class DashboardController extends Controller
         $totalExpenses = Expense::sum('amount');
         $cards['expenses']['value'] = '$' . number_format($totalExpenses, 0, ',', '.');
 
-        return view('dashboard', compact('cards'));
+        $userId = $this->userId();
+
+        return view('dashboard', compact('cards', 'userId'));
     }
 }

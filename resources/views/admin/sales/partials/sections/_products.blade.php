@@ -1,4 +1,4 @@
-<div class="row g-3 mb-3">
+{{-- <div class="row g-3 mb-3">
     <div class="col-md-4">
         <label for="product_search_code" class="form-label">Agregar Producto</label>
 
@@ -11,17 +11,17 @@
             </button>
         </div>
     </div>
-</div>
+</div> --}}
 
 {{-- Tabla --}}
 <div class="table-responsive">
     <table class="table table-striped table-bsaleed align-middle" id="order-items-table">
         <thead>
             <tr>
-                <th width="35%">Producto</th>
-                <th width="12%">Stock</th>
-                <th width="12%">Precio</th>
-                <th width="12%">Cantidad</th>
+                <th width="25%">Producto</th>
+                <th width="8%">Stock</th>
+                <th width="20%">Precio</th>
+                <th width="8%">Cantidad</th>
                 <th width="15%">Subtotal</th>
                 <th width="8%"></th>
             </tr>

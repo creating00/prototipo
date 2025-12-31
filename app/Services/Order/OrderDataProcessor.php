@@ -100,6 +100,7 @@ class OrderDataProcessor
         } else {
             $data['customer_id'] = $this->currentBranchId();
             $data['branch_id'] = $data['branch_recipient_id'];
+            $data['branch_recipient_id'] = $data['customer_id'];
         }
     }
 

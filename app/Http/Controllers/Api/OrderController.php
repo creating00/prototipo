@@ -74,6 +74,7 @@ class OrderController extends BaseOrderController
                 'total_amount' => $order->total_amount,
                 'status' => $order->status,
                 'created_at' => $order->created_at,
+                //'data'=> $data
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -117,6 +118,49 @@ class OrderController extends BaseOrderController
             return response()->json([
                 'error' => $e->getMessage()
             ], $e->getCode() ?: 400);
+        }
+    }
+
+    /**
+     * Convierte una orden existente en una venta.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function convert(Request $request, $id)
+    {
+        try {
+            // Recolectamos las opciones del request
+            $options = $request->only([
+                'payment_type',
+                'amount_received',
+                'user_id'
+            ]);
+
+            /**
+             * Prioridad del Usuario:
+             * 1. El que viene explícitamente en el JSON del Request.
+             * 2. El usuario autenticado (si funcionara).
+             * 3. El usuario de sistema definido en config/orders.php.
+             */
+            if (!isset($options['user_id'])) {
+                $options['user_id'] = auth()->id() ?? config('orders.system_user_id');
+            }
+
+            // Ejecutar conversión
+            $sale = $this->orderService->convertToSale($id, $options);
+
+            return response()->json([
+                'message' => 'Orden convertida a venta exitosamente',
+                'sale_id' => $sale->id,
+                'internal_number' => $sale->internal_number,
+                'sale' => $sale
+            ], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['error' => 'La orden no existe'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
         }
     }
 }

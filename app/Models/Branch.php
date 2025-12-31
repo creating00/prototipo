@@ -14,6 +14,7 @@ class Branch extends Model
         'province_id',
         'name',
         'address',
+        'phone',
     ];
 
     public function province()

@@ -28,16 +28,17 @@
         <x-adminlte.sidebar />
         <!--end::Sidebar-->
         <!--begin::App Main-->
-        <x-admin-lte.app-main>
+        <x-adminlte.app-main>
             @yield('content')
-        </x-admin-lte.app-main>
+            </x-adminlte.app-main>
 
-        <!--end::App Main-->
-        <!--begin::Footer-->
-        <x-adminlte.footer />
-        <!--end::Footer-->
+            <!--end::App Main-->
+            <!--begin::Footer-->
+            <x-adminlte.footer />
+            <!--end::Footer-->
     </div>
     @stack('scripts')
+    @include('admin.user.partials._modal-change_password', ['userId' => auth()->id()])
 </body>
 <!--end::Body-->
 

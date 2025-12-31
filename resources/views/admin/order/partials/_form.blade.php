@@ -71,7 +71,7 @@
 
 <h3>Totales</h3>
 
-<x-admin-lte.input-group id="total_amount" name="total_amount" label="Total del Pedido" type="number" step="0.01"
+<x-adminlte.input-group id="total_amount" name="total_amount" label="Total del Pedido" type="number" step="0.01"
     readonly prepend="$" :value="old('total_amount', $order->total_amount ?? 0)" />
 
 

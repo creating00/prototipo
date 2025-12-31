@@ -11,9 +11,20 @@ const salePayment = {
     saleTotal: 0,
     saleType: SALE_TYPE.SALE,
 
+    // Configuración de sincronización (ID Modal -> ID Hidden)
+    fieldsToSync: {
+        sale_date: "hidden_sale_date",
+        amount_received: "hidden_amount_received",
+        change_returned: "hidden_change_returned",
+        remaining_balance: "hidden_remaining_balance",
+        repair_amount: "hidden_repair_amount",
+        discount_id: "hidden_discount_id",
+    },
+
     init: function () {
         this.detectSaleType();
         this.bindEvents();
+        this.syncModalFields();
         dispatchRepairCategoryChanged(
             this.saleType === SALE_TYPE.REPAIR
                 ? document.querySelector('select[name="repair_type_id"]')
@@ -25,6 +36,7 @@ const salePayment = {
     },
 
     bindEvents: function () {
+        // --- 1. Eventos de Reparación ---
         const repairTypeSelect =
             document.getElementById("repair_type") ||
             document.querySelector('select[name="repair_type_id"]');
@@ -34,6 +46,8 @@ const salePayment = {
                 dispatchRepairCategoryChanged(e.target.value || null);
             });
         }
+
+        // --- 2. Eventos de Monto Recibido y Cálculos ---
         const amountReceivedInput = document.getElementById("amount_received");
         if (amountReceivedInput) {
             ["input", "change"].forEach((event) =>
@@ -54,10 +68,66 @@ const salePayment = {
 
         document.addEventListener("sale:totalUpdated", (event) => {
             if (this.saleType !== SALE_TYPE.REPAIR) {
-                this.saleTotal = event.detail.total || 0;
+                this.saleTotal = parseFloat(event.detail.total) || 0;
                 this.calculateChangeAndBalance();
             }
         });
+
+        // --- 3. Eventos de Sincronización Automática (Modal -> Form) ---
+        Object.keys(this.fieldsToSync).forEach((modalId) => {
+            const modalEl = document.getElementById(modalId);
+            if (modalEl) {
+                ["input", "change"].forEach((eventType) => {
+                    modalEl.addEventListener(eventType, (e) => {
+                        const hiddenEl = document.getElementById(
+                            this.fieldsToSync[modalId]
+                        );
+                        if (hiddenEl) hiddenEl.value = e.target.value;
+                    });
+                });
+            }
+        });
+
+        // Sincronización especial para el Select del Modal
+        const modalPaymentType = document.querySelector(
+            'select[name="payment_type"]'
+        );
+        if (modalPaymentType) {
+            modalPaymentType.addEventListener("change", (e) => {
+                const hiddenType = document.getElementById(
+                    "hidden_payment_type"
+                );
+                if (hiddenType) hiddenType.value = e.target.value;
+            });
+        }
+
+        const discountSelect = document.getElementById("discount_id");
+        if (discountSelect) {
+            discountSelect.addEventListener("change", (e) => {
+                const hiddenDiscount =
+                    document.getElementById("hidden_discount_id");
+                if (hiddenDiscount) hiddenDiscount.value = e.target.value;
+            });
+        }
+    },
+
+    syncModalFields: function () {
+        // Sincronizar inputs de texto/número/fecha
+        Object.keys(this.fieldsToSync).forEach((modalId) => {
+            const modalEl = document.getElementById(modalId);
+            const hiddenEl = document.getElementById(
+                this.fieldsToSync[modalId]
+            );
+            if (modalEl && hiddenEl) hiddenEl.value = modalEl.value;
+        });
+
+        // Sincronizar el select de pago
+        const modalPaymentType = document.querySelector(
+            'select[name="payment_type"]'
+        );
+        const hiddenType = document.getElementById("hidden_payment_type");
+        if (modalPaymentType && hiddenType)
+            hiddenType.value = modalPaymentType.value;
     },
 
     detectSaleType: function () {
@@ -85,12 +155,12 @@ const salePayment = {
         const saleTotalWrapper = document.getElementById("sale-total-wrapper");
         const repairWrapper = document.getElementById("repair-amount-wrapper");
         const repairInput = document.getElementById("repair_amount");
+        const hiddenRepair = document.getElementById("hidden_repair_amount");
         const repairTypeWrapper = document.getElementById(
             "repair-type-wrapper"
         );
 
         const isRepair = this.saleType === SALE_TYPE.REPAIR;
-
         const repairTypeSelect = repairTypeWrapper?.querySelector("select");
 
         if (isRepair) {
@@ -98,13 +168,9 @@ const salePayment = {
             repairWrapper?.classList.remove("d-none");
             repairTypeWrapper?.classList.remove("d-none");
 
-            if (repairInput) {
-                repairInput.disabled = false;
-            }
-
-            if (repairTypeSelect) {
-                repairTypeSelect.disabled = false;
-            }
+            if (repairInput) repairInput.disabled = false;
+            if (hiddenRepair) hiddenRepair.disabled = false;
+            if (repairTypeSelect) repairTypeSelect.disabled = false;
 
             this.setSaleTotalFromRepair();
         } else {
@@ -116,24 +182,24 @@ const salePayment = {
                 repairInput.disabled = true;
                 repairInput.value = "";
             }
+            if (hiddenRepair) {
+                hiddenRepair.disabled = true;
+                hiddenRepair.value = "";
+            }
 
             if (repairTypeSelect) {
                 repairTypeSelect.disabled = true;
                 repairTypeSelect.value = "";
-
                 if (repairTypeSelect._choices) {
                     repairTypeSelect._choices.removeActiveItems();
                     repairTypeSelect._choices.setChoiceByValue("");
                 }
-
-                if (this.saleType !== SALE_TYPE.REPAIR) {
-                    dispatchRepairCategoryChanged(null);
-                }
             }
-
+            dispatchRepairCategoryChanged(null);
             this.setSaleTotalFromSale();
         }
     },
+
     setSaleTotalFromRepair: function () {
         const repairInput = document.getElementById("repair_amount");
         this.saleTotal = parseFloat(repairInput?.value) || 0;
@@ -147,13 +213,11 @@ const salePayment = {
     },
 
     initializePaymentFields: function () {
-        // Obtener el total inicial del campo total_amount
         const totalField = document.getElementById("total_amount");
         if (totalField) {
             this.saleTotal = parseFloat(totalField.value) || 0;
         }
 
-        // Inicializar campos de cambio y saldo (solo lectura)
         const changeField = document.getElementById("change_returned");
         const balanceField = document.getElementById("remaining_balance");
 
@@ -176,22 +240,21 @@ const salePayment = {
 
         const amountReceived = parseFloat(amountReceivedInput.value) || 0;
 
-        // Calcular cambio devuelto (si amount_received > total)
         const changeReturned = Math.max(0, amountReceived - this.saleTotal);
         changeReturnedInput.value = changeReturned.toFixed(2);
 
-        // Calcular saldo pendiente (si total > amount_received)
         const remainingBalance = Math.max(0, this.saleTotal - amountReceived);
         remainingBalanceInput.value = remainingBalance.toFixed(2);
 
-        // Actualizar estado visual
+        // Disparar manualmente el evento 'input' para que la sincronización hacia el Hidden funcione
+        changeReturnedInput.dispatchEvent(new Event("input"));
+        remainingBalanceInput.dispatchEvent(new Event("input"));
+
         this.updatePaymentStatusVisual(
             remainingBalance,
             changeReturned,
             amountReceived
         );
-
-        // Disparar evento para que otros componentes sepan que el pago cambió
         this.dispatchPaymentUpdatedEvent(
             amountReceived,
             changeReturned,
@@ -236,32 +299,6 @@ const salePayment = {
         statusElement.innerHTML = `<span class="badge bg-${statusClass}">${statusHtml}</span>`;
     },
 
-    handleCustomerTypeChange: function () {
-        const customerTypeSelect = document.querySelector(
-            'select[name="customer_type"]'
-        );
-        const amountReceivedInput = document.getElementById("amount_received");
-
-        if (!customerTypeSelect || !amountReceivedInput) return;
-
-        const customerType = customerTypeSelect.value;
-
-        // Para ventas entre sucursales, el pago podría ser diferido
-        if (customerType.includes("Branch")) {
-            amountReceivedInput.value = "0";
-            amountReceivedInput.readOnly = true;
-            amountReceivedInput.title =
-                "Para ventas entre sucursales, el pago se registra posteriormente";
-            amountReceivedInput.classList.add("bg-light");
-        } else {
-            amountReceivedInput.readOnly = false;
-            amountReceivedInput.title = "";
-            amountReceivedInput.classList.remove("bg-light");
-        }
-
-        this.calculateChangeAndBalance();
-    },
-
     dispatchPaymentUpdatedEvent: function (
         amountReceived,
         changeReturned,
@@ -269,23 +306,20 @@ const salePayment = {
     ) {
         const event = new CustomEvent("sale:paymentUpdated", {
             detail: {
-                amountReceived: amountReceived,
-                changeReturned: changeReturned,
-                remainingBalance: remainingBalance,
+                amountReceived,
+                changeReturned,
+                remainingBalance,
                 saleTotal: this.saleTotal,
             },
         });
         document.dispatchEvent(event);
     },
 
-    // Método público para que otros componentes actualicen el total
     setSaleTotal: function (total) {
         this.saleTotal = total || 0;
         this.calculateChangeAndBalance();
     },
 };
 
-// Hacer disponible globalmente para el atributo oninput
 window.salePayment = salePayment;
-
 export default salePayment;

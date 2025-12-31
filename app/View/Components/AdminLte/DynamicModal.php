@@ -12,12 +12,13 @@ class DynamicModal extends Component
     public string $title;
     public string $formId;
     public string $btnSaveId;
-    public string $route;
+    public ?string $route;
     public string $selectId;
     public bool $refreshOnSave;
     public ?string $refreshUrl;
     public ?string $formView;
     public array $formData;
+    public bool $localSubmit;
 
     /**
      * Create a new component instance.
@@ -27,12 +28,13 @@ class DynamicModal extends Component
         string $title,
         string $formId,
         string $btnSaveId,
-        string $route,
+        ?string $route = null,
         string $selectId = '',
         bool $refreshOnSave = false,
         ?string $refreshUrl = null,
         ?string $formView = null,
-        array $formData = []
+        array $formData = [],
+        bool $localSubmit = false
     ) {
         $this->modalId = $modalId;
         $this->title = $title;
@@ -44,6 +46,7 @@ class DynamicModal extends Component
         $this->refreshUrl = $refreshUrl;
         $this->formView = $formView;
         $this->formData = $formData;
+        $this->localSubmit = $localSubmit;
     }
 
     /**

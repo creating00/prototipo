@@ -8,7 +8,6 @@
             </div>
 
             <div class="modal-body">
-
                 <table id="products-table" class="table table-bordered datatable-product-modal">
                     <thead>
                         <tr>
@@ -23,9 +22,7 @@
                         {{-- DataTables cargará los datos vía AJAX --}}
                     </tbody>
                 </table>
-
             </div>
-
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>

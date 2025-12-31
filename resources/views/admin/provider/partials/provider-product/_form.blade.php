@@ -5,7 +5,7 @@
 <div class="row g-3">
     {{-- Producto --}}
     <div class="col-md-12">
-        <x-admin-lte.select name="product_id" label="Producto" :options="$products->pluck('name', 'id')->toArray()" :value="old('product_id', $providerProduct->product_id ?? null)"
+        <x-adminlte.select name="product_id" label="Producto" :options="$products->pluck('name', 'id')->toArray()" :value="old('product_id', $providerProduct->product_id ?? null)"
             placeholder="Seleccione un producto" required />
     </div>
 
@@ -24,7 +24,7 @@
 
     {{-- Status --}}
     <div class="col-md-6">
-        <x-admin-lte.select name="status" label="Estado" :options="\App\Enums\ProviderProductStatus::forSelect()" :value="old('status', $providerProduct?->status?->value ?? \App\Enums\ProviderProductStatus::ACTIVE->value)" required />
+        <x-adminlte.select name="status" label="Estado" :options="\App\Enums\ProviderProductStatus::forSelect()" :value="old('status', $providerProduct?->status?->value ?? \App\Enums\ProviderProductStatus::ACTIVE->value)" required />
     </div>
 
 </div>

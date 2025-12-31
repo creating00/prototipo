@@ -32,7 +32,13 @@
         }); 
         $el._choices = choices;
 
-        $el.addEventListener("change", () => {
+        $el.addEventListener("change", (e) => {
+            if (e.detail && e.detail.fromAlpine) return;
+            $el.dispatchEvent(new CustomEvent("change", { 
+                bubbles: true, 
+                detail: { fromAlpine: true } 
+            }));
+
             if ($el.value !== "") {
                 // Quitar clase de error del select (que afecta al CSS de Choices)
                 $el.classList.remove("is-invalid");
@@ -45,7 +51,7 @@
         name="{{ $inputName }}" id="{{ $name }}" class="form-control @error($name) is-invalid @enderror"
         {{ $required ? 'required' : '' }} {{ $multiple ? 'multiple' : '' }} {{ $attributes }}>
         @if ($placeholder && !$multiple)
-            <option value="" disabled selected hidden>{{ $placeholder }}</option>
+            <option value="">{{ $placeholder }}</option>
         @endif
 
         @foreach ($options as $key => $value)

@@ -14,7 +14,7 @@
 .compact-textarea-wrapper {
     position: relative;
     padding-top: 0.25rem;
-    margin-bottom: 1.2rem;
+    margin-bottom: 0.4rem;
 }
 
 .compact-input-group-wrapper {
@@ -107,12 +107,6 @@
 
 /* ===== INPUT GROUP ===== */
 
-.input-group-prepend,
-.input-group-append {
-    display: flex;
-    align-items: center;
-}
-
 .input-group-text {
     background-color: #f8f9fa;
     border: 1px solid #dee2e6;
@@ -197,6 +191,23 @@
     font-size: 0.75rem;
 }
 
+/* Ajuste específico para cuando usas input-group dentro de tus compact-wrappers */
+.compact-input-wrapper .input-group {
+    position: static; /* Permite que el label absoluto use el wrapper como referencia, no el group */
+}
+
+.compact-input-wrapper .input-group .compact-input {
+    /* Mantenemos tu altura y estilos, pero aseguramos que el radio del borde sea 
+       manejado por Bootstrap para que el botón y el input encajen */
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+/* Evitar que el label quede por debajo del focus de Bootstrap */
+.compact-input-label {
+    z-index: 30 !important; /* Ya lo tienes, pero asegúrate de que sea mayor al del input:focus de BS (que suele ser 3 o 4) */
+}
+
 /* ===== CURRENCY INPUT ===== */
 
 .currency-price-input .input-group {
@@ -228,8 +239,32 @@
 /* ===== ADMIN LTE / BOOTSTRAP FIX ===== */
 
 /* Cards y columnas no deben recortar contenido flotante */
-.card,
+/* .card,
 .card-body,
 .row {
     overflow: visible !important;
+} */
+
+.card {
+    /* Quitamos el overflow: hidden por defecto para tus labels */
+    overflow: visible !important;
+}
+
+/* 2. EXCEPCIÓN CRÍTICA: Cuando la card se está animando (cerrando/abriendo) 
+      o cuando ya está colapsada, FORZAMOS el recorte. */
+.card.collapsing, 
+.card.collapsed {
+    overflow: hidden !important;
+}
+
+/* 3. Ajuste para el card-body */
+.card-body {
+    /* Mantenemos visible para tus labels flotantes */
+    overflow: visible;
+}
+
+/* 4. Si la card está colapsando, ocultamos el body inmediatamente 
+      para evitar el "fantasma" de los inputs */
+.card.collapsing .card-body {
+    display: none;
 }

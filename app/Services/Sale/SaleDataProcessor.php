@@ -2,13 +2,13 @@
 
 namespace App\Services\Sale;
 
-use App\Traits\CalculatesTotalFromItems;
-use Illuminate\Support\Facades\Auth;
 use App\Services\Sale\SaleTotalResolver;
+use App\Traits\CalculatesSubtotalFromItems;
 
 class SaleDataProcessor
 {
-    use CalculatesTotalFromItems;
+    use CalculatesSubtotalFromItems;
+
     protected SaleTotalResolver $totalResolver;
 
     public function __construct(SaleTotalResolver $totalResolver)
@@ -21,15 +21,17 @@ class SaleDataProcessor
         $data = $validated;
 
         $this->processCustomerData($data);
+
         $data['items'] = $this->prepareItems($data['items'] ?? []);
 
-        // Calcular el total desde los items
+        $data['subtotal'] = $this->calculateSubtotalFromItems($data['items']);
+
         $data['total'] = $this->totalResolver->resolve($data);
 
-        // Procesar los campos de pago de la venta
+        $data['discount_amount'] = max(0, $data['subtotal'] - $data['total']);
+
         $this->processSalePaymentFields($data, $data['total']);
 
-        // Siempre preparar payment si hay payment_type
         if (isset($data['payment_type'])) {
             $data['payment'] = $this->preparePayment($data, $data['total']);
         }
@@ -55,10 +57,9 @@ class SaleDataProcessor
         return array_map(function ($item) {
             return [
                 'product_id' => $item['product_id'],
-                'quantity' => $item['quantity'],
+                'quantity'   => $item['quantity'],
                 'unit_price' => $item['unit_price'],
-                'discount' => $item['discount'] ?? 0,
-                'total' => $item['quantity'] * $item['unit_price'] * (1 - ($item['discount'] ?? 0) / 100),
+                'subtotal'   => $item['quantity'] * $item['unit_price'],
             ];
         }, $items);
     }
@@ -82,19 +83,37 @@ class SaleDataProcessor
 
     protected function processSalePaymentFields(array &$data, float $total): void
     {
-        $amountReceived = $data['amount_received'] ?? 0;
-
-        // Si no se proporciona amount_received, usar 0 como default
-        if (!isset($data['amount_received'])) {
-            $data['amount_received'] = 0;
+        // Si la llave no existe, es null o es una cadena vacía ('')
+        if (!isset($data['amount_received']) || $data['amount_received'] === null || $data['amount_received'] === '') {
+            $amountReceived = $total;
+        } else {
+            // Si el usuario escribió algo (incluyendo un 0 manual), usamos ese valor
+            $amountReceived = (float) $data['amount_received'];
         }
 
-        // Calcular change_returned si no se proporciona
+        $data['amount_received'] = $amountReceived;
+
+        // Calcular cambio
         if (!isset($data['change_returned'])) {
             $data['change_returned'] = max(0, $amountReceived - $total);
         }
 
-        // Calcular remaining_balance automáticamente
+        // Calcular saldo pendiente
         $data['remaining_balance'] = max(0, $total - $amountReceived);
+    }
+
+    protected function resolveDiscountAmount(array $data): float
+    {
+        if (empty($data['discount_id'])) {
+            return 0.0;
+        }
+
+        $discount = \App\Models\Discount::active()->find($data['discount_id']);
+
+        if (!$discount) {
+            return 0.0;
+        }
+
+        return $discount->calculateAmount($data['subtotal']);
     }
 }

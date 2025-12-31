@@ -18,7 +18,7 @@ class SaleWebController extends BaseSaleController
         $sales = $this->saleService->getAllSales();
 
         $headers = ['#', 'Sucursal', 'Cliente', 'Total', 'Estado', 'Creado en:'];
-        $hiddenFields = ['id'];
+        $hiddenFields = ['id', 'status_raw'];
 
         return view('admin.sales.index', compact('sales', 'rowData', 'headers', 'hiddenFields'));
     }
@@ -53,6 +53,10 @@ class SaleWebController extends BaseSaleController
         $statusOptions = SaleStatus::forSelect();
         $saleTypeOptions = SaleType::forSelect();
         $repairTypes = RepairType::forSelect();
+        $discountService = app(\App\Services\DiscountService::class);
+
+        $discountOptions = $discountService->getForSelect();
+        $discountMap = $discountService->getValueMap();
 
         $customer_type = 'App\Models\Client';
 
@@ -73,7 +77,9 @@ class SaleWebController extends BaseSaleController
             'saleTypeOptions',
             'saleDate',
             'paymentOptions',
-            'repairTypes'
+            'repairTypes',
+            'discountOptions',
+            'discountMap'
         ));
     }
 
@@ -98,6 +104,10 @@ class SaleWebController extends BaseSaleController
 
         $customer_type = 'App\Models\Branch';
 
+        $discountOptions = \App\Models\Discount::active()
+            ->pluck('name', 'id');
+
+
         return view('admin.sales.create-branch', compact(
             'originBranch',
             'destinationBranches',
@@ -105,7 +115,8 @@ class SaleWebController extends BaseSaleController
             'statusOptions',
             'customer_type',
             'saleDate',
-            'paymentOptions'
+            'paymentOptions',
+            'discountOptions'
         ));
     }
 

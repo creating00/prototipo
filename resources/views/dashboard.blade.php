@@ -5,6 +5,7 @@
 @section('content')
     <div class="row">
         {{-- Usamos $cards que viene del controlador --}}
+        
         @foreach ($cards as $card)
             <div class="col-md-3 col-sm-6">
                 <x-adminlte.small-box :title="$card['title']" :value="$card['value']" :color="$card['color']" :icon="$card['icon'] ?? ''"

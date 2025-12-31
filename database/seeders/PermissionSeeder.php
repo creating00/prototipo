@@ -10,19 +10,58 @@ class PermissionSeeder extends Seeder
 {
     // Estructura centralizada de permisos
     private array $permissionStructure = [
+
+        // Seguridad / Usuarios
         'users' => ['view', 'create', 'update', 'delete', 'assign_roles', 'reset_password'],
+
+        // Ubicación y sucursales
         'branches' => ['view', 'create', 'update', 'delete'],
+        'provinces' => ['view', 'create', 'update', 'delete'],
+
+        // Catálogos
         'categories' => ['view', 'create', 'update', 'delete'],
-        'products' => ['view', 'create', 'update', 'delete', 'import', 'export'],
-        'clients' => ['view', 'create', 'update', 'delete'],
-        'providers' => ['view', 'create', 'update', 'delete'],
-        'orders' => ['view', 'create', 'update', 'cancel', 'approve', 'print'],
-        'sales' => ['view', 'create', 'update', 'cancel', 'print', 'refund'],
-        'payments' => ['view', 'create', 'cancel', 'refund'],
-        'expenses' => ['view', 'create', 'update', 'delete', 'approve'],
         'expense_types' => ['view', 'create', 'update', 'delete'],
+        'discounts' => ['view', 'create', 'update', 'delete'],
+
+        // Productos
+        'products' => ['view', 'create', 'update', 'delete', 'import', 'export'],
+        'product_branches' => ['view', 'create', 'update', 'delete'],
+        'product_branch_prices' => ['view', 'create', 'update'],
+        'product_provider_prices' => ['view', 'create', 'update'],
+        'provider_products' => ['view', 'create', 'update', 'delete'],
+
+        // Clientes
+        'clients' => ['view', 'create', 'update', 'delete'],
+        'client_accounts' => ['view', 'adjust'],
+
+        // Proveedores
+        'providers' => ['view', 'create', 'update', 'delete'],
+
+        // Órdenes internas
+        'orders' => ['view', 'create', 'update', 'approve', 'cancel', 'print'],
+        'order_items' => ['view', 'create', 'update', 'delete'],
+
+        // Órdenes a proveedores
+        'provider_orders' => ['view', 'create', 'approve', 'cancel', 'print'],
+        'provider_order_items' => ['view', 'create', 'update', 'delete'],
+
+        // Ventas
+        'sales' => ['view', 'create', 'cancel', 'print', 'refund'],
+        'sale_items' => ['view', 'create', 'update', 'delete'],
+
+        // Pagos
+        'payments' => ['view', 'create', 'cancel', 'refund'],
+
+        // Gastos
+        'expenses' => ['view', 'create', 'update', 'delete', 'approve'],
+
+        // Ratings
         'ratings' => ['view', 'create', 'moderate', 'delete'],
+
+        // Reportes
         'reports' => ['view_sales', 'view_expenses', 'view_inventory', 'export'],
+
+        // Configuración
         'settings' => ['view', 'update'],
     ];
 
