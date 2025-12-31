@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\View\Components\Adminlte\Form;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Blade;
@@ -27,5 +28,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(function ($user, $ability) {
             return $user->hasRole('admin') ? true : null;
         });
+        Blade::component('adminlte.form', Form::class);
     }
 }
