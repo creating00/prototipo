@@ -20,7 +20,7 @@
         </div>
     @endif
 
-    <form id="{{ $id }}" action="{{ $action }}"
+    <form id="{{ $formId }}" action="{{ $action }}"
         method="{{ strtoupper($method) === 'GET' ? 'GET' : 'POST' }}" novalidate x-on:submit="submitting = true"
         x-bind:class="{ 'opacity-50 pointer-events-none': submitting }">
 
@@ -43,7 +43,7 @@
                     {{ $footerActions }}
                 @else
                     {{-- Botón por defecto (Solo si no hay nada en el header) --}}
-                    <button type="submit" form="{{ $id }}" class="btn btn-primary"
+                    <button type="submit" form="{{ $formId }}" class="btn btn-primary"
                         x-bind:disabled="submitting">
                         <i class="fas fa-save mr-1"></i>
                         <span x-show="!submitting">{{ $submitText }}</span>

@@ -8,7 +8,7 @@ use Illuminate\View\Component;
 
 class Form extends Component
 {
-    public string $id;
+    public string $formId;
     public string $submitText;
 
     /**
@@ -29,7 +29,7 @@ class Form extends Component
         ?string $id = null,
         public ?bool $showFooter = null
     ) {
-        $this->id = $id ?? 'form_' . bin2hex(random_bytes(4));
+        $this->formId = $id ?? 'form_' . bin2hex(random_bytes(4));
         $this->submitText = $submitText ?? $this->getDefaultSubmitText();
     }
 
