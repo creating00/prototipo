@@ -45,6 +45,9 @@ class Form extends Component
 
     public function render(): View|Closure|string
     {
-        return view('components.adminlte.form');
+        return view('components.adminlte.form', [
+            'formId' => $this->formId,
+            'submitText' => $this->submitText
+        ]);
     }
 }
