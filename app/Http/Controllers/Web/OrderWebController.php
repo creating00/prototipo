@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Web;
 
 use App\Enums\OrderStatus;
 use App\Http\Controllers\BaseOrderController;
+use App\Services\BranchService;
+use App\Services\CategoryService;
+use App\Services\ClientService;
 use App\Traits\AuthTrait;
 use Illuminate\Http\Request;
 
@@ -17,7 +20,7 @@ class OrderWebController extends BaseOrderController
         $orders = $this->orderService->getAllOrders();
 
         $headers = ['#', 'Sucursal', 'Cliente', 'Total', 'Estado', 'Creado en:'];
-        $hiddenFields = ['id', 'status_raw'];
+        $hiddenFields = ['id', 'status_raw', 'phone', 'whatsapp-url', 'customer_type'];
 
         return view('admin.order.index', compact('orders', 'rowData', 'headers', 'hiddenFields'));
     }
@@ -156,19 +159,14 @@ class OrderWebController extends BaseOrderController
     {
         $order = $this->orderService->getOrderById($id);
 
-        // Datos auxiliares, igual que en create
-        $branches = app(\App\Services\BranchService::class)->getAllBranches();
-        $categories = app(\App\Services\CategoryService::class)->getAllCategories();
-        $clients = app(\App\Services\ClientService::class)->getAllClients();
-        $statusOptions = OrderStatus::forSelect();
-
-        return view('admin.order.edit', compact(
-            'order',
-            'branches',
-            'categories',
-            'clients',
-            'statusOptions'
-        ));
+        return view('admin.order.edit', [
+            'order'               => $order,
+            'existingOrderItems'  => $this->orderService->buildOrderItemsHtml($order),
+            'branches'            => app(BranchService::class)->getAllBranches(),
+            'categories'          => app(CategoryService::class)->getAllCategories(),
+            'clients'             => app(ClientService::class)->getAllClients(),
+            'statusOptions'       => OrderStatus::forSelect(),
+        ]);
     }
 
     public function update(Request $request, $id)

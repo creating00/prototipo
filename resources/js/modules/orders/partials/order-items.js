@@ -113,8 +113,6 @@ export default {
             this.table = document.querySelector("#order-items-table tbody");
         }
 
-        console.log("Jamon");
-
         if (!this.table) return;
 
         const total = Array.from(

@@ -63,7 +63,15 @@
                 <th width="8%"></th>
             </tr>
         </thead>
-        <tbody></tbody>
+        <tbody>
+            {{-- @foreach ($order->items as $index => $item)
+                @include('admin.order.partials._item_row', [
+                    'product' => $item->product,
+                    'item' => $item,
+                    'index' => $index,
+                ])
+            @endforeach --}}
+        </tbody>
     </table>
 </div>
 

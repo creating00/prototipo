@@ -1,4 +1,9 @@
-{{-- resources\views\admin\order\partials\_item_row.blade.php --}}
+@php
+    $quantity = $item?->quantity ?? 1;
+    $unitPrice = $item?->unit_price ?? ($salePrice ?? 0);
+    $subtotal = $item?->subtotal ?? $quantity * $unitPrice;
+@endphp
+
 <tr data-id="{{ $product->id }}" data-code="{{ $product->code }}">
     <td>
         {{ $product->name }}
@@ -6,26 +11,27 @@
     </td>
 
     <td>
-        <input type="number" class="form-control" value="{{ $product->stock }}" readonly>
+        <input type="text" class="form-control" value="{{ $stock }}" readonly>
     </td>
 
     <td>
         <div class="input-group">
             <span class="input-group-text">$</span>
             <input type="number" class="form-control unit-price" name="items[INDEX][unit_price]"
-                value="{{ $product->sale_price }}" readonly>
+                value="{{ $unitPrice }}" readonly>
         </div>
     </td>
 
     <td>
-        <input type="number" name="items[INDEX][quantity]" class="form-control quantity" min="1" value="1">
+        <input type="number" name="items[INDEX][quantity]" class="form-control quantity" min="1"
+            value="{{ $quantity }}">
     </td>
 
     <td>
         <div class="input-group">
             <span class="input-group-text">$</span>
             <input type="number" name="items[INDEX][subtotal]" class="form-control subtotal" step="0.01"
-                value="{{ $product->sale_price }}" readonly>
+                value="{{ $subtotal }}" readonly>
         </div>
     </td>
 

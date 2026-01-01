@@ -12,6 +12,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const existingItems = JSON.parse(
         document.querySelector("#existing_order_items").value || "[]"
     );
+
+    console.log(existingItems);
     existingItems.forEach((item) => {
         orderItems.addRow(item.html);
     });

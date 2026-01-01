@@ -18,10 +18,10 @@
     <table class="table table-striped table-bsaleed align-middle" id="order-items-table">
         <thead>
             <tr>
-                <th width="25%">Producto</th>
-                <th width="8%">Stock</th>
+                <th width="18%">Producto</th>
+                <th width="7%">Stock</th>
                 <th width="20%">Precio</th>
-                <th width="8%">Cantidad</th>
+                <th width="6%">Cantidad</th>
                 <th width="15%">Subtotal</th>
                 <th width="8%"></th>
             </tr>

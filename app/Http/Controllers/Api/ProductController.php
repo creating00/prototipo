@@ -23,65 +23,46 @@ class ProductController extends BaseProductController
      */
     public function findByCode(string $code, Request $request)
     {
-        try {
-            $branchId   = $request->get('branch_id');
-            $categoryId = $request->get('category_id');
+        $branchId   = $request->get('branch_id');
+        $categoryId = $request->get('category_id');
 
-            if (!$branchId) {
-                return response()->json(['error' => 'Branch ID is required'], 400);
-            }
-
-            // Buscar producto por código
-            $productQuery = Product::where('code', $code);
-
-            // Filtro por categoría (misma lógica que list)
-            if ($categoryId) {
-                $productQuery->where('category_id', $categoryId);
-            }
-
-            $product = $productQuery->first();
-
-            if (!$product) {
-                return response()->json(['error' => 'Product not found'], 404);
-            }
-
-            // Buscar relación product_branch
-            $branch = $product->productBranches()
-                ->where('branch_id', $branchId)
-                ->first();
-
-            if (!$branch) {
-                return response()->json(['error' => 'Product not found in this branch'], 404);
-            }
-
-            // Obtener precio de venta
-            $priceModel = $product->salePriceModel($branchId);
-
-            $salePrice = $priceModel?->amount ?? 0;
-            $formattedPrice = $priceModel?->getFormattedAmount() ?? '$ 0,00';
-
-            $viewProduct = (object)[
-                'id'                     => $product->id,
-                'code'                   => $product->code,
-                'name'                   => $product->name,
-                'stock'                  => $branch->stock,
-                'sale_price'             => $salePrice,
-                'sale_price_formatted'   => $formattedPrice,
-            ];
-
-            return response()->json([
-                'product' => $viewProduct,
-                'html'    => view('admin.order.partials._item_row', [
-                    'product' => $viewProduct
-                ])->render(),
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage()
-            ], 500);
+        if (!$branchId) {
+            return response()->json(['error' => 'Branch ID is required'], 400);
         }
-    }
 
+        $productQuery = Product::where('code', $code);
+
+        if ($categoryId) {
+            $productQuery->where('category_id', $categoryId);
+        }
+
+        $product = $productQuery->first();
+
+        if (!$product) {
+            return response()->json(['error' => 'Product not found'], 404);
+        }
+
+        // Verifica contexto de sucursal
+        if (!$product->branchContext($branchId)) {
+            return response()->json(['error' => 'Product not found in this branch'], 404);
+        }
+
+        return response()->json([
+            'product' => [
+                'id'         => $product->id,
+                'code'       => $product->code,
+                'name'       => $product->name,
+                'stock'      => $product->getStock($branchId),
+                'sale_price' => $product->salePrice($branchId),
+            ],
+            'html' => view('admin.order.partials._item_row', [
+                'product'    => $product,
+                'stock'      => $product->getStock($branchId),
+                'salePrice'  => $product->salePrice($branchId),
+                'item'       => null,
+            ])->render(),
+        ]);
+    }
 
     /**
      * Lista de productos filtrada por branch y opcionalmente por categoría

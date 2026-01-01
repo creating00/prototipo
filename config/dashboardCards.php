@@ -2,6 +2,16 @@
 
 return [
     'cards' => [
+        'analytics' => [
+            'title' => 'Analitico',
+            'value' => '.',
+            'color' => 'custom',
+            'customBgColor' => "#6db2ebff",
+            'icon' => 'analytics',
+            'viewBox' => '0 0 24 24',
+            'route' => ['href' => 'web.analytics.index', 'label' => 'Ver Descuentos'],
+            'description' => 'Ver Datos'
+        ],
         'discounts' => [
             'title' => 'Descuentos',
             'value' => 0,

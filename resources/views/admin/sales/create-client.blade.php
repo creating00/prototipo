@@ -11,7 +11,7 @@
             <a href="{{ route('web.sales.index') }}" class="btn btn-sm btn-default mr-1">Cancelar</a>
             <button type="submit" form="saleForm" class="btn btn-sm btn-primary" x-bind:disabled="submitting">
                 <i class="fas fa-save mr-1"></i>
-                <span x-show="!submitting">Procesar Pago <span class="kbd-shortcut">F10</span></span>
+                <span x-show="!submitting">Procesar Pago <span class="kbd-shortcut">F12</span></span>
                 <span x-show="submitting" x-cloak>Procesando...</span>
             </button>
         </x-slot:headerActions>

@@ -70,6 +70,20 @@ class OrderService
             ->findOrFail($id);
     }
 
+    public function buildOrderItemsHtml(Order $order): array
+    {
+        return $order->items->map(function ($item) use ($order) {
+            return [
+                'html' => view('admin.order.partials._item_row', [
+                    'product'   => $item->product,
+                    'item'      => $item,
+                    'stock'     => $item->product->getStock($order->branch_id),
+                    'salePrice' => $item->unit_price,
+                ])->render(),
+            ];
+        })->values()->toArray();
+    }
+
     public function createOrder(array $data): Order
     {
         $validated = $this->validateOrderData($data);

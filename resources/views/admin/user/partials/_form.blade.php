@@ -1,26 +1,29 @@
 @props(['formData'])
 
+@push('styles')
+    @vite('resources/css/modules/branches/branches-styles.css')
+@endpush
+
 <div class="form-section">
     <h3 class="form-section-title">Información de Cuenta</h3>
 
     <div class="row g-3">
         {{-- Nombre del Usuario --}}
         <div class="col-md-6">
-            <x-bootstrap.compact-input id="name" name="name" label="Nombre Completo" placeholder="Ej: Juan Pérez"
-                value="{{ old('name', $formData->user?->name ?? '') }}" required />
+            <x-bootstrap.compact-input id="name" name="name" label="Nombre Completo" :value="$formData->getName()" required />
         </div>
 
         {{-- Correo Electrónico --}}
         <div class="col-md-6">
             <x-bootstrap.compact-input id="email" name="email" type="email" label="Correo Electrónico"
-                placeholder="ejemplo@correo.com" value="{{ old('email', $formData->user?->email ?? '') }}" required />
+                :value="$formData->getEmail()" required />
         </div>
 
-        {{-- Contraseña (Solo obligatoria en creación) --}}
+        {{-- Contraseña --}}
         <div class="col-md-6">
             <x-bootstrap.compact-input id="password" name="password" type="password" label="Contraseña"
-                placeholder="Mínimo 8 caracteres" :required="!isset($formData->user)" />
-            @if (isset($formData->user))
+                placeholder="Mínimo 8 caracteres" :required="!$formData->isEdit()" />
+            @if ($formData->isEdit())
                 <small class="text-muted">Dejar en blanco para mantener la actual.</small>
             @endif
         </div>
@@ -28,7 +31,7 @@
         {{-- Confirmar Contraseña --}}
         <div class="col-md-6">
             <x-bootstrap.compact-input id="password_confirmation" name="password_confirmation" type="password"
-                label="Confirmar Contraseña" placeholder="Repita la contraseña" :required="!isset($formData->user)" />
+                label="Confirmar Contraseña" :required="!$formData->isEdit()" />
         </div>
     </div>
 </div>
@@ -40,27 +43,21 @@
 
     <div class="row g-3">
         {{-- Sucursal --}}
-        <div class="col-md-6">
-            <x-adminlte.select-with-action name="branch_id" label="Sucursal Asignada" :options="$formData->branches->pluck('name', 'id')->toArray()"
-                :value="old('branch_id', $formData->user?->branch_id ?? '')" required buttonId="btn-new-branch" />
+        <div class="col-md-6 compact-select-wrapper">
+            <label class="compact-select-label">Sucursal Asignada <span class="text-danger">*</span></label>
+            <x-adminlte.select name="branch_id" :options="$formData->getBranchOptions()" :value="$formData->getSelectedBranchId()" required />
         </div>
 
         {{-- Rol del Usuario --}}
-        <div class="col-md-6">
-            <x-adminlte.select name="role" label="Rol del Usuario" :options="$formData->roles
-                ->pluck('name')
-                ->mapWithKeys(
-                    fn($name) => [
-                        $name => \App\Enums\RoleLabel::labelFrom($name),
-                    ],
-                )
-                ->toArray()" :value="old('role', $formData->user?->roles->first()?->name ?? '')" required />
+        <div class="col-md-6 compact-select-wrapper">
+            <label class="compact-select-label">Rol del Usuario <span class="text-danger">*</span></label>
+            <x-adminlte.select name="role" :options="$formData->getRoleOptions()" :value="$formData->getSelectedRole()" required />
         </div>
 
-        {{-- Estado del Usuario (Activo/Inactivo) --}}
-        {{-- <div class="col-md-6">
-            <x-adminlte.select name="status" label="Estado de Cuenta" :options="$formData->statusOptions"
-                placeholder="Seleccione estado" :value="old('status', $formData->user?->status ?? 'active')" required />
+        {{-- Estado --}}
+        {{-- <div class="col-md-6 compact-select-wrapper">
+            <label class="compact-select-label">Estado de Cuenta <span class="text-danger">*</span></label>
+            <x-adminlte.select name="status" :options="$formData->statusOptions" :value="$formData->getSelectedStatus()" required />
         </div> --}}
     </div>
 </div>

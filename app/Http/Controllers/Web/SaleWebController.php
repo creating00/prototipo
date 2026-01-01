@@ -18,7 +18,7 @@ class SaleWebController extends BaseSaleController
         $sales = $this->saleService->getAllSales();
 
         $headers = ['#', 'Sucursal', 'Cliente', 'Total', 'Estado', 'Creado en:'];
-        $hiddenFields = ['id', 'status_raw'];
+        $hiddenFields = ['id', 'status_raw', 'phone', 'whatsapp-url', 'customer_type'];
 
         return view('admin.sales.index', compact('sales', 'rowData', 'headers', 'hiddenFields'));
     }

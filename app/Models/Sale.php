@@ -134,7 +134,26 @@ class Sale extends Model
     {
         return $this->discount_id !== null && $this->discount_amount > 0;
     }
-    
+
+    public function generateWhatsAppMessage(): string
+    {
+        $customerName = $this->customer_name; // Usando el accesor que ya tienes
+
+        $itemsDetail = $this->items->take(5)->map(function ($item) {
+            return "• {$item->quantity}x " . ($item->product->name ?? 'Producto');
+        })->implode("\n");
+
+        if ($this->items->count() > 5) {
+            $itemsDetail .= "\n... y otros productos.";
+        }
+
+        $totalFormatted = "ARS " . number_format($this->total_amount, 2, ',', '.');
+
+        return "Hola *{$customerName}*, te contacto desde la sucursal por tu pedido *#{$this->id}*:\n\n"
+            . "Detalle:\n{$itemsDetail}\n\n"
+            . "*Total: {$totalFormatted}*";
+    }
+
     public function scopeForBranch($query, int $branchId)
     {
         return $query->where('branch_id', $branchId);

@@ -4,8 +4,18 @@
 
 @push('styles')
     <style>
-        /* 4 es el valor de OrderStatus::ConvertedToSale */
+        /* Ocultar botón convertir si ya fue convertida (status 4) */
         tr[data-status_raw="4"] .btn-convert {
+            display: none !important;
+        }
+
+        tr:not([data-customer_type*="Client"]) .btn-whatsapp {
+            display: none !important;
+        }
+
+        /* Ocultar si el link está vacío o es nulo */
+        tr[data-whatsapp-url="null"] .btn-whatsapp,
+        tr[data-whatsapp-url=""] .btn-whatsapp {
             display: none !important;
         }
     </style>
@@ -35,9 +45,11 @@
                 :hiddenFields="$hiddenFields" withActions="true">
                 {{-- Botones en cada fila --}}
                 <x-adminlte.button color="custom-jade" size="sm" icon="fas fa-eye" class="me-1 btn-view" />
+                <x-adminlte.button color="success" size="sm" icon="fab fa-whatsapp" class="me-1 btn-whatsapp"
+                    title="Enviar WhatsApp" />
                 <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
-                <x-adminlte.button color="success" size="sm" icon="fas fa-file-invoice-dollar"
-                    class="me-1 btn-convert" title="Convertir a Venta" />
+                <x-adminlte.button color="success" size="sm" icon="fas fa-file-invoice-dollar" class="me-1 btn-convert"
+                    title="Convertir a Venta" />
                 <x-adminlte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete" />
 
                 {{-- Botones superiores --}}
@@ -46,14 +58,10 @@
                     <x-adminlte.button color="primary" icon="fas fa-user" class="me-1 btn-header-new-client">
                         Nuevo Pedido a Cliente
                     </x-adminlte.button>
-
-                    {{-- En el headerButtons de admin.order.index --}}
-
                     <x-adminlte.button color="custom-emerald" icon="fas fa-history"
                         class="me-1 btn-header-history-purchase">
                         Mis Pedidos Realizados
                     </x-adminlte.button>
-
                     {{-- Pedidos Sucursal → Sucursal --}}
                     <x-adminlte.button color="custom-graphite" icon="fas fa-building" class="me-1 btn-header-new-branch">
                         Nuevo Pedido entre Sucursales

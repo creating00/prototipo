@@ -18,25 +18,23 @@ use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\ProviderProductController;
 use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\ProfileApiController;
+use App\Http\Controllers\Api\ProvinceController;
 
+Route::get('/provinces', [ProvinceController::class, 'index']);
+Route::get('/provinces/{id}', [ProvinceController::class, 'show']);
 Route::apiResource('branches', BranchController::class);
 Route::apiResource('categories', CategoryController::class);
 Route::apiResource('expense-types', ExpenseTypeController::class);
 Route::apiResource('discounts', DiscountController::class);
-
 Route::post('/profile/change-password', [ProfileApiController::class, 'updatePassword'])
     ->name('api.profile.password.update')
     ->middleware('web', 'auth');
-
 Route::prefix('inventory')->group(function () {
     Route::get('list', [ProductController::class, 'list']);
     Route::get('by-code/{code}', [ProductController::class, 'findByCode']);
 });
-
 Route::apiResource('products', ProductController::class);
-
 Route::apiResource('providers', ProviderController::class);
-
 Route::prefix('providers/{provider}')->group(function () {
     // Obtener lista de productos (usada por tu Select dinámico)
     Route::get('products', [ProviderController::class, 'getProducts'])
@@ -52,7 +50,6 @@ Route::prefix('providers/{provider}')->group(function () {
     Route::put('products/{providerProduct}', [ProviderProductController::class, 'update'])
         ->name('providers.products.update');
 });
-
 Route::get('/clients/search', [ClientController::class, 'search']);
 Route::apiResource('clients', ClientController::class);
 // Rutas públicas para e-commerce (creación de órdenes)

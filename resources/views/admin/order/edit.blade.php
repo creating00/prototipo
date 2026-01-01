@@ -8,8 +8,7 @@
     <x-adminlte.form action="{{ route('web.orders.update', $order->id) }}" method="POST" title="Editar Pedido"
         submit-text="Actualizar Pedido" submitting-text="Actualizando pedido...">
         @method('PUT')
-        <input type="hidden" id="existing_order_items"
-            value="{{ $order ? $order->items->map(fn($item) => ['html' => view('admin.order.partials._item_row', ['product' => $item->product])->render()])->toJson() : '' }}">
+        <input type="hidden" id="existing_order_items" value='@json($existingOrderItems)'>
 
         @include('admin.order.partials._form', [
             'order' => $order,

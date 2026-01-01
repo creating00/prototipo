@@ -79,6 +79,28 @@ const TABLE_CONFIG = {
                 modalInstance.show();
             },
         },
+        whatsapp: {
+            selector: ".btn-whatsapp",
+            handler: (row) => {
+                // El navegador convierte data-whatsapp-url en whatsappUrl
+                const { whatsappUrl } = row.dataset;
+
+                if (
+                    whatsappUrl &&
+                    whatsappUrl !== "null" &&
+                    whatsappUrl !== ""
+                ) {
+                    window.open(whatsappUrl, "_blank");
+                } else {
+                    Swal.fire({
+                        icon: "info",
+                        title: "Sin contacto",
+                        text: "No se puede iniciar la conversación porque el cliente no tiene un teléfono válido.",
+                        confirmButtonColor: "#28a745",
+                    });
+                }
+            },
+        },
     },
     headerActions: {
         newClient: {

@@ -85,4 +85,23 @@ class Order extends Model
         }
         return '';
     }
+
+    public function generateWhatsAppMessage(): string
+    {
+        $customerName = $this->customer_name; // Usando el accesor que ya tienes
+
+        $itemsDetail = $this->items->take(5)->map(function ($item) {
+            return "• {$item->quantity}x " . ($item->product->name ?? 'Producto');
+        })->implode("\n");
+
+        if ($this->items->count() > 5) {
+            $itemsDetail .= "\n... y otros productos.";
+        }
+
+        $totalFormatted = "ARS " . number_format($this->total_amount, 2, ',', '.');
+
+        return "Hola *{$customerName}*, te contacto desde la sucursal por tu pedido *#{$this->id}*:\n\n"
+            . "Detalle:\n{$itemsDetail}\n\n"
+            . "*Total: {$totalFormatted}*";
+    }
 }

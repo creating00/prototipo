@@ -78,25 +78,31 @@ trait DataTableFormatter
      */
     protected function formatForDataTable($model, int $index, array $options = []): array
     {
+        $phone = $this->cleanPhoneNumber($model->customer?->phone);
+
         return [
-            'id'          => $model->id,
-            'number'      => $index + 1,
-            'branch'      => $model->branch->name ?? '',
-            'customer'    => $this->resolveCustomerName($model),
-
-            'total' => $this->formatCurrency(
-                amount: $model->total_amount,
-                currency: $options['currency'] ?? '$',
-                class: $options['currencyClass'] ?? 'fw-bold text-success'
-            ),
-
-            'status'      => $this->resolveStatus($model, $options),
-
-            'status_raw'  => is_object($model->status)
-                ? $model->status->value
-                : $model->status,
-
-            'created_at'  => $model->created_at->format('Y-m-d'),
+            'id'           => $model->id,
+            'number'       => $index + 1,
+            'branch'       => $model->branch->name ?? '',
+            'customer'     => $this->resolveCustomerName($model),
+            'customer_type' => $model->customer_type,
+            'total'        => $this->formatCurrency($model->total_amount),
+            'status'       => $this->resolveStatus($model, $options),
+            'status_raw'   => is_object($model->status) ? $model->status->value : $model->status,
+            'created_at'   => $model->created_at->format('Y-m-d'),
+            'phone'        => $phone,
+            'whatsapp-url' => $phone ? $this->getWhatsAppLink($model, $phone) : null,
         ];
+    }
+
+    private function cleanPhoneNumber(?string $phone): string
+    {
+        return preg_replace('/[^0-9]/', '', $phone ?? '');
+    }
+
+    private function getWhatsAppLink($model, string $phone): string
+    {
+        $message = urlencode($model->generateWhatsAppMessage());
+        return "https://wa.me/{$phone}?text={$message}";
     }
 }
