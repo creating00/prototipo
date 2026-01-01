@@ -22,7 +22,7 @@
                 @endif
             </span>
 
-            @if ($secondaryNumber !== null)
+            @if ($secondaryNumber ?? null)
                 <span class="text-muted small text-end">
                     {{ number_format($secondaryNumber, 2) }}
                     @if ($secondarySuffix)
