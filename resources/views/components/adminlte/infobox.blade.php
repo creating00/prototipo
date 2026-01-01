@@ -17,7 +17,7 @@
                     {{ number_format($number) }}
                 @endif
 
-                @if ($suffix)
+                @if ($suffix ?? null)
                     <small class="fs-6">{{ $suffix }}</small>
                 @endif
             </span>
