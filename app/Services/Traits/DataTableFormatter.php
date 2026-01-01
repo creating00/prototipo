@@ -2,6 +2,8 @@
 
 namespace App\Services\Traits;
 
+use App\Enums\CurrencyType;
+
 trait DataTableFormatter
 {
     protected function resolveCustomerName($model): string
@@ -25,11 +27,15 @@ trait DataTableFormatter
         };
     }
 
-    protected function formatCurrency(float $amount, string $currency = '₲', string $class = 'fw-bold text-success'): string
+    protected function formatCurrency(float $amount, ?CurrencyType $currency = null, string $class = 'fw-bold text-success'): string
     {
-        return '<span class="' . $class . '">' . $currency . ' ' .
-            number_format($amount, 0, ',', '.') .
-            '</span>';
+        $currency = $currency ?? CurrencyType::ARS;
+        return sprintf(
+            '<span class="%s">%s %s</span>',
+            $class,
+            $currency->symbol(),
+            number_format($amount, 2, ',', '.')
+        );
     }
 
     protected function formatStatusBadge(string $statusLabel): string
