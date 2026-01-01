@@ -74,7 +74,7 @@ class OrderWebController extends BaseOrderController
         $headers = ['#', 'Proveedor (Sucursal)', 'Total', 'Estado', 'Fecha Solicitud'];
 
         // Ocultamos el ID y quizás 'Mi Sucursal' (porque siempre seremos nosotros)
-        $hiddenFields = ['id', 'customer'];
+        $hiddenFields = ['id', 'status_raw','customer', 'phone', 'whatsapp-url', 'customer_type'];
 
         return view('admin.order.purchases', compact('rowData', 'headers', 'hiddenFields'));
     }

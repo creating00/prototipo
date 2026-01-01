@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\CurrencyType;
 use App\Enums\OrderSource;
 use App\Enums\OrderStatus;
 use App\Models\Branch;
@@ -219,12 +220,11 @@ class OrderService
         $rowData = $order->items->map(function ($item, $index) {
             return [
                 'id'         => $item->id,
-                'number'     => $index + 1, // <--- Cambiado de 'index' a 'number'
+                'number'     => $index + 1,
                 'product'    => $item->product->name,
                 'quantity'   => $item->quantity,
-                // Usamos formatCurrency si quieres mantener el estilo con colores
-                'unit_price' => $this->formatCurrency($item->unit_price, '$', 'text-dark'),
-                'subtotal'   => $this->formatCurrency($item->subtotal, '$', 'fw-bold text-dark'),
+                'unit_price' => $this->formatCurrency($item->unit_price, CurrencyType::ARS, 'text-dark'),
+                'subtotal'   => $this->formatCurrency($item->subtotal, CurrencyType::ARS, 'fw-bold text-dark'),
             ];
         })->toArray();
 
