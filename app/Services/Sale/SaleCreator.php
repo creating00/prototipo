@@ -37,7 +37,7 @@ class SaleCreator
         $prepared = $this->dataProcessor->prepare($data);
 
         return DB::transaction(function () use ($prepared, $addPaymentCallback) {
-            $skipStock = isset($data['source_order_id']);
+            $skipStock = $prepared['skip_stock_movement'] ?? false;
             $sale = $this->createSaleRecord($prepared);
             $this->itemProcessor->sync($sale, $prepared['items'], $skipStock);
             $subtotal = (float) $prepared['subtotal'];

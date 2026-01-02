@@ -9,6 +9,7 @@ use App\Models\Branch;
 use App\Models\Client;
 use App\Models\ClientAccount;
 use App\Models\Order;
+use App\Models\OrderReception;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
@@ -174,12 +175,14 @@ class OrderService
                     'unit_price' => $i->unit_price,
                 ])->toArray(),
 
-                // 2. Prioridad al payment_type enviado
+                // Prioridad al payment_type enviado
                 'payment_type'    => $options['payment_type'] ?? $defaultPaymentType,
 
-                // 3. Monto recibido (por defecto el total de la orden)
+                // Monto recibido (por defecto el total de la orden)
                 'amount_received' => $options['amount_received'] ?? $order->total_amount,
             ];
+
+            $data['skip_stock_movement'] = true;
 
             $sale = app(SaleService::class)->createSale($data);
 
@@ -255,13 +258,28 @@ class OrderService
     public function getPurchasedOrdersForDataTable(): array
     {
         return $this->getPurchasedOrders()->map(function ($order, $index) {
-            // Usamos el formatter del trait
-            $data = $this->formatForDataTable($order, $index, [
-                'currencyClass' => 'fw-bold text-info' // Azul para diferenciarlo de ventas (verde)
-            ]);
+            $reception = $order->reception;
+            $statusSource = $reception ?? $order;
 
-            // Ajuste: En esta vista, 'branch' es el PROVEEDOR (quien nos vende)
-            return $data;
+            return [
+                // --- CAMPOS OCULTOS (No afectan el orden visual) ---
+                'id'            => $order->id,
+                'status_raw'    => is_object($statusSource->status) ? $statusSource->status->value : $statusSource->status,
+                'is_received'   => $reception ? 'true' : 'false',
+                'customer'      => $this->resolveCustomerName($order),
+                'customer_type' => $order->customer_type,
+                'phone'         => $this->cleanPhoneNumber($order->customer?->phone),
+                'observation'   => $reception ? ($reception->observation ?? 'Sin notas') : '---',
+
+                // --- CAMPOS VISIBLES (Deben seguir el orden de $headers) ---
+                'number'        => $index + 1,                                  // #
+                'branch'        => $order->branch->name ?? 'N/A',               // Proveedor
+                'total'         => $this->formatCurrency($order->total_amount), // Total
+                'status'        => $this->resolveStatus($statusSource, ['currencyClass' => 'fw-bold text-info']), // Estado
+                'created_at'    => $order->created_at->format('d-m-Y'),         // Fecha Solicitud
+                'received_at'   => $reception ? $reception->received_at->format('d-m-Y H:i') : '---', // Fecha Recepción
+                'received_by'   => $reception ? $reception->user->name : '---', // Recibido por
+            ];
         })->toArray();
     }
 
@@ -340,5 +358,55 @@ class OrderService
             'customer_id' => $orderData['customer_id'],
             'customer_type' => $orderData['customer_type'],
         ]);
+    }
+
+    /**
+     * Registra la recepción física del pedido por parte de la sucursal solicitante.
+     */
+    public function registerReception(int $orderId, array $data): OrderReception
+    {
+        return DB::transaction(function () use ($orderId, $data) {
+            // 1. Cargar el pedido con sus ítems y productos
+            $order = Order::with('items.product')->findOrFail($orderId);
+
+            // 2. Validaciones de integridad
+            if ($order->customer_type !== \App\Models\Branch::class) {
+                throw new \Exception("Solo los pedidos entre sucursales requieren registro de recepción.");
+            }
+
+            if ($order->reception()->exists()) {
+                throw new \Exception("Este pedido ya cuenta con un registro de recepción.");
+            }
+
+            // 3. Determinar el estado basado en la observación
+            // Si hay texto en 'observation', usamos ReceivedWithIssues, de lo contrario Received
+            $status = !empty($data['observation'])
+                ? \App\Enums\OrderReceptionStatus::ReceivedWithIssues
+                : \App\Enums\OrderReceptionStatus::Received;
+
+            // 4. Crear el registro de recepción
+            $reception = $order->reception()->create([
+                'user_id'     => $this->userId() ?? $data['user_id'],
+                'status'      => $status,
+                'received_at' => now(),
+                'observation' => $data['observation'] ?? null,
+            ]);
+
+            // 5. Aumentar stock en la sucursal que recibe (customer_id)
+            foreach ($order->items as $item) {
+                // Bloqueamos para evitar condiciones de carrera
+                $product = \App\Models\Product::where('id', $item->product_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                // Usamos el servicio de stock que ajustamos antes
+                $this->stockService->addStock($product, $item->quantity, $order->customer_id);
+            }
+
+            // 6. Opcional: Actualizar el estado del Pedido a 'Completado'
+            // $order->update(['status' => \App\Enums\OrderStatus::Completed]);
+
+            return $reception;
+        });
     }
 }

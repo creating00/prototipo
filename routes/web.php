@@ -83,6 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('orders/purchases/{id}/details', [OrderWebController::class, 'purchaseDetails'])
             ->name('web.orders.purchases.details');
         Route::get('orders/{id}/details', [OrderWebController::class, 'show'])->name('web.orders.show');
+        Route::post('orders/{id}/receive', [OrderWebController::class, 'receive'])->name('web.orders.receive');
 
         resourceWithExtras('orders', OrderWebController::class, [
             'create-client' => 'createClient',

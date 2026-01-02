@@ -23,18 +23,22 @@ export class TableManager {
     }
 
     static initRowActions(config) {
+        const rowActions = config.rowActions ?? {};
+
         const rowActionsMap = Object.fromEntries(
-            Object.entries(config.rowActions).map(([key, action]) => [
+            Object.entries(rowActions).map(([key, action]) => [
                 action.selector.replace(".", ""),
-                // Pasamos el config.baseUrl al handler si el módulo lo necesita
                 (row) => action.handler(row, config.baseUrl),
             ])
         );
+
         return new DataTableActionsManager(config.tableId, rowActionsMap);
     }
 
     static initHeaderActions(config) {
-        Object.values(config.headerActions).forEach(
+        const headerActions = config.headerActions ?? {};
+
+        Object.values(headerActions).forEach(
             ({ selector, message, handler }) => {
                 const button = document.querySelector(selector);
                 button?.addEventListener("click", (e) => {

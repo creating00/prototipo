@@ -6,9 +6,12 @@ use App\Http\Controllers\BaseOrderController;
 use Illuminate\Http\Request;
 use App\Enums\OrderSource;
 use App\Models\Client;
+use App\Traits\AuthTrait;
 
 class OrderController extends BaseOrderController
 {
+    use AuthTrait;
+
     public function index()
     {
         return response()->json(
@@ -145,7 +148,7 @@ class OrderController extends BaseOrderController
              * 3. El usuario de sistema definido en config/orders.php.
              */
             if (!isset($options['user_id'])) {
-                $options['user_id'] = auth()->id() ?? config('orders.system_user_id');
+                $options['user_id'] = $this->userId() ?? config('orders.system_user_id');
             }
 
             // Ejecutar conversión

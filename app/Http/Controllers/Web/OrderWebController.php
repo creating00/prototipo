@@ -66,17 +66,54 @@ class OrderWebController extends BaseOrderController
 
     public function purchases()
     {
-        // 1. Obtenemos los datos filtrados para nuestra sucursal como cliente
         $rowData = $this->orderService->getPurchasedOrdersForDataTable();
 
-        // 2. Definimos cabeceras que tengan sentido para una "Compra"
-        // 'Sucursal Origen' es quien nos debe enviar la mercadería
-        $headers = ['#', 'Proveedor (Sucursal)', 'Total', 'Estado', 'Fecha Solicitud'];
+        // Añadimos 'Fecha Recepción' y 'Recibido por'
+        $headers = [
+            '#',
+            'Proveedor (Sucursal)',
+            'Total',
+            'Estado',
+            'Fecha Solicitud',
+            'Fecha Recepción',
+            'Recibido por'
+        ];
 
-        // Ocultamos el ID y quizás 'Mi Sucursal' (porque siempre seremos nosotros)
-        $hiddenFields = ['id', 'status_raw','customer', 'phone', 'whatsapp-url', 'customer_type'];
+        $hiddenFields = [
+            'id',
+            'status_raw',
+            'customer',
+            'phone',
+            'whatsapp-url',
+            'customer_type',
+            'observation',
+            'is_received',
+        ];
 
         return view('admin.order.purchases', compact('rowData', 'headers', 'hiddenFields'));
+    }
+
+    public function receive(Request $request, int $id)
+    {
+        try {
+            // Solo pasamos lo que el usuario envía, el Service decide el Status
+            $data = [
+                'observation' => $request->observation,
+                'user_id'     => $this->userId(),
+            ];
+
+            $this->orderService->registerReception($id, $data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'La recepción ha sido registrada y el inventario actualizado correctamente.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
     }
 
     public function create()
