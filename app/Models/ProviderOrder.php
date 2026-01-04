@@ -46,4 +46,14 @@ class ProviderOrder extends Model
     {
         return $this->hasMany(ProviderOrderItem::class);
     }
+
+    public function scopeForBranch($query, int $branchId)
+    {
+        return $query->where('branch_id', $branchId);
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', ProviderOrderStatus::PENDING);
+    }
 }

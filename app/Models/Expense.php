@@ -6,6 +6,7 @@ use App\Enums\CurrencyType;
 use App\Enums\PaymentType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class Expense extends Model
 {
@@ -67,5 +68,17 @@ class Expense extends Model
     public function scopeForBranch($query, int $branchId)
     {
         return $query->where('branch_id', $branchId);
+    }
+
+    public function scopeToday($query)
+    {
+        return $query->whereDate('created_at', Carbon::today());
+    }
+
+    public function scopeThisMonth($query)
+    {
+        return $query
+            ->whereYear('created_at', Carbon::now()->year)
+            ->whereMonth('created_at', Carbon::now()->month);
     }
 }

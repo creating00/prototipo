@@ -2,6 +2,7 @@
     $quantity = $item?->quantity ?? 1;
     $unitPrice = $item?->unit_price ?? ($salePrice ?? 0);
     $subtotal = $item?->subtotal ?? $quantity * $unitPrice;
+    $allowEditPrice = $allowEditPrice ?? false;
 @endphp
 
 <tr data-id="{{ $product->id }}" data-code="{{ $product->code }}">
@@ -18,7 +19,14 @@
         <div class="input-group">
             <span class="input-group-text">$</span>
             <input type="number" class="form-control unit-price" name="items[INDEX][unit_price]"
-                value="{{ $unitPrice }}" readonly>
+                value="{{ $unitPrice }}" {{ $allowEditPrice ? '' : 'readonly' }}>
+
+            @if ($allowEditPrice)
+                <button type="button" class="btn btn-outline-warning btn-edit-price" data-status="off"
+                    title="Habilitar edición de precio">
+                    <i class="fas fa-lock"></i>
+                </button>
+            @endif
         </div>
     </td>
 

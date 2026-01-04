@@ -5,10 +5,23 @@ namespace App\Services\Sale;
 use App\Services\BaseItemProcessor;
 use App\Models\Sale;
 use App\Models\Product;
+use App\Services\PriceAuditService;
+use App\Services\Product\ProductStockService;
 use Illuminate\Database\Eloquent\Model;
 
 class SaleItemProcessor extends BaseItemProcessor
 {
+    protected PriceAuditService $auditService;
+
+    public function __construct(
+        ProductStockService $stockService, // Requerido por el padre
+        PriceAuditService $auditService    // Requerido por esta clase
+    ) {
+        // Inicializa el stockService en la clase Base
+        parent::__construct($stockService);
+
+        $this->auditService = $auditService;
+    }
     /**
      * @param Sale $model
      */
@@ -19,6 +32,18 @@ class SaleItemProcessor extends BaseItemProcessor
         float $unitPrice,
         float $subtotal
     ): void {
+
+        $originalPrice = $this->getProductPrice($product, $model->branch_id);
+
+        $this->auditService->recordModification([
+            'branch_id'      => $model->branch_id,
+            'product_id'     => $product->id,
+            'original_price' => $originalPrice,
+            'modified_price' => $unitPrice,
+            'sale_id'        => $model->id,
+            'reason'         => 'Precio modificado manualmente en venta'
+        ]);
+
         $model->items()->create([
             'product_id' => $product->id,
             'quantity' => $quantity,

@@ -40,6 +40,16 @@ return [
             'route' => ['href' => 'web.orders.index', 'label' => 'Gestionar Pedidos'],
             'description' => 'Pedidos pendientes'
         ],
+        'audits' => [
+            'title' => 'Auditoría de Precios',
+            'value' => 0,
+            'color' => 'custom',
+            'customBgColor' => "#3b82f6ff",
+            'icon' => 'search',
+            'viewBox' => '0 0 24 24',
+            'route' => ['href' => 'web.price-modifications.index', 'label' => 'Ver Auditoría'],
+            'description' => 'Historial de modificaciones de precios'
+        ],
         'provider-orders' => [
             'title' => 'Pedidos a Proveedor',
             'value' => 0,

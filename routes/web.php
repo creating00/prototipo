@@ -20,7 +20,8 @@ use App\Http\Controllers\Web\{
     UserWebController,
     ProviderOrderWebController,
     DiscountWebController,
-    AnalyticsController
+    AnalyticsWebController,
+    PriceModificationWebController
 };
 
 // Página principal
@@ -50,7 +51,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         webResource('users', UserWebController::class);
         webResource('discounts', DiscountWebController::class);
         webResource('provider-orders', ProviderOrderWebController::class);
-        webResource('analytics', AnalyticsController::class);
+        webResource('analytics', AnalyticsWebController::class);
+
+        Route::get('/audits', [PriceModificationWebController::class, 'index'])
+                ->name('web.price-modifications.index');
 
         Route::prefix('provider-orders/{id}')->group(function () {
             Route::post('send', [ProviderOrderWebController::class, 'send'])

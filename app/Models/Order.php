@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class Order extends Model
 {
@@ -62,7 +63,7 @@ class Order extends Model
         return $this->morphMany(Payment::class, 'paymentable');
     }
 
-    public function reception():HasOne
+    public function reception(): HasOne
     {
         return $this->hasOne(OrderReception::class);
     }
@@ -80,6 +81,21 @@ class Order extends Model
     public function isInterBranch(): bool
     {
         return $this->customer_type === Branch::class;
+    }
+
+    public function scopeForBranch($query, int $branchId)
+    {
+        return $query->where('branch_id', $branchId);
+    }
+
+    public function scopeToday($query)
+    {
+        return $query->whereDate('created_at', Carbon::today());
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', OrderStatus::Pending);
     }
 
     public function getCustomerNameAttribute(): string

@@ -1,7 +1,7 @@
 import { getRepairCategoryId } from "@/helpers/repair-category";
 import { Toast } from "@/config/notifications";
 
-export async function fetchProduct(code, branchId) {
+export async function fetchProduct(code, branchId, context = 'order') {
     if (!branchId) {
         // Disparamos la alerta antes de lanzar el error
         Toast.fire({
@@ -20,6 +20,7 @@ export async function fetchProduct(code, branchId) {
     );
 
     url.searchParams.append("branch_id", branchId);
+    url.searchParams.append("context", context);
 
     if (categoryId) {
         url.searchParams.append("category_id", categoryId);

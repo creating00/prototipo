@@ -8,7 +8,7 @@ use App\Services\AnalyticsService;
 use App\Traits\AuthTrait;
 use Illuminate\Http\Request;
 
-class AnalyticsController extends Controller
+class AnalyticsWebController extends Controller
 {
     use AuthTrait;
 

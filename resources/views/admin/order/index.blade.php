@@ -27,7 +27,6 @@
         {{-- Alerts --}}
         <x-adminlte.alert-manager />
 
-        {{-- Métricas opcionales (solo si envías $cards desde el controlador) --}}
         @isset($cards)
             <div class="row mb-4">
                 @foreach ($cards as $card)
@@ -43,14 +42,19 @@
             {{-- DataTable de Pedidos --}}
             <x-adminlte.data-table tableId="orders-table" title="Gestión de Pedidos" :headers="$headers" :rowData="$rowData"
                 :hiddenFields="$hiddenFields" withActions="true">
+
                 {{-- Botones en cada fila --}}
-                <x-adminlte.button color="custom-jade" size="sm" icon="fas fa-eye" class="me-1 btn-view" />
-                <x-adminlte.button color="success" size="sm" icon="fab fa-whatsapp" class="me-1 btn-whatsapp"
-                    title="Enviar WhatsApp" />
-                <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
-                <x-adminlte.button color="success" size="sm" icon="fas fa-file-invoice-dollar" class="me-1 btn-convert"
-                    title="Convertir a Venta" />
-                <x-adminlte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete" />
+                <x-slot name="actions">
+                    <div class="d-flex justify-content-center gap-1">
+                        <x-adminlte.button color="custom-jade" size="sm" icon="fas fa-eye" class="me-1 btn-view" />
+                        <x-adminlte.button color="success" size="sm" icon="fab fa-whatsapp" class="me-1 btn-whatsapp"
+                            title="Enviar WhatsApp" />
+                        <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
+                        <x-adminlte.button color="success" size="sm" icon="fas fa-file-invoice-dollar"
+                            class="me-1 btn-convert" title="Convertir a Venta" />
+                        <x-adminlte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete" />
+                    </div>
+                </x-slot>
 
                 {{-- Botones superiores --}}
                 <x-slot name="headerButtons">

@@ -25,6 +25,7 @@ class ProductController extends BaseProductController
     {
         $branchId   = $request->get('branch_id');
         $categoryId = $request->get('category_id');
+        $allowEditPrice = $request->get('context') === 'sale';
 
         if (!$branchId) {
             return response()->json(['error' => 'Branch ID is required'], 400);
@@ -47,6 +48,8 @@ class ProductController extends BaseProductController
             return response()->json(['error' => 'Product not found in this branch'], 404);
         }
 
+
+
         return response()->json([
             'product' => [
                 'id'         => $product->id,
@@ -60,6 +63,7 @@ class ProductController extends BaseProductController
                 'stock'      => $product->getStock($branchId),
                 'salePrice'  => $product->salePrice($branchId),
                 'item'       => null,
+                'allowEditPrice' => $allowEditPrice,
             ])->render(),
         ]);
     }

@@ -29,12 +29,18 @@ abstract class BaseItemProcessor
 
         foreach ($items as $item) {
             $product = $this->getLockedProduct($item['product_id']);
+
             if (!$skipStockMovement) {
                 $this->validateStock($product, $branchId, $item['quantity']);
                 $this->stockService->reserve($product, $item['quantity'], $branchId);
             }
 
-            $unitPrice = $this->getProductPrice($product, $branchId);
+            // Priorizar el precio que viene del item (frontend/processor)
+            // Si no existe, recurrir al precio original de la DB
+            $unitPrice = isset($item['unit_price'])
+                ? (float) $item['unit_price']
+                : $this->getProductPrice($product, $branchId);
+
             $subtotal = $unitPrice * $item['quantity'];
             $total += $subtotal;
 

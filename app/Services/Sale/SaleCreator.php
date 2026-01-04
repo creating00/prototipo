@@ -5,6 +5,7 @@ namespace App\Services\Sale;
 use App\Enums\SaleStatus;
 use App\Enums\SaleType;
 use App\Models\Sale;
+use App\Services\PriceAuditService;
 use App\Traits\AuthTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -16,13 +17,16 @@ class SaleCreator
 
     protected SaleDataProcessor $dataProcessor;
     protected SaleItemProcessor $itemProcessor;
+    protected PriceAuditService $auditService;
 
     public function __construct(
         SaleDataProcessor $dataProcessor,
-        SaleItemProcessor $itemProcessor
+        SaleItemProcessor $itemProcessor,
+        PriceAuditService $auditService
     ) {
         $this->dataProcessor = $dataProcessor;
         $this->itemProcessor = $itemProcessor;
+        $this->auditService = $auditService;
     }
 
     /**

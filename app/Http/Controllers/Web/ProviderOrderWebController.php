@@ -28,28 +28,16 @@ class ProviderOrderWebController extends Controller
         $this->providerService = $providerService;
     }
 
-    public function index()
+    public function index(ProviderOrderService $service)
     {
-        $orders = ProviderOrder::with(['provider', 'items'])->latest()->get();
         $headers = ['#', 'Nro. Orden', 'Proveedor', 'Fecha Pedido', 'Entrega Est.', 'Estado', 'Total Est.'];
-
-        $rowData = $orders->map(function ($order, $index) {
-            return [
-                'id' => $order->id,
-                'status_raw' => $order->status->value,
-                'row_number' => $index + 1,
-                'order_id_text' => "#ORD-" . str_pad($order->id, 5, '0', STR_PAD_LEFT),
-                'provider' => $order->provider->business_name,
-                'order_date' => $order->order_date->format('d/m/Y'),
-                'expected_delivery_date' => $order->expected_delivery_date?->format('d/m/Y') ?? 'Pendiente',
-                'status' => $order->status->label(),
-                'total' => '$ ' . number_format($order->items->sum(fn($i) => $i->quantity * $i->unit_cost), 2),
-            ];
-        })->toArray();
+        $rowData = $service->getAllOrdersForDataTable();
 
         $hiddenFields = ['id', 'status_raw'];
+
         return view('admin.provider-order.index', compact('rowData', 'headers', 'hiddenFields'));
     }
+
 
     public function create()
     {

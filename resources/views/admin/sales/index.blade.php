@@ -24,9 +24,14 @@
         <x-adminlte.data-table tableId="sales-table" title="Gestión de Ventas" :headers="$headers" :rowData="$rowData"
             :hiddenFields="$hiddenFields" withActions="true">
             {{-- Botones en cada fila --}}
-            <x-adminlte.button color="custom-jade" size="sm" icon="fas fa-eye" class="me-1 btn-view" />
-            <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
-            <x-adminlte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete" />
+
+            <x-slot name="actions">
+                <div class="d-flex justify-content-center gap-1">
+                    <x-adminlte.button color="custom-jade" size="sm" icon="fas fa-eye" class="me-1 btn-view" />
+                    <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
+                    <x-adminlte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete" />
+                </div>
+            </x-slot>
 
             {{-- Botones superiores --}}
             <x-slot name="headerButtons">

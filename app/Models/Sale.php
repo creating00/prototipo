@@ -5,8 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use App\Enums\SaleStatus;
-use App\Enums\SaleType; // Importar el nuevo Enum
+use App\Enums\SaleType;
 
 class Sale extends Model
 {
@@ -137,7 +138,7 @@ class Sale extends Model
 
     public function generateWhatsAppMessage(): string
     {
-        $customerName = $this->customer_name; // Usando el accesor que ya tienes
+        $customerName = $this->customer_name;
 
         $itemsDetail = $this->items->take(5)->map(function ($item) {
             return "• {$item->quantity}x " . ($item->product->name ?? 'Producto');
@@ -157,5 +158,10 @@ class Sale extends Model
     public function scopeForBranch($query, int $branchId)
     {
         return $query->where('branch_id', $branchId);
+    }
+
+    public function scopeToday($query)
+    {
+        return $query->whereDate('created_at', Carbon::today());
     }
 }

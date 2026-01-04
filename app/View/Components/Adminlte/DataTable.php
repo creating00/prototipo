@@ -5,6 +5,7 @@ namespace App\View\Components\Adminlte;
 use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
+use Illuminate\Support\Collection;
 
 class DataTable extends Component
 {
@@ -23,7 +24,7 @@ class DataTable extends Component
         string $title = 'DataTable',
         string $size = 'main',
         array $headers = [],
-        array $rowData = [],
+        Collection|array $rowData = [],
         bool $responsive = true,
         $withActions = false,
         array $hiddenFields = []
@@ -32,7 +33,7 @@ class DataTable extends Component
         $this->title = $title;
         $this->size = $size;
         $this->headers = $headers;
-        $this->rowData = $rowData;
+        $this->rowData = $rowData instanceof Collection ? $rowData->toArray() : $rowData;
         $this->responsive = $responsive;
         $this->withActions = filter_var($withActions, FILTER_VALIDATE_BOOLEAN);
         $this->hiddenFields = $hiddenFields ?: $this->detectHiddenFields($rowData);

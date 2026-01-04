@@ -22,12 +22,14 @@
 
                 {{-- Botones de acción por fila --}}
                 <x-slot name="actions">
-                    <x-adminlte.button color="custom-jade" size="sm" icon="fas fa-eye" class="btn-view"
-                        title="Ver Detalle" />
-                    <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="btn-edit"
-                        title="Editar Borrador" />
-                    <x-adminlte.button color="success" size="sm" icon="fas fa-truck" class="btn-receive"
-                        title="Marcar como Recibido" />
+                    <div class="d-flex justify-content-center gap-1">
+                        <x-adminlte.button color="custom-jade" size="sm" icon="fas fa-eye" class="btn-view"
+                            title="Ver Detalle" />
+                        <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="btn-edit"
+                            title="Editar Borrador" />
+                        <x-adminlte.button color="success" size="sm" icon="fas fa-truck" class="btn-receive"
+                            title="Marcar como Recibido" />
+                    </div>
                 </x-slot>
 
                 <x-slot name="headerButtons">

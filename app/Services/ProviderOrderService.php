@@ -13,6 +13,7 @@ use App\Models\{
     ProviderProduct
 };
 use App\Enums\ProviderOrderStatus;
+use App\Services\Traits\DataTableFormatter;
 use App\Traits\AuthTrait;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -20,6 +21,8 @@ use Carbon\Carbon;
 class ProviderOrderService
 {
     use AuthTrait;
+    use DataTableFormatter;
+
     /**
      * Crear una orden de compra en estado DRAFT
      */
@@ -123,7 +126,7 @@ class ProviderOrderService
                 $productBranch->increment('stock', $item->quantity);
 
                 // 3. Actualizar Precio de Compra
-               ProductBranchPrice::updateOrCreate(
+                ProductBranchPrice::updateOrCreate(
                     [
                         'product_branch_id' => $productBranch->id,
                         'type'              => PriceType::PURCHASE,
@@ -142,5 +145,46 @@ class ProviderOrderService
 
             return $order->fresh();
         });
+    }
+
+    public function getAllOrdersForDataTable()
+    {
+        return ProviderOrder::with(['provider', 'items'])
+            ->latest()
+            ->get()
+            ->map(fn($order, $index) => $this->formatForDataTable($order, $index))
+            ->toArray();
+    }
+
+    protected function formatForDataTable($model, int $index, array $options = []): array
+    {
+        return [
+            'id' => $model->id,
+
+            // #
+            'number' => $index + 1,
+
+            // Nro. Orden
+            'order_id_text' => "#ORD-" . str_pad($model->id, 5, '0', STR_PAD_LEFT),
+
+            // Proveedor
+            'provider' => $model->provider->business_name,
+
+            // Fecha Pedido
+            'order_date' => $model->order_date->format('d/m/Y'),
+
+            // Entrega Est.
+            'expected_delivery_date' =>
+            $model->expected_delivery_date?->format('d/m/Y') ?? 'Pendiente',
+
+            // Estado (badge)
+            'status' => $this->resolveStatus($model, $options),
+            'status_raw' => $model->status->value,
+
+            // Total Est.
+            'total' => $this->formatCurrency(
+                $model->items->sum(fn($i) => $i->quantity * $i->unit_cost)
+            ),
+        ];
     }
 }

@@ -23,6 +23,18 @@ enum ProviderOrderStatus: int
         };
     }
 
+    public function badgeClass(): string
+    {
+        return match ($this) {
+            self::DRAFT     => 'badge-custom badge-custom-pastel-blue',
+            self::PENDING   => 'badge-custom badge-custom-pastel-yellow',
+            self::SENT      => 'badge-custom badge-custom-pastel-blue',
+            self::PARTIAL   => 'badge-custom badge-custom-pastel-orange',
+            self::RECEIVED  => 'badge-custom badge-custom-pastel-green',
+            self::CANCELLED => 'badge-custom badge-custom-pastel-red',
+        };
+    }
+
     public static function forSelect(): array
     {
         return collect(self::cases())
