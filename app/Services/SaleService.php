@@ -8,12 +8,9 @@ use App\Services\Sale\SaleCreator;
 use App\Services\Sale\SaleUpdater;
 use App\Services\Sale\SaleDeleter;
 use App\Services\Sale\SalePaymentManager;
-use App\Services\Sale\SaleDataProcessor;
-use App\Services\Sale\SaleItemProcessor;
 use App\Models\Sale;
 use App\Traits\AuthTrait;
 use App\Services\Traits\DataTableFormatter;
-use App\Services\PaymentManager;
 use App\Services\Product\ProductStockService;
 
 class SaleService
@@ -53,13 +50,16 @@ class SaleService
 
     public function getSaleById($id)
     {
-        return Sale::with(['branch', 'items.product', 'customer'])
+        return Sale::with(['branch', 'items.product', 'discount', 'customer'])
             ->findOrFail($id);
     }
 
     public function getAllSalesForDataTable(): array
     {
+        $branchId = $this->currentBranchId();
+
         $sales = Sale::with(['branch', 'customer'])
+            ->forBranch($branchId)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -122,5 +122,20 @@ class SaleService
 
         $class = $statusEnum->badgeClass();
         return "<span class=\"{$class}\">{$statusLabel}</span>";
+    }
+
+    public function buildOrderItemsHtml(Sale $order): array
+    {
+        return $order->items->map(function ($item) use ($order) {
+            return [
+                'html' => view('admin.order.partials._item_row', [
+                    'product'   => $item->product,
+                    'item'      => $item,
+                    'stock'     => $item->product->getStock($order->branch_id),
+                    'salePrice' => $item->unit_price,
+                    'allowEditPrice' => true,
+                ])->render(),
+            ];
+        })->values()->toArray();
     }
 }

@@ -44,7 +44,13 @@ export default {
             updateTotal: () => this.updateTotal(),
         });
     },
-
+    preload(items = []) {
+        items.forEach((item) => {
+            if (item.html) {
+                this.addRow(item.html);
+            }
+        });
+    },
     async addProductByCode(code) {
         try {
             const branchId = getCurrentBranchId();

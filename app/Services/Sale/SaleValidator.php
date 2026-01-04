@@ -25,6 +25,10 @@ class SaleValidator
      */
     public function validate(array $data, $ignoreId = null): array
     {
+        if (isset($data['customer_id'], $data['customer_type']) && $data['customer_type'] === Branch::class) {
+            $data['branch_recipient_id'] = $data['customer_id'];
+        }
+
         $validator = Validator::make($data, $this->getValidationRules($data));
 
         $validator->after(function ($validator) use ($data) {

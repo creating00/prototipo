@@ -10,8 +10,9 @@
 @endpush
 
 @php
-    $customerType = old('customer_type') ?? ($customer_type ?? ($sale->customer_type ?? null));
+    $customerType = old('customer_type', $customer_type ?? $sale?->customer_type);
     $customerId = old('customer_id', $sale->customer_id ?? null);
+    $currentSaleDate = old('sale_date', $sale->sale_date ?? ($saleDate ?? now()->format('Y-m-d')));
 
     $isRepair =
         (old('sale_type') ?? ($sale->sale_type?->value ?? \App\Enums\SaleType::Sale->value)) ==
@@ -44,7 +45,11 @@
                 </div>
             </div>
             <div class="card-body">
-                @include('admin.sales.partials.sections._origin')
+                @if ($customerType === 'App\Models\Client')
+                    @include('admin.sales.partials.sections._form_origin_client')
+                @elseif ($customerType === 'App\Models\Branch')
+                    @include('admin.sales.partials.sections._form_origin_branch')
+                @endif
             </div>
         </div>
     </div>

@@ -19,6 +19,7 @@ const salePayment = {
         remaining_balance: "hidden_remaining_balance",
         repair_amount: "hidden_repair_amount",
         discount_id: "hidden_discount_id",
+        payment_type_modal: "hidden_payment_type",
     },
 
     init: function () {
@@ -90,7 +91,7 @@ const salePayment = {
 
         // Sincronización especial para el Select del Modal
         const modalPaymentType = document.querySelector(
-            'select[name="payment_type"]'
+            'select[name="payment_type_modal"]'
         );
         if (modalPaymentType) {
             modalPaymentType.addEventListener("change", (e) => {
@@ -123,7 +124,7 @@ const salePayment = {
 
         // Sincronizar el select de pago
         const modalPaymentType = document.querySelector(
-            'select[name="payment_type"]'
+            'select[name="payment_type_modal"]'
         );
         const hiddenType = document.getElementById("hidden_payment_type");
         if (modalPaymentType && hiddenType)

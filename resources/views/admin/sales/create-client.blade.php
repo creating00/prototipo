@@ -3,6 +3,11 @@
 @section('page-title', 'Crear Venta')
 
 @section('content')
+    @php
+        $currentCustomerType = old('customer_type', $customer_type ?? 'App\Models\Client');
+        $currentSaleDate = old('sale_date', $saleDate ?? now()->format('Y-m-d'));
+    @endphp
+
     <x-adminlte.alert-manager />
 
     <x-adminlte.form id="saleForm" action="{{ route('web.sales.store') }}" title="Nueva Venta">
@@ -23,13 +28,16 @@
 
     @include('admin.product.partials._modal_product_search')
     @include('admin.client.partials._modal-create')
-    @include('admin.sales.partials._modal-payment')
+    @include('admin.sales.partials._modal-payment', [
+        'saleDate' => $currentSaleDate,
+        'customerType' => $currentCustomerType,
+    ])
 @endsection
 
 @push('scripts')
     <script>
         window.DISCOUNT_AMOUNT_MAP = @json($discountMap);
-        console.log(window.DISCOUNT_AMOUNT_MAP);
+        //console.log(window.DISCOUNT_AMOUNT_MAP);
     </script>
 
     @vite('resources/js/modules/sales/create.js')

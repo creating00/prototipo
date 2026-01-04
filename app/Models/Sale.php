@@ -33,6 +33,8 @@ class Sale extends Model
         'total_amount',
         'customer_id',
         'customer_type',
+        'notes',
+        'sale_date'
     ];
 
     /**

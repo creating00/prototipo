@@ -18,7 +18,6 @@ return new class extends Migration
                 ->constrained('branches')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
-
             $table->string('internal_number')->unique();
 
             //$table->foreignId('client_id')->constrained('clients');
@@ -35,9 +34,9 @@ return new class extends Migration
             $table->decimal('amount_received', 10, 2)->default(0);
             $table->decimal('change_returned', 10, 2)->default(0);
             $table->decimal('remaining_balance', 10, 2)->default(0);
-
             $table->decimal('total_amount', 10, 2);
-
+            $table->text('notes')->nullable();
+            $table->dateTime('sale_date')->index();
             $table->timestamps();
             $table->softDeletes();
         });

@@ -60,7 +60,7 @@ class OrderService
             ->orderBy('created_at', 'desc');
 
         if ($branchId) {
-            $query->where('branch_id', $branchId);
+            $query->forBranch($branchId);
         }
 
         return $query->get();

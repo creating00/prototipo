@@ -18,25 +18,23 @@ class SaleDataProcessor
 
     public function prepare(array $validated): array
     {
-        $data = $validated;
+        $this->processCustomerData($validated);
 
-        $this->processCustomerData($data);
+        $validated['items'] = $this->prepareItems($validated['items'] ?? []);
+        $validated['subtotal'] = $this->calculateSubtotalFromItems($validated['items']);
 
-        $data['items'] = $this->prepareItems($data['items'] ?? []);
+        // Calcular el monto del descuento usando el método existente
+        $validated['discount_amount'] = $this->resolveDiscountAmount($validated);
 
-        $data['subtotal'] = $this->calculateSubtotalFromItems($data['items']);
+        $validated['total'] = $this->totalResolver->resolve($validated);
 
-        $data['total'] = $this->totalResolver->resolve($data);
+        $this->processSalePaymentFields($validated, $validated['total']);
 
-        $data['discount_amount'] = max(0, $data['subtotal'] - $data['total']);
-
-        $this->processSalePaymentFields($data, $data['total']);
-
-        if (isset($data['payment_type'])) {
-            $data['payment'] = $this->preparePayment($data, $data['total']);
+        if (isset($validated['payment_type'])) {
+            $validated['payment'] = $this->preparePayment($validated, $validated['total']);
         }
 
-        return $data;
+        return $validated;
     }
 
     protected function processCustomerData(array &$data): void
@@ -67,6 +65,10 @@ class SaleDataProcessor
     protected function preparePayment(array $data, float $total): array
     {
         $amountReceived = $data['amount_received'] ?? 0;
+
+        if ($amountReceived <= 0 && isset($data['id'])) {
+            return [];
+        }
 
         // El payment_amount (amount) es el mínimo entre amount_received y total
         $paymentAmount = min($amountReceived, $total);

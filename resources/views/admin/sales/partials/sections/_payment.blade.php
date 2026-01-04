@@ -1,25 +1,3 @@
-{{-- Totales --}}
-{{-- <div id="sale-total-wrapper">
-    <x-bootstrap.compact-input id="subtotal_amount" name="subtotal_amount" type="number" label="Subtotal" step="0.01"
-        readonly prefix="$" value="{{ old('subtotal_amount', $sale->subtotal_amount ?? 0) }}" />
-
-    <div class="mb-3">
-        <label for="discount_id" class="form-label">Descuento</label>
-        <select name="discount_id" id="discount_id" class="form-control">
-            <option value="" placeholder selected>Sin descuento</option>
-            @foreach ($discountOptions as $id => $name)
-                <option value="{{ $id }}">{{ $name }}</option>
-            @endforeach
-        </select>
-    </div>
-
-    <x-bootstrap.compact-input id="discount_amount" name="discount_amount" type="number" label="Descuento aplicado"
-        step="0.01" readonly prefix="$" value="{{ old('discount_amount', $sale->discount_amount ?? 0) }}" />
-
-    <x-bootstrap.compact-input id="total_amount" name="total_amount" type="number" label="Total del Pedido"
-        step="0.01" readonly prefix="$" value="{{ old('total_amount', $sale->total_amount ?? 0) }}" />
-</div> --}}
-
 <div id="sale-total-wrapper" class="mb-3">
 
     <div class="row g-2">
@@ -42,9 +20,12 @@
                 Descuento
             </label>
             <select name="discount_id_modal" id="discount_id" class="form-control form-control-sm">
-                <option value="" selected>Sin descuento</option>
+                <option value="">Sin descuento</option>
                 @foreach ($discountOptions as $id => $displayName)
-                    <option value="{{ $id }}">{{ $displayName }}</option>
+                    <option value="{{ $id }}"
+                        {{ isset($sale) && $sale->discount_id == $id ? 'selected' : '' }}>
+                        {{ $displayName }}
+                    </option>
                 @endforeach
             </select>
         </div>
@@ -92,7 +73,8 @@
     </div>
 
     <div class="col-md-3 compact-select-wrapper">
-        <x-adminlte.select name="payment_type_modal" label="" :options="$paymentOptions" :value="old('payment_type', $sale->payment_type ?? 1)" />
+        <x-adminlte.select name="payment_type_modal" label="" :options="$paymentOptions" :value="old('payment_type', $sale->payment_type ?? 1)"
+            :showPlaceholder="false" />
     </div>
 
     <div class="col-md-3">

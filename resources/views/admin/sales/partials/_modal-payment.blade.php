@@ -3,5 +3,7 @@
         'sale' => $sale ?? null,
         'discountOptions' => $discountOptions ?? [],
         'paymentOptions' => $paymentOptions ?? [],
-        'saleDate' => $saleDate ?? now()->format('Y-m-d'),
+        'saleDate' => $currentSaleDate,
+        'customerType' => $customerType,
+        'isBranchTransfer' => $isBranchTransfer ?? false,
     ]" />

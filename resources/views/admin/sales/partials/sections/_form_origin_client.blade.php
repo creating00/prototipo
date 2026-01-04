@@ -1,5 +1,4 @@
 <div class="d-flex flex-column gap-2">
-
     {{-- Sucursal --}}
     <div id="branch-select-wrapper" class="compact-select-wrapper">
         <label class="compact-select-label">
