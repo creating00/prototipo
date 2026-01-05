@@ -23,5 +23,5 @@
 @endsection
 
 @push('scripts')
-    @vite('resources/js/modules/orders/edit.js')
+    @vite('resources/js/modules/orders/form.js')
 @endpush

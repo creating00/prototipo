@@ -133,41 +133,38 @@ class OrderWebController extends BaseOrderController
 
     public function createClient()
     {
-        $branches = app(\App\Services\BranchService::class)->getAllBranches();
-        $categories = app(\App\Services\CategoryService::class)->getAllCategories();
-        $clients = app(\App\Services\ClientService::class)->getAllClients();
+        $branches = collect(app(BranchService::class)->getAllBranches());
+        $clients = collect(app(ClientService::class)->getAllClients());
         $statusOptions = OrderStatus::forSale();
-
         $customer_type = 'App\Models\Client';
+
+        $defaultDoc = config('app.default_client_document');
+        $defaultClientId = $clients->where('document', $defaultDoc)->first()?->id;
 
         return view('admin.order.create-client', compact(
             'customer_type',
             'branches',
-            'categories',
             'clients',
-            'statusOptions'
+            'statusOptions',
+            'defaultClientId',
         ));
     }
 
     public function createBranch()
     {
         $userBranchId = $this->currentBranchId();
+        $branchService = app(BranchService::class);
 
-        $branchService = app(\App\Services\BranchService::class);
-
-        // Sucursal origen (solo 1, pero en colección para no romper los selects)
         $originBranch = $branchService->getUserBranch($userBranchId);
+        $destinationBranches = collect($branchService->getAllBranchesExcept($userBranchId));
 
-        // Sucursales destino (todas menos la del usuario)
-        $destinationBranches = $branchService->getAllBranchesExcept($userBranchId);
-
-        $categories = app(\App\Services\CategoryService::class)->getAllCategories();
         $statusOptions = OrderStatus::forInternalOrder();
+        $customer_type = 'App\Models\Branch';
 
         return view('admin.order.create-branch', compact(
+            'customer_type',
             'originBranch',
             'destinationBranches',
-            'categories',
             'statusOptions'
         ));
     }

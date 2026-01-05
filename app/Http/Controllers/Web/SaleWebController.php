@@ -24,6 +24,20 @@ class SaleWebController extends BaseSaleController
         return view('admin.sales.index', compact('sales', 'rowData', 'headers', 'hiddenFields'));
     }
 
+    public function show($id)
+    {
+        $sale = $this->saleService->getSaleById($id);
+        $itemsData = $this->saleService->getSaleItemsData($sale);
+
+        return view('admin.sales.details', [
+            'sale'         => $sale,
+            'backUrl'      => route('web.sales.index'),
+            'rowData'      => $itemsData['rowData'],
+            'headers'      => $itemsData['headers'],
+            'hiddenFields' => $itemsData['hiddenFields'],
+        ]);
+    }
+
     private function getCommonFormData(string $customerType = 'App\Models\Client', $sale = null): array
     {
         $branchService = app(\App\Services\BranchService::class);

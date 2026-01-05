@@ -54,7 +54,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         webResource('analytics', AnalyticsWebController::class);
 
         Route::get('/audits', [PriceModificationWebController::class, 'index'])
-                ->name('web.price-modifications.index');
+            ->name('web.price-modifications.index');
 
         Route::prefix('provider-orders/{id}')->group(function () {
             Route::post('send', [ProviderOrderWebController::class, 'send'])
@@ -94,6 +94,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'create-branch' => 'createBranch',
         ]);
 
+        Route::get('sales/{id}/details', [SaleWebController::class, 'show'])->name('web.sales.show');
+        
         resourceWithExtras('sales', SaleWebController::class, [
             'create-client' => 'createClient',
             'create-branch' => 'createBranch',

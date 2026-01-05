@@ -68,6 +68,31 @@ class SaleService
         )->toArray();
     }
 
+    /**
+     * Obtiene los datos de los items de la venta para el componente DataTable.
+     */
+    public function getSaleItemsData(Sale $sale): array
+    {
+        $headers = ['#', 'Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
+
+        $rowData = $sale->items->map(function ($item, $index) {
+            return [
+                'id'         => $item->id,
+                'number'     => $index + 1,
+                'product'    => $item->product->name,
+                'quantity'   => $item->quantity,
+                'unit_price' => '$' . number_format($item->unit_price, 2, ',', '.'),
+                'subtotal'   => '$' . number_format($item->subtotal, 2, ',', '.'),
+            ];
+        })->toArray();
+
+        return [
+            'headers'      => $headers,
+            'rowData'      => $rowData,
+            'hiddenFields' => ['id']
+        ];
+    }
+
     public function createSale(array $data): Sale
     {
         $validated = $this->validator->validate($data);

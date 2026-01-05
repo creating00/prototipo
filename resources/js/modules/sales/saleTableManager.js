@@ -4,6 +4,13 @@ import { deleteItem } from "../../utils/deleteHelper";
 const TABLE_CONFIG = {
     tableId: "sales-table",
     rowActions: {
+        detail: {
+            selector: ".btn-view",
+            handler: (row, baseUrl) => {
+                const { id } = row.dataset;
+                window.location.href = `${baseUrl}/${id}/details`;
+            },
+        },
         edit: {
             selector: ".btn-edit",
             handler: (row, baseUrl) => {

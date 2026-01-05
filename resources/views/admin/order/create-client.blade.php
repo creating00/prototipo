@@ -8,6 +8,7 @@
     <x-adminlte.form action="{{ route('web.orders.store') }}" method="POST" title="Crear Nuevo Pedido"
         submit-text="Guardar Pedido" submitting-text="Registrando pedido...">
         <input type="hidden" name="customer_type" value="App\Models\Client">
+        <input type="hidden" id="existing_order_items" value="[]">
 
         @include('admin.order.partials._form', [
             'order' => null,
@@ -22,5 +23,5 @@
 @endsection
 
 @push('scripts')
-    @vite('resources/js/modules/orders/create.js')
+    @vite('resources/js/modules/orders/form.js')
 @endpush
