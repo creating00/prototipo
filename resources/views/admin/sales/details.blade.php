@@ -94,8 +94,10 @@
             </a>
 
             <div class="btn-group">
-                <button class="btn btn-info btn-print-sale">
-                    <i class="fas fa-print me-1"></i> Imprimir Ticket
+                {{-- En el grupo de botones --}}
+                <button class="btn btn-info btn-print-sale" data-id="{{ $sale->id }}"
+                    data-base-url="{{ route('web.sales.index') }}">
+                    <i class="fas fa-print me-1"></i> Imprimir Comprobante
                 </button>
                 <a href="https://wa.me/?text={{ urlencode($sale->generateWhatsAppMessage()) }}" target="_blank"
                     class="btn btn-success">
@@ -104,6 +106,7 @@
             </div>
         </div>
     </div>
+    @include('admin.sales.partials._modal-print')
 @endsection
 
 @push('scripts')

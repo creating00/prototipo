@@ -2,5 +2,5 @@
 
 <x-adminlte.dynamic-modal modalId="convertOrderModal" title="Convertir Orden a Venta" formId="convertOrderForm"
     btnSaveId="btnConfirmConvert" route="#" :form-view="'admin.order.partials._convert_form'" :form-data="[
-        'paymentTypes' => \App\Enums\PaymentType::forSelect(),
+        'paymentTypes' => \App\Enums\PaymentType::forSaleConversion(),
     ]" :refreshOnSave="true" />

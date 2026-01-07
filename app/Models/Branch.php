@@ -26,4 +26,9 @@ class Branch extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function getLogoPathAttribute(): string
+    {
+        return public_path('assets/img/logo.webp');
+    }
 }

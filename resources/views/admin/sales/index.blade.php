@@ -27,6 +27,7 @@
 
             <x-slot name="actions">
                 <div class="d-flex justify-content-center gap-1">
+                    <x-adminlte.button color="info" size="sm" icon="fas fa-print" class="me-1 btn-print" />
                     <x-adminlte.button color="custom-jade" size="sm" icon="fas fa-eye" class="me-1 btn-view" />
                     <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
                     <x-adminlte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete" />
@@ -47,6 +48,8 @@
             </x-slot>
         </x-adminlte.data-table>
     </div>
+
+    @include('admin.sales.partials._modal-print')
 @endsection
 
 @push('scripts')

@@ -90,6 +90,13 @@ class SaleWebController extends BaseSaleController
         return $data;
     }
 
+    private function getCreateRoute(string $customerType): string
+    {
+        return $customerType === 'App\Models\Branch'
+            ? route('web.sales.create-branch')
+            : route('web.sales.create-client');
+    }
+
     public function create(Request $request)
     {
         $typeParam = $request->get('type');
@@ -112,12 +119,19 @@ class SaleWebController extends BaseSaleController
 
     public function store(Request $request)
     {
-        //dd($request->all());
         try {
-            $this->saleService->createSale($request->all());
+            $sale = $this->saleService->createSale($request->all());
 
-            return redirect()
-                ->route('web.sales.index')
+            $receiptType = $request->input('receipt_type');
+
+            if ($receiptType) {
+                session()->flash('print_receipt', [
+                    'type' => $receiptType,
+                    'sale_id' => $sale->id,
+                ]);
+            }
+
+            return redirect($this->getCreateRoute($request->input('customer_type')))
                 ->with('success', 'Venta creada exitosamente');
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()

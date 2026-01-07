@@ -3,6 +3,7 @@
 @section('page-title', 'Pedidos')
 
 @push('styles')
+    @vite('resources/css/modules/sales/sales-styles.css')
     <style>
         /* Ocultar botón convertir si ya fue convertida (status 4) */
         tr[data-status_raw="4"] .btn-convert {

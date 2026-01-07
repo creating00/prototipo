@@ -10,19 +10,19 @@
             </div>
         </div>
 
-        {{-- Tipo de Pago usando componente Select --}}
-        <div class="col-md-12 mb-3">
-            <x-adminlte.select name="payment_type" id="convert_payment_type" label="Método de Pago" :options="$paymentTypes"
+        <div class="col-md-12 mb-3 compact-select-wrapper">
+            <label class="compact-select-label fw-bold small">
+                Método de Pago <span class="text-danger">*</span>
+            </label>
+            <x-adminlte.select name="payment_type" id="convert_payment_type" label="" :options="$paymentTypes" :showPlaceholder="false"
                 required />
         </div>
 
-        {{-- Monto Recibido usando componente Compact Input --}}
         <div class="col-md-12 mb-3">
             <x-bootstrap.compact-input id="convert_amount_received" name="amount_received" type="number"
                 label="Monto Recibido" placeholder="0.00" step="0.01" required />
         </div>
 
-        {{-- Campo oculto para asegurar que el ID viaje en el FormData si fuera necesario --}}
         <input type="hidden" id="hidden_order_id" name="order_id">
     </div>
 </div>

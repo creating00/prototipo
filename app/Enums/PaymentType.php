@@ -37,4 +37,12 @@ enum PaymentType: int
         }
         return $options;
     }
+
+    public static function forSaleConversion(): array
+    {
+        return [
+            self::Cash->value => self::Cash->label(),
+            self::Transfer->value => self::Transfer->label(),
+        ];
+    }
 }

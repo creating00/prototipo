@@ -8,6 +8,20 @@
         $currentSaleDate = old('sale_date', $saleDate ?? now()->format('Y-m-d'));
     @endphp
 
+    @if (session('print_receipt'))
+        <script>
+            (() => {
+                const data = @json(session('print_receipt'));
+
+                const url = data.type === 'a4' ?
+                    "{{ route('sales.a4', ':id') }}" :
+                    "{{ route('sales.ticket', ':id') }}";
+
+                window.open(url.replace(':id', data.sale_id), '_blank');
+            })();
+        </script>
+    @endif
+
     <x-adminlte.alert-manager />
 
     <x-adminlte.form id="saleForm" action="{{ route('web.sales.store') }}" title="Nueva Venta">

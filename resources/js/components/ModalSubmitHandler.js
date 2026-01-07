@@ -76,6 +76,10 @@ export class ModalSubmitHandler {
             form.classList.remove("was-validated");
 
             UIHelper.success("Guardado exitosamente");
+
+            if (refreshOnSave && !selectId) {
+                window.location.reload();
+            }
         } catch (error) {
             UIHelper.error(error.message);
         } finally {

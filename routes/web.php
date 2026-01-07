@@ -5,6 +5,7 @@ use App\Http\Controllers\{
     DashboardController,
     ProfileController,
     HomeController,
+    SaleReceiptController,
 };
 use App\Http\Controllers\Web\{
     BranchWebController,
@@ -23,6 +24,7 @@ use App\Http\Controllers\Web\{
     AnalyticsWebController,
     PriceModificationWebController
 };
+use App\Models\Sale;
 
 // Página principal
 Route::get('/', [HomeController::class, 'index']);
@@ -95,7 +97,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ]);
 
         Route::get('sales/{id}/details', [SaleWebController::class, 'show'])->name('web.sales.show');
-        
+        Route::get('/sales/{sale}/ticket', [SaleReceiptController::class, 'ticket'])
+            ->name('sales.ticket');
+        Route::get('/sales/{sale}/a4', [SaleReceiptController::class, 'a4'])
+            ->name('sales.a4');
+
+        Route::get('/sales/{sale}/ticket-html', function (Sale $sale) {
+            return view('pdf.sale_ticket', compact('sale'));
+        });
+
         resourceWithExtras('sales', SaleWebController::class, [
             'create-client' => 'createClient',
             'create-branch' => 'createBranch',

@@ -35,50 +35,43 @@ const TABLE_CONFIG = {
         },
         convert: {
             selector: ".btn-convert",
-            handler: (row, baseUrl) => {
-                // 1. Extraer datos del dataset (inyectados en el controlador)
-                // Nota: dataset convierte data-total-amount -> totalAmount
-                const { id, totalAmount, customerType } = row.dataset;
+            handler: (row) => {
+                const { id, total, customer_type } = row.dataset;
 
-                // 2. Referencias a los elementos del modal
                 const modalElement =
                     document.getElementById("convertOrderModal");
                 const btnSave = document.getElementById("btnConfirmConvert");
-                const displayId = document.getElementById("display_order_id");
-                const inputAmount = document.getElementById(
-                    "convert_amount_received"
-                );
-                const selectPayment = document.getElementById(
-                    "convert_payment_type"
-                );
 
-                // 3. Rellenar la información visual y campos
-                if (displayId) displayId.textContent = id;
-                if (inputAmount) inputAmount.value = totalAmount;
-
-                // 4. Lógica de selección automática de pago
-                if (selectPayment) {
-                    // Si el string contiene "Branch", ponemos 3 (Transferencia), si no 1 (Efectivo)
-                    const isBranch =
-                        customerType && customerType.includes("Branch");
-                    selectPayment.value = isBranch ? "3" : "1";
-                }
-
-                // 5. Configurar la ruta de la API (apiUrl debe estar definida arriba en tu archivo)
+                // 1. Ruta API
                 if (btnSave) {
-                    // Usamos apiUrl para que el post vaya al controlador de la API
-                    btnSave.setAttribute(
-                        "data-route",
-                        `${apiUrl}/${id}/convert`
-                    );
+                    btnSave.dataset.route = `${apiUrl}/${id}/convert`;
                 }
 
-                // 6. Mostrar el modal
+                // 2. Normalizar total
+                const cleanTotal = total
+                    ?.replace(/<[^>]*>/g, "")
+                    .replace(/[^\d,.-]/g, "")
+                    .replace(",", ".");
+
                 const modalInstance =
                     bootstrap.Modal.getOrCreateInstance(modalElement);
+
+                modalElement.addEventListener(
+                    "shown.bs.modal",
+                    () => {
+                        setupConvertModal({
+                            orderId: id,
+                            total: cleanTotal,
+                            customerType: customer_type,
+                        });
+                    },
+                    { once: true }
+                );
+
                 modalInstance.show();
             },
         },
+
         whatsapp: {
             selector: ".btn-whatsapp",
             handler: (row) => {
@@ -127,7 +120,55 @@ const TABLE_CONFIG = {
     },
 };
 
+function setupConvertModal({ orderId, total, customerType }) {
+    const displayId = document.getElementById("display_order_id");
+    const inputAmount = document.getElementById("convert_amount_received");
+    const selectPayment = document.getElementById("convert_payment_type");
+
+    if (displayId) displayId.textContent = orderId;
+
+    if (inputAmount) {
+        inputAmount.value = total;
+        inputAmount.readOnly = true;
+    }
+
+    if (!selectPayment || !selectPayment._choices) return;
+
+    const isBranch = customerType?.includes("Branch");
+    const paymentValue = isBranch ? "3" : "1";
+
+    selectPayment._choices.removeActiveItems();
+    selectPayment._choices.setChoiceByValue(paymentValue);
+
+    selectPayment._choices.disable();
+}
+
+function resetConvertModal() {
+    const selectPayment = document.getElementById("convert_payment_type");
+    const inputAmount = document.getElementById("convert_amount_received");
+
+    if (selectPayment && selectPayment._choices) {
+        selectPayment._choices.enable();
+        selectPayment.closest(".choices")?.classList.remove("is-disabled");
+    }
+
+    if (inputAmount) {
+        inputAmount.value = "";
+        inputAmount.removeAttribute("readonly");
+    }
+}
+
 export function initOrderTable() {
+    const modalElement = document.getElementById("convertOrderModal");
+
+    if (modalElement && !modalElement.dataset.listenerAttached) {
+        modalElement.addEventListener("hidden.bs.modal", () => {
+            resetConvertModal();
+        });
+
+        modalElement.dataset.listenerAttached = "true";
+    }
+
     return TableManager.initTable(TABLE_CONFIG);
 }
 

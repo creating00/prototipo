@@ -28,8 +28,10 @@
             placeholder: {{ $showPlaceholderJs }},
             placeholderValue: {!! $placeholderJson !!},
             removeItemButton: {{ $removeItemButtonJs }},
-            shouldSort: false
-        }); 
+            shouldSort: false,
+            appendTo: document.body
+        });
+         
         $el._choices = choices;
 
         $el.addEventListener("change", (e) => {
@@ -48,8 +50,11 @@
                 if (errorMsg) errorMsg.style.display = "none";
             }
         });'
-        name="{{ $inputName }}" id="{{ $name }}" class="form-control @error($name) is-invalid @enderror"
-        {{ $required ? 'required' : '' }} {{ $multiple ? 'multiple' : '' }} {{ $attributes }}>
+        name="{{ $inputName }}" id="{{ $attributes->get('id', $name) }}"
+        class="form-control @error($name)
+is-invalid
+@enderror" {{ $required ? 'required' : '' }}
+        {{ $multiple ? 'multiple' : '' }} {{ $attributes }}>
         @if ($placeholder && !$multiple)
             <option value="">{{ $placeholder }}</option>
         @endif

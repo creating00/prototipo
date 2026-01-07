@@ -39,4 +39,8 @@
         <x-adminlte.select name="status" label="" :options="$statusOptions" :value="old('status', $sale->status?->value ?? null)" :showPlaceholder="false"
             required />
     </div>
+
+    @include('admin.sales.partials._receipt_type', [
+        'default' => 'ticket',
+    ])
 </div>
