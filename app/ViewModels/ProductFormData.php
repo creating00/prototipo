@@ -19,6 +19,7 @@ class ProductFormData
         public readonly Collection $categories,
         public readonly Collection $provinces,
         public readonly int $branchUserId,
+        public readonly bool $isAdmin = false,
     ) {}
 
     public function price(int $type, string $key = 'amount'): string|int|null

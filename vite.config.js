@@ -10,6 +10,7 @@ export default defineConfig({
                 "resources/css/login.css",
                 "resources/css/modules/sales/sales-styles.css",
                 "resources/css/modules/branches/branches-styles.css",
+                "resources/css/modules/products/products-styles.css",
                 "resources/js/app.js",
                 "resources/js/adminlte-components.js",
                 "resources/js/pages/analytics-dashboard.js",

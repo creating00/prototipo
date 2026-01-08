@@ -43,15 +43,19 @@
 
     <div class="row g-3">
         {{-- Sucursal --}}
-        <div class="col-md-6 compact-select-wrapper">
-            <label class="compact-select-label">Sucursal Asignada <span class="text-danger">*</span></label>
-            <x-adminlte.select name="branch_id" :options="$formData->getBranchOptions()" :value="$formData->getSelectedBranchId()" required />
+        <div class="col-md-6">
+            <div class="compact-select-wrapper">
+                <label class="compact-select-label">Sucursal Asignada <span class="text-danger">*</span></label>
+                <x-adminlte.select name="branch_id" :options="$formData->getBranchOptions()" :value="$formData->getSelectedBranchId()" required />
+            </div>
         </div>
 
         {{-- Rol del Usuario --}}
-        <div class="col-md-6 compact-select-wrapper">
-            <label class="compact-select-label">Rol del Usuario <span class="text-danger">*</span></label>
-            <x-adminlte.select name="role" :options="$formData->getRoleOptions()" :value="$formData->getSelectedRole()" required />
+        <div class="col-md-6">
+            <div class="compact-select-wrapper">
+                <label class="compact-select-label">Rol del Usuario <span class="text-danger">*</span></label>
+                <x-adminlte.select name="role" :options="$formData->getRoleOptions()" :value="$formData->getSelectedRole()" required />
+            </div>
         </div>
 
         {{-- Estado --}}

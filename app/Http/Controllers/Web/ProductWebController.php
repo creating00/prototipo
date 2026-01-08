@@ -34,6 +34,14 @@ class ProductWebController extends BaseProductController
         $this->authorize('create', Product::class);
         $branchUserId = $this->currentBranchId();
 
+        /** @var \App\Models\User $user */
+        $user = $this->currentUser();
+        $isAdmin = $user->hasRole('admin');
+
+        $branches = $isAdmin
+            ? app(BranchService::class)->getAllBranches()
+            : app(BranchService::class)->getAllBranches()->where('id', $branchUserId);
+
         $productBranch = new ProductBranch([
             'stock' => 0,
             'low_stock_threshold' => 5,
@@ -48,10 +56,11 @@ class ProductWebController extends BaseProductController
             productBranch: $productBranch,
             statusOptions: ProductStatus::forSelect(),
             currencyOptions: CurrencyType::forSelect(),
-            branches: app(BranchService::class)->getAllBranches(),
+            branches: $branches,
             categories: app(CategoryService::class)->getAllCategories(),
             provinces: Province::orderBy('name')->get(),
             branchUserId: $branchUserId,
+            isAdmin: $isAdmin
         );
 
         return view('admin.product.create', compact('formData'));
@@ -85,23 +94,35 @@ class ProductWebController extends BaseProductController
 
     public function edit(int $id)
     {
+        /** @var \App\Models\User $user */
+        $user = $this->currentUser();
+        $isAdmin = $user->hasRole('admin');
         $branchUserId = $this->currentBranchId();
 
+        // Obtenemos el producto. 
+        // Si no es admin, el service probablemente ya filtra que pertenezca a la sucursal.
         $product = $this->productService->getProductForEdit($id, $branchUserId);
 
         $this->authorize('update', $product);
 
+        // Obtenemos la relación de sucursal específica
         $productBranch = $product->productBranches->firstOrFail();
+
+        // Lógica de sucursales para el ViewModel
+        $branches = $isAdmin
+            ? app(BranchService::class)->getAllBranches()
+            : app(BranchService::class)->getAllBranches()->where('id', $productBranch->branch_id);
 
         $formData = new ProductFormData(
             product: $product,
             productBranch: $productBranch,
             statusOptions: ProductStatus::forSelect(),
             currencyOptions: CurrencyType::forSelect(),
-            branches: app(BranchService::class)->getAllBranches(),
+            branches: $branches,
             categories: app(CategoryService::class)->getAllCategories(),
             provinces: Province::orderBy('name')->get(),
             branchUserId: $branchUserId,
+            isAdmin: $isAdmin
         );
 
         return view('admin.product.edit', compact('formData'));

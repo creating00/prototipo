@@ -2,7 +2,12 @@
 
 @section('page-title', 'Auditoría de Precios')
 
+@push('styles')
+    @vite('resources/css/modules/branches/branches-styles.css')
+@endpush
+
 @section('content')
+
     {{-- BLOQUE DE FILTROS --}}
     <x-adminlte.card title="Filtros de Auditoría" type="white">
         <x-slot:tools>
@@ -15,9 +20,11 @@
             <div class="row align-items-end">
                 {{-- Filtro de Sucursal --}}
                 <div class="col-md-4">
-                    <label class="compact-select-label">Sucursal</label>
-                    <x-adminlte.select name="branch_id" :options="$branches" :value="$currentFilters['branch_id']" :showPlaceholder="false"
-                        onchange="this.form.submit()" />
+                    <div class="compact-select-wrapper">
+                        <label class="compact-select-label">Sucursal</label>
+                        <x-adminlte.select name="branch_id" :options="$branches" :value="$currentFilters['branch_id']" :showPlaceholder="false"
+                            onchange="this.form.submit()" />
+                    </div>
                 </div>
 
                 {{-- Filtro de Fecha Desde --}}

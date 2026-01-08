@@ -1,0 +1,52 @@
+html {
+    scroll-behavior: smooth;
+}
+
+.equal-height-selects .form-group,
+.equal-height-selects .select2-container {
+    height: 100%;
+}
+
+/* Estilos para el tooltip de vista previa */
+.image-preview-tooltip .tooltip-inner {
+    max-width: 250px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.image-preview-tooltip .tooltip-arrow {
+    display: none;
+}
+
+/* Estilos para la imagen en el modal */
+#modal-preview-image {
+    transition: transform 0.3s ease;
+}
+
+#modal-preview-image:hover {
+    transform: scale(1.05);
+}
+
+/* Forzar coincidencia con Choices.js */
+select.form-select.form-select-custom {
+    height: 46px !important;
+    /* Ajusta a 43.5px si ves que Choices es un pelín más alto */
+    min-height: 42px !important;
+    padding-top: 0.375rem !important;
+    padding-bottom: 0.375rem !important;
+    display: block;
+    width: 100%;
+    line-height: 1.5;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+}
+
+/* Cuando el campo es readonly (simulado) */
+select.form-select.form-select-custom[readonly] {
+    background-color: #e9ecef !important;
+    pointer-events: none;
+    cursor: not-allowed;
+}

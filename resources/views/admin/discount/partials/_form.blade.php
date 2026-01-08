@@ -22,10 +22,6 @@
         </div>
 
         <div class="col-md-6">
-            {{-- 
-                Wrapper para emular 'Floating Label' en el componente Select.
-                Requiere label="" en el componente para evitar duplicidad de etiquetas.
-            --}}
             <div class="compact-select-wrapper">
                 <label class="compact-select-label">
                     Tipo de Aplicación <span class="text-danger">*</span>
@@ -65,61 +61,5 @@
 </div>
 
 @push('styles')
-    <style>
-        .compact-select-wrapper {
-            position: relative;
-            /* Alineamos el margen inferior con tus .compact-input-wrapper */
-            margin-bottom: 0.4rem;
-            padding-top: 0.25rem;
-        }
-
-        /* Simula la etiqueta flotante superior (Clon de .compact-input-label) */
-        .compact-select-label {
-            position: absolute;
-            left: 0.75rem;
-            top: -0.25rem;
-            /* Ajustado para nivelar con tus otros inputs */
-            font-size: 0.7rem;
-            font-weight: 500;
-            color: #4b5563;
-            background-color: #fff;
-            padding: 0 0.3rem;
-            z-index: 30;
-            pointer-events: none;
-            letter-spacing: 0.025em;
-            text-transform: uppercase;
-            transition: all 0.2s ease;
-        }
-
-        /* Reseteo del componente base */
-        .compact-select-wrapper .mb-3 {
-            margin-bottom: 0 !important;
-        }
-
-        /* Ajuste estructural de Choices.js */
-        .compact-select-wrapper .choices__inner {
-            /* Altura idéntica a .compact-input: calc(2.8rem + 2px) */
-            min-height: calc(2.8rem + 2px) !important;
-            background-color: #fff !important;
-            border: 1px solid #d1d5db !important;
-            border-radius: 0.375rem !important;
-            padding: 0.65rem 0.75rem 0.4rem !important;
-            /* Mismo padding que .compact-input */
-            display: flex;
-            align-items: center;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* Simulación de Focus (Mismo color que .compact-input:focus) */
-        .compact-select-wrapper .choices.is-focused .choices__inner {
-            border-color: #3b82f6 !important;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
-        }
-
-        /* Ajuste de la flecha de Choices para que no quede descentrada */
-        .compact-select-wrapper .choices__list--single {
-            padding: 0 !important;
-            font-size: 0.875rem;
-        }
-    </style>
+    @vite('resources/css/modules/products/products-styles.css')
 @endpush

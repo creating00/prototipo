@@ -34,7 +34,7 @@
     {{-- Estado --}}
     <div class="compact-select-wrapper">
         <label class="compact-select-label">
-            Estado de la Venta <span class="text-danger">*</span>
+            Estado <span class="text-danger">*</span>
         </label>
         <x-adminlte.select name="status" label="" :options="$statusOptions" :value="old('status', $sale->status?->value ?? null)" :showPlaceholder="false"
             required />

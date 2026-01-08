@@ -25,11 +25,13 @@
             :value="old('address', $branch->address ?? '')" />
     </div>
 
-    <div class="col-md-6 compact-select-wrapper"">
-        <label class="compact-select-label">
-            Provincia <span class="text-danger">*</span>
-        </label>
-        <x-adminlte.select name="province_id" label="" :options="$provinces->pluck('name', 'id')->toArray()" placeholder="Seleccione una provincia"
-            :value="old('province_id', $branch->province_id ?? null)" required />
+    <div class="col-md-6">
+        <div class="compact-select-wrapper">
+            <label class="compact-select-label">
+                Provincia <span class="text-danger">*</span>
+            </label>
+            <x-adminlte.select name="province_id" label="" :options="$provinces->pluck('name', 'id')->toArray()"
+                placeholder="Seleccione una provincia" :value="old('province_id', $branch->province_id ?? null)" required />
+        </div>
     </div>
 </div>

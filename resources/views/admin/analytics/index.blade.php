@@ -3,16 +3,6 @@
 @section('page-title', 'Panel de Control')
 
 @push('styles')
-    <style>
-        /* Esto fuerza a que el desbordamiento se maneje mejor durante la animación */
-        .card {
-            overflow: hidden;
-        }
-
-        .collapsing {
-            transition: height 0.3s ease-in-out !important;
-        }
-    </style>
     @vite('resources/css/modules/branches/branches-styles.css')
 @endpush
 
@@ -26,19 +16,23 @@
         </x-slot:tools>
 
         <form method="GET" action="{{ route('web.analytics.index') }}">
-            <div class="row align-items-end">
+            <div class="row">
                 {{-- Filtro de Sucursal --}}
-                <div class="col-md-3 compact-select-wrapper">
-                    <label class="compact-select-label">Sucursal</label>
-                    <x-adminlte.select name="branch_id" :options="$branches" :value="$currentFilters['branch_id']" :showPlaceholder="false"
-                        onchange="this.form.submit()" />
+                <div class="col-md-3">
+                    <div class="compact-select-wrapper">
+                        <label class="compact-select-label">Sucursal</label>
+                        <x-adminlte.select name="branch_id" :options="$branches" :value="$currentFilters['branch_id']" :showPlaceholder="false"
+                            onchange="this.form.submit()" />
+                    </div>
                 </div>
 
                 {{-- Filtro de Categoría --}}
-                <div class="col-md-3 compact-select-wrapper">
-                    <label class="compact-select-label">Categoría</label>
-                    <x-adminlte.select name="category_id" :options="$categories" :value="$currentFilters['category_id']"
-                        placeholder="Todas las categorías" onchange="this.form.submit()" />
+                <div class="col-md-3">
+                    <div class="compact-select-wrapper">
+                        <label class="compact-select-label">Categoría</label>
+                        <x-adminlte.select name="category_id" :options="$categories" :value="$currentFilters['category_id']"
+                            placeholder="Todas las categorías" onchange="this.form.submit()" />
+                    </div>
                 </div>
 
                 {{-- Filtro de Fecha Desde --}}

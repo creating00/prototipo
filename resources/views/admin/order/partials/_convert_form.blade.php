@@ -10,12 +10,14 @@
             </div>
         </div>
 
-        <div class="col-md-12 mb-3 compact-select-wrapper">
-            <label class="compact-select-label fw-bold small">
-                Método de Pago <span class="text-danger">*</span>
-            </label>
-            <x-adminlte.select name="payment_type" id="convert_payment_type" label="" :options="$paymentTypes" :showPlaceholder="false"
-                required />
+        <div class="col-md-12 mb-3">
+            <div class="compact-select-wrapper">
+                <label class="compact-select-label fw-bold small">
+                    Método de Pago <span class="text-danger">*</span>
+                </label>
+                <x-adminlte.select name="payment_type" id="convert_payment_type" label="" :options="$paymentTypes"
+                    :showPlaceholder="false" required />
+            </div>
         </div>
 
         <div class="col-md-12 mb-3">

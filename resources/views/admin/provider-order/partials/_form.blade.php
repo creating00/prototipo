@@ -33,11 +33,16 @@
                     </div>
 
                     <div class="col-12">
-                        <x-adminlte.select name="status" label="Estado del Pedido" :options="$formData->statusOptions" :value="old(
-                            'status',
-                            $order?->status->value ?? \App\Enums\ProviderOrderStatus::PENDING->value,
-                        )"
-                            required />
+                        <div class="compact-select-wrapper">
+                            <label class="compact-select-label fw-bold small">
+                                Estado del Pedido <span class="text-danger">*</span>
+                            </label>
+                            <x-adminlte.select name="status" label="" :options="$formData->statusOptions"
+                                :value="old(
+                                    'status',
+                                    $order?->status->value ?? \App\Enums\ProviderOrderStatus::PENDING->value,
+                                )" required />
+                        </div>
                     </div>
                 </div>
             </div>
