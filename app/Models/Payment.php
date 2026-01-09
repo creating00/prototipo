@@ -11,6 +11,7 @@ class Payment extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'branch_id',
         'payment_type',
         'amount',
         'user_id',
@@ -30,5 +31,10 @@ class Payment extends Model
     public function paymentable()
     {
         return $this->morphTo();
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 }

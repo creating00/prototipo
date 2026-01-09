@@ -33,6 +33,7 @@ class SalePaymentManager
         }
 
         $payment = Payment::create([
+            'branch_id' => $sale->branch_id,
             'payment_type'     => $paymentData['payment_type'],
             'amount'           => $paymentData['amount'],
             'user_id'          => $paymentData['user_id'] ?? $sale->user_id,
@@ -40,7 +41,6 @@ class SalePaymentManager
             'paymentable_type' => get_class($sale),
             'notes'            => $paymentData['notes'] ?? null,
             'reference'        => $paymentData['reference'] ?? null,
-            'created_at'       => $sale->sale_date,
         ]);
 
         $this->recalculateSalePayments($sale);

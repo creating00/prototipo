@@ -14,11 +14,13 @@ use App\Http\Requests\ProviderOrder\ProviderOrderWebRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class ProviderOrderWebController extends Controller
 {
     protected ProviderOrderService $orderService;
     protected ProviderService $providerService;
+    use AuthorizesRequests;
 
     public function __construct(
         ProviderOrderService $orderService,
@@ -30,6 +32,7 @@ class ProviderOrderWebController extends Controller
 
     public function index(ProviderOrderService $service)
     {
+        $this->authorize('viewAny', ProviderOrder::class);
         $headers = ['#', 'Nro. Orden', 'Proveedor', 'Fecha Pedido', 'Entrega Est.', 'Estado', 'Total Est.'];
         $rowData = $service->getAllOrdersForDataTable();
 
@@ -41,6 +44,7 @@ class ProviderOrderWebController extends Controller
 
     public function create()
     {
+        $this->authorize('create', ProviderOrder::class);
         $formData = (object) [
             'providers' => Provider::orderBy('business_name')->get(),
             'products' => [],
@@ -50,8 +54,9 @@ class ProviderOrderWebController extends Controller
         return view('admin.provider-order.create', compact('formData'));
     }
 
-    public function store(ProviderOrderWebRequest $request) // <-- Usamos el nuevo Request
+    public function store(ProviderOrderWebRequest $request)
     {
+        $this->authorize('create', ProviderOrder::class);
         try {
             return DB::transaction(function () use ($request) {
                 $provider = Provider::findOrFail($request->provider_id);
@@ -77,6 +82,7 @@ class ProviderOrderWebController extends Controller
     public function edit($id)
     {
         $order = ProviderOrder::with(['items.providerProduct', 'provider'])->findOrFail($id);
+        $this->authorize('update', $order);
 
         $currentProviderProducts = ProviderProduct::where('provider_id', $order->provider_id)
             ->with(['product', 'currentPrice'])
@@ -107,6 +113,8 @@ class ProviderOrderWebController extends Controller
 
     public function update(ProviderOrderWebRequest $request, $id) // <-- Usamos el nuevo Request
     {
+        $order = ProviderOrder::findOrFail($id);
+        $this->authorize('update', $order);
         try {
             return DB::transaction(function () use ($request, $id) {
                 $order = ProviderOrder::findOrFail($id);
@@ -172,6 +180,7 @@ class ProviderOrderWebController extends Controller
     public function details($id)
     {
         $order = ProviderOrder::with(['provider', 'branch', 'items.providerProduct.product'])->findOrFail($id);
+        $this->authorize('view', $order);
 
         $headers = ['Producto', 'SKU Prov.', 'Cantidad', 'Costo Unit.', 'Subtotal'];
 
@@ -195,8 +204,9 @@ class ProviderOrderWebController extends Controller
 
     public function send($id)
     {
+        $order = ProviderOrder::findOrFail($id);
+        $this->authorize('approve', $order);
         try {
-            $order = ProviderOrder::findOrFail($id);
             $this->orderService->sendOrder($order);
             return redirect()->route('web.provider-orders.index')->with('success', 'La orden ha sido marcada como ENVIADA.');
         } catch (\Exception $e) {
@@ -204,10 +214,11 @@ class ProviderOrderWebController extends Controller
         }
     }
 
-    public function receive($id) // Cambiamos a $id para buscarlo manualmente o usa Route Model Binding
+    public function receive($id)
     {
         try {
             $order = ProviderOrder::findOrFail($id);
+            $this->authorize('approve', $order);
 
             // Llamamos al servicio para procesar el stock y precios
             $this->orderService->receiveOrder($order);

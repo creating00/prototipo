@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\{Branch, Category};
 use App\Services\AnalyticsService;
 use App\Traits\AuthTrait;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 
 class AnalyticsWebController extends Controller
 {
     use AuthTrait;
+    use AuthorizesRequests;
 
     protected $analyticsService;
 
@@ -21,6 +23,8 @@ class AnalyticsWebController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('view', 'analytics');
+
         // 1. Determinar Branch ID
         $branchId = $request->input('branch_id')
             ?? session('analytics_branch_id')

@@ -27,13 +27,20 @@
 
         <x-adminlte.data-table tableId="clients-table" title="Gestión de Clientes" :headers="$headers" :rowData="$rowData"
             :hiddenFields="$hiddenFields" withActions="true">
+            @canResource('clients.update')
             <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
+            @endcanResource
+
+            @canResource('clients.delete')
             <x-adminlte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete" />
+            @endcanResource
 
             <x-slot name="headerButtons">
+                @canResource('clients.create')
                 <x-adminlte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-new">
                     Nuevo Cliente
                 </x-adminlte.button>
+                @endcanResource
             </x-slot>
         </x-adminlte.data-table>
     </div>

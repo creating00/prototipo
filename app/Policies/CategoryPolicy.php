@@ -2,19 +2,19 @@
 
 namespace App\Policies;
 
-use App\Models\Product;
+use App\Models\Category;
 use App\Models\User;
 
-class ProductPolicy extends BasePolicy
+class CategoryPolicy extends BasePolicy
 {
-    protected string $resource = 'products';
+    protected string $resource = 'categories';
 
     public function viewAny(User $user): bool
     {
         return $this->can($user, 'view');
     }
 
-    public function view(User $user, Product $product): bool
+    public function view(User $user, Category $category): bool
     {
         return $this->can($user, 'view');
     }
@@ -24,15 +24,13 @@ class ProductPolicy extends BasePolicy
         return $this->can($user, 'create');
     }
 
-    public function update(User $user, Product $product): bool
+    public function update(User $user): bool
     {
-        // Simplificado: Solo valida permiso del usuario
         return $this->can($user, 'update');
     }
 
-    public function delete(User $user, Product $product): bool
+    public function delete(User $user): bool
     {
-        // Simplificado: Solo valida permiso del usuario
         return $this->can($user, 'delete');
     }
 }

@@ -27,24 +27,39 @@
 
             <x-slot name="actions">
                 <div class="d-flex justify-content-center gap-1">
+                    @canResource('sales.print')
                     <x-adminlte.button color="info" size="sm" icon="fas fa-print" class="me-1 btn-print" />
+                    @endcanResource
+
+                    @canResource('sales.view')
                     <x-adminlte.button color="custom-jade" size="sm" icon="fas fa-eye" class="me-1 btn-view" />
+                    @endcanResource
+
+                    @canResource('sales.update')
                     <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
+                    @endcanResource
+
+                    @canResource('sales.delete')
                     <x-adminlte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete" />
+                    @endcanResource
                 </div>
             </x-slot>
 
             {{-- Botones superiores --}}
             <x-slot name="headerButtons">
                 {{-- Ventas Sucursal → Cliente --}}
+                @canResource('sales.create_client')
                 <x-adminlte.button color="primary" icon="fas fa-user" class="me-1 btn-header-new-client">
                     Nueva Venta a Cliente
                 </x-adminlte.button>
+                @endcanResource
 
                 {{-- Ventas Sucursal → Sucursal --}}
+                @canResource('sales.create_branch')
                 <x-adminlte.button color="custom-emerald" icon="fas fa-building" class="me-1 btn-header-new-branch">
                     Nueva Venta entre Sucursales
                 </x-adminlte.button>
+                @endcanResource
             </x-slot>
         </x-adminlte.data-table>
     </div>

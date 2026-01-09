@@ -11,18 +11,24 @@
             :rowData="$rowData" :hiddenFields="$hiddenFields" withActions="true">
 
             {{-- Botones de acción por fila --}}
+            @canResource('users.update')
             <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit"
                 data-route="{{ route('web.users.edit', ['user' => '__row_id__']) }}" />
+            @endcanResource
 
+            @canResource('users.delete')
             <x-adminlte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete"
                 data-route="{{ route('web.users.destroy', ['user' => '__row_id__']) }}" />
+            @endcanResource
 
             {{-- Botón para crear nuevo usuario en el encabezado --}}
             <x-slot name="headerButtons">
                 <a href="{{ route('web.users.create') }}">
+                    @canResource('users.create')
                     <x-adminlte.button color="primary" icon="fas fa-user-plus" class="me-1 btn-header-new">
                         Nuevo Usuario
                     </x-adminlte.button>
+                    @endcanResource
                 </a>
             </x-slot>
         </x-adminlte.data-table>

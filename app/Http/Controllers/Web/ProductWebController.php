@@ -132,9 +132,10 @@ class ProductWebController extends BaseProductController
     {
         $product = $this->productService->getById($id);
         $this->authorize('update', $product);
+
         try {
-            $product = $this->productService->update(
-                product: $this->productService->getById($id),
+            $this->productService->update(
+                product: $product,
                 data: $request->except(['imageFile', 'imageUrl', 'removeImage']),
                 imageFile: $request->file('imageFile'),
                 imageUrl: $request->input('imageUrl')
@@ -158,10 +159,9 @@ class ProductWebController extends BaseProductController
     {
         $product = $this->productService->getById($id);
         $this->authorize('delete', $product);
+
         try {
-            $this->productService->delete(
-                $this->productService->getById($id)
-            );
+            $this->productService->delete($product);
 
             return redirect()
                 ->route('web.products.index')

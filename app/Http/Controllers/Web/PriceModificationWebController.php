@@ -5,14 +5,18 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\{Branch, PriceModification, User};
 use App\Traits\AuthTrait;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 
 class PriceModificationWebController extends Controller
 {
     use AuthTrait;
+    use AuthorizesRequests;
 
     public function index(Request $request)
     {
+        $this->authorize('view', 'price_modifications');
+
         $branchId = $request->input('branch_id') ?? $this->currentBranchId();
 
         $query = PriceModification::with(['product', 'user', 'branch', 'sale'])

@@ -8,19 +8,22 @@ use App\Models\Provider;
 use App\Models\ProviderProduct;
 use App\Services\ProviderProductService;
 use App\Services\ProductProviderPriceService;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class ProviderProductWebController extends Controller
 {
+    use AuthorizesRequests;
     public function __construct(
         protected ProviderProductService $providerProductService
     ) {}
 
     public function store(Request $request, Provider $provider)
     {
+        $this->authorize('create', ProviderProduct::class);
         $data = $request->all();
-        $data['provider_id'] = $provider->id; // agregar el ID del proveedor
+        $data['provider_id'] = $provider->id;
 
         $this->providerProductService->attachProductToProvider($data);
 
@@ -31,6 +34,7 @@ class ProviderProductWebController extends Controller
 
     public function edit(Provider $provider, ProviderProduct $providerProduct)
     {
+        $this->authorize('update', $providerProduct);
         $products = Product::orderBy('name')->get();
 
         return view('admin.provider.partials.provider-product._form', [
@@ -42,6 +46,7 @@ class ProviderProductWebController extends Controller
 
     public function update(Request $request, Provider $provider, ProviderProduct $providerProduct)
     {
+        $this->authorize('update', $providerProduct);
         $updated = $this->providerProductService->updateProviderProduct($providerProduct, $request->all());
 
         // Retornar JSON para AJAX
@@ -53,6 +58,7 @@ class ProviderProductWebController extends Controller
 
     public function prices(Provider $provider, ProviderProduct $providerProduct)
     {
+        $this->authorize('view', $providerProduct);
         $prices = $providerProduct->prices()->latest('effective_date')->get();
 
         return view('admin.provider.partials.provider-product._prices-form', [
@@ -63,6 +69,7 @@ class ProviderProductWebController extends Controller
 
     public function storePrice(Request $request, Provider $provider, ProviderProduct $providerProduct, ProductProviderPriceService $service)
     {
+        $this->authorize('update', $providerProduct);
         $data = $request->validate([
             'provider_product_id' => 'required|exists:provider_products,id',
             'cost_price' => 'required|numeric|min:0',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\BaseExpenseController;
 use App\Http\Requests\Expense\ExpenseWebRequest;
+use App\Models\Expense;
 use App\Models\Province;
 use App\Models\User;
 use App\Services\Expense\ExpenseDataTableService;
@@ -17,6 +18,7 @@ class ExpenseWebController extends BaseExpenseController
 
     public function index(ExpenseDataTableService $dataTableService)
     {
+        $this->authorize('viewAny', Expense::class);
         $rowData = $dataTableService->getAllExpensesForDataTable();
 
         // Encabezados en español, alineados con las claves del map
@@ -39,6 +41,7 @@ class ExpenseWebController extends BaseExpenseController
 
     public function create()
     {
+        $this->authorize('create', Expense::class);
         $branchUserId = $this->currentBranchId();
 
         $formData = new ExpenseFormData(
@@ -56,6 +59,7 @@ class ExpenseWebController extends BaseExpenseController
 
     public function store(ExpenseWebRequest $request)
     {
+        $this->authorize('create', Expense::class);
         $data = $request->validated();
         $data['user_id'] = $this->userId();
         $data['amount'] = $data['amount_amount'];
@@ -68,10 +72,10 @@ class ExpenseWebController extends BaseExpenseController
 
     public function edit($id)
     {
-        $branchUserId = $this->currentBranchId();
-
         $expense = $this->expenseService->getExpenseById($id);
+        $this->authorize('update', $expense);
 
+        $branchUserId = $this->currentBranchId();
         $formData = new \App\ViewModels\ExpenseFormData(
             expense: $expense,
             branches: app(\App\Services\BranchService::class)->getAllBranches(),
@@ -87,6 +91,10 @@ class ExpenseWebController extends BaseExpenseController
 
     public function update(ExpenseWebRequest $request, $id)
     {
+        $expense = $this->expenseService->getExpenseById($id);
+
+        $this->authorize('update', $expense);
+
         $data = $request->validated();
         $data['user_id'] = $this->userId();
         $data['amount'] = $data['amount_amount'];
@@ -100,6 +108,10 @@ class ExpenseWebController extends BaseExpenseController
 
     public function destroy($id)
     {
+        $expense = $this->expenseService->getExpenseById($id);
+
+        $this->authorize('delete', $expense);
+
         $this->expenseService->deleteExpense($id);
         return redirect()->route('admin.branch.index')
             ->with('success', 'Gasto eliminado correctamente');

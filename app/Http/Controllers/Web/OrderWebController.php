@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Enums\OrderStatus;
 use App\Http\Controllers\BaseOrderController;
+use App\Models\Order;
 use App\Services\BranchService;
 use App\Services\CategoryService;
 use App\Services\ClientService;
@@ -16,6 +17,8 @@ class OrderWebController extends BaseOrderController
 
     public function index()
     {
+        $this->authorize('viewAny', Order::class);
+
         $rowData = $this->orderService->getAllOrdersForDataTable();
         $orders = $this->orderService->getAllOrders();
 
@@ -29,6 +32,7 @@ class OrderWebController extends BaseOrderController
     {
         // 1. Obtenemos el pedido
         $order = $this->orderService->getOrderById($id);
+        $this->authorize('view', $order);
 
         // 2. Obtenemos los datos de la tabla de items (trae headers, rowData y hiddenFields)
         $itemsData = $this->orderService->getOrderItemsData($order);
@@ -49,6 +53,7 @@ class OrderWebController extends BaseOrderController
     public function show($id)
     {
         $order = $this->orderService->getOrderById($id);
+        $this->authorize('view', $order);
 
         // El Service ya configuró: ['#', 'Producto', 'Cantidad', 'Precio Unitario', 'Subtotal']
         $itemsData = $this->orderService->getOrderItemsData($order);
@@ -66,6 +71,7 @@ class OrderWebController extends BaseOrderController
 
     public function purchases()
     {
+        $this->authorize('viewAny', Order::class);
         $rowData = $this->orderService->getPurchasedOrdersForDataTable();
 
         // Añadimos 'Fecha Recepción' y 'Recibido por'
@@ -95,6 +101,8 @@ class OrderWebController extends BaseOrderController
 
     public function receive(Request $request, int $id)
     {
+        $order = $this->orderService->getOrderById($id);
+        $this->authorize('approve', $order);
         try {
             // Solo pasamos lo que el usuario envía, el Service decide el Status
             $data = [
@@ -133,6 +141,7 @@ class OrderWebController extends BaseOrderController
 
     public function createClient()
     {
+        $this->authorize('create_client', Order::class);
         $branches = collect(app(BranchService::class)->getAllBranches());
         $clients = collect(app(ClientService::class)->getAllClients());
         $statusOptions = OrderStatus::forSale();
@@ -152,6 +161,7 @@ class OrderWebController extends BaseOrderController
 
     public function createBranch()
     {
+        $this->authorize('create_branch', Order::class);
         $userBranchId = $this->currentBranchId();
         $branchService = app(BranchService::class);
 
@@ -171,6 +181,12 @@ class OrderWebController extends BaseOrderController
 
     public function store(Request $request)
     {
+        if ($request->customer_type === 'App\Models\Branch') {
+            $this->authorize('createBranch', Order::class);
+        } else {
+            $this->authorize('createClient', Order::class);
+        }
+
         try {
             $order = $this->orderService->createOrder($request->all());
 
@@ -192,6 +208,7 @@ class OrderWebController extends BaseOrderController
     public function edit($id)
     {
         $order = $this->orderService->getOrderById($id);
+        $this->authorize('update', $order);
 
         return view('admin.order.edit', [
             'order'               => $order,
@@ -205,6 +222,8 @@ class OrderWebController extends BaseOrderController
 
     public function update(Request $request, $id)
     {
+        $order = $this->orderService->getOrderById($id);
+        $this->authorize('update', $order);
         try {
             $order = $this->orderService->updateOrder($id, $request->all());
 
@@ -224,6 +243,8 @@ class OrderWebController extends BaseOrderController
 
     public function destroy($id)
     {
+        $order = $this->orderService->getOrderById($id);
+        $this->authorize('cancel', $order);
         try {
             // 1. Buscamos el pedido antes de borrarlo para conocer su flujo (Venta o Compra)
             $order = $this->orderService->getOrderById($id);

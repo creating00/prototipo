@@ -47,30 +47,55 @@
                 {{-- Botones en cada fila --}}
                 <x-slot name="actions">
                     <div class="d-flex justify-content-center gap-1">
+                        {{-- Ver detalles --}}
+                        @canResource('orders.view')
                         <x-adminlte.button color="custom-jade" size="sm" icon="fas fa-eye" class="me-1 btn-view" />
+                        @endcanResource
+
+                        {{-- WhatsApp (No requiere permiso específico usualmente, pero podrías envolverlo) --}}
                         <x-adminlte.button color="success" size="sm" icon="fab fa-whatsapp" class="me-1 btn-whatsapp"
                             title="Enviar WhatsApp" />
+
+                        {{-- Editar pedido --}}
+                        @canResource('orders.update')
                         <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
+                        @endcanResource
+
+                        {{-- Convertir a venta --}}
+                        @canResource('sales.create')
                         <x-adminlte.button color="success" size="sm" icon="fas fa-file-invoice-dollar"
                             class="me-1 btn-convert" title="Convertir a Venta" />
+                        @endcanResource
+
+                        {{-- Eliminar / Cancelar --}}
+                        @canResource('orders.cancel')
                         <x-adminlte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete" />
+                        @endcanResource
                     </div>
                 </x-slot>
 
                 {{-- Botones superiores --}}
                 <x-slot name="headerButtons">
+                    @canResource('orders.create_client')
                     {{-- Pedidos Sucursal → Cliente --}}
                     <x-adminlte.button color="primary" icon="fas fa-user" class="me-1 btn-header-new-client">
                         Nuevo Pedido a Cliente
                     </x-adminlte.button>
+                    @endcanResource
+
+                    {{-- Pedidos Sucursal → Sucursal --}}
+                    @canResource('orders.create_branch')
+                    <x-adminlte.button color="custom-graphite" icon="fas fa-building" class="me-1 btn-header-new-branch">
+                        Nuevo Pedido entre Sucursales
+                    </x-adminlte.button>
+                    @endcanResource
+
+                    @canResource('orders.view_own')
                     <x-adminlte.button color="custom-emerald" icon="fas fa-history"
                         class="me-1 btn-header-history-purchase">
                         Mis Pedidos Realizados
                     </x-adminlte.button>
-                    {{-- Pedidos Sucursal → Sucursal --}}
-                    <x-adminlte.button color="custom-graphite" icon="fas fa-building" class="me-1 btn-header-new-branch">
-                        Nuevo Pedido entre Sucursales
-                    </x-adminlte.button>
+                    @endcanResource
                 </x-slot>
             </x-adminlte.data-table>
         </div>

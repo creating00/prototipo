@@ -38,7 +38,7 @@ class PermissionSeeder extends Seeder
         'providers' => ['view', 'create', 'update', 'delete'],
 
         // Órdenes internas
-        'orders' => ['view', 'create', 'update', 'approve', 'cancel', 'print'],
+        'orders' => ['view', 'view_own', 'create_client', 'create_branch', 'update', 'approve', 'cancel', 'print'],
         'order_items' => ['view', 'create', 'update', 'delete'],
 
         // Órdenes a proveedores
@@ -46,7 +46,7 @@ class PermissionSeeder extends Seeder
         'provider_order_items' => ['view', 'create', 'update', 'delete'],
 
         // Ventas
-        'sales' => ['view', 'create', 'cancel', 'print', 'refund'],
+        'sales' => ['view', 'create_client', 'create_branch', 'update', 'delete', 'cancel', 'print', 'refund'],
         'sale_items' => ['view', 'create', 'update', 'delete'],
 
         // Pagos
@@ -63,6 +63,12 @@ class PermissionSeeder extends Seeder
 
         // Configuración
         'settings' => ['view', 'update'],
+
+        // Analítica / Dashboards
+        'analytics' => ['view'],
+
+        // Auditoría / Históricos
+        'price_modifications' => ['view'],
     ];
 
     // Roles con permisos definidos (puede moverse a config/roles.php)
@@ -81,7 +87,8 @@ class PermissionSeeder extends Seeder
             'clients.view',
             'clients.create',
             'sales.view',
-            'sales.create',
+            'sales.create_client',
+            'sales.create_branch',
             'sales.print',
             'payments.create',
         ]

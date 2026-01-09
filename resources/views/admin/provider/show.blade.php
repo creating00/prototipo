@@ -51,17 +51,20 @@
         <x-adminlte.data-table tableId="provider-products-table" title="Productos asociados" :headers="$headers"
             :rowData="$rowData" :hiddenFields="$hiddenFields" withActions="true">
             {{-- Acciones por fila --}}
+            @canResource('provider_products.update')
             <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
+            @endcanResource
 
             {{-- <x-adminlte.button color="custom-emerald" size="sm" icon="fas fa-dollar-sign" class="btn-price" /> --}}
 
             {{-- Botones del header --}}
             <x-slot name="headerButtons">
+                @canResource('provider_products.create')
                 <x-adminlte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-attach-product"
                     data-bs-toggle="modal" data-bs-target="#attachProductModal">
                     Asociar producto
                 </x-adminlte.button>
-
+                @endcanResource
             </x-slot>
         </x-adminlte.data-table>
 

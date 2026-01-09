@@ -6,6 +6,7 @@ use App\Enums\RepairType;
 use App\Enums\SaleStatus;
 use App\Enums\SaleType;
 use App\Http\Controllers\BaseSaleController;
+use App\Models\Sale;
 use App\Traits\AuthTrait;
 use Illuminate\Http\Request;
 
@@ -15,6 +16,8 @@ class SaleWebController extends BaseSaleController
 
     public function index()
     {
+        $this->authorize('viewAny', Sale::class);
+
         $rowData = $this->saleService->getAllSalesForDataTable();
         $sales = $this->saleService->getAllSales();
 
@@ -27,6 +30,8 @@ class SaleWebController extends BaseSaleController
     public function show($id)
     {
         $sale = $this->saleService->getSaleById($id);
+        $this->authorize('view', $sale);
+
         $itemsData = $this->saleService->getSaleItemsData($sale);
 
         return view('admin.sales.details', [
@@ -109,16 +114,26 @@ class SaleWebController extends BaseSaleController
 
     public function createClient()
     {
+        $this->authorize('createClient', Sale::class);
+
         return $this->create(new Request(['type' => 'client']));
     }
 
     public function createBranch()
     {
+        $this->authorize('createBranch', Sale::class);
+
         return $this->create(new Request(['type' => 'branch']));
     }
 
     public function store(Request $request)
     {
+        if ($request->input('customer_type') === 'App\Models\Branch') {
+            $this->authorize('createBranch', Sale::class);
+        } else {
+            $this->authorize('createClient', Sale::class);
+        }
+
         try {
             $sale = $this->saleService->createSale($request->all());
 
@@ -144,6 +159,8 @@ class SaleWebController extends BaseSaleController
     public function edit($id)
     {
         $sale = $this->saleService->getSaleById($id);
+        $this->authorize('update', $sale);
+
         $existingOrderItems = $this->saleService->buildOrderItemsHtml($sale);
         $customerType = $sale->customer_type;
 
@@ -156,6 +173,10 @@ class SaleWebController extends BaseSaleController
     public function update(Request $request, $id)
     {
         // dd($request->all());
+        $sale = $this->saleService->getSaleById($id);
+
+        $this->authorize('update', $sale);
+
         try {
             $this->saleService->updateSale($id, $request->all());
 
@@ -172,6 +193,10 @@ class SaleWebController extends BaseSaleController
 
     public function destroy($id)
     {
+        $sale = $this->saleService->getSaleById($id);
+
+        $this->authorize('destroy', $sale);
+
         try {
             $this->saleService->deleteSale($id);
 
