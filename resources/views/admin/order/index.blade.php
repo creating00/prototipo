@@ -100,9 +100,8 @@
             </x-adminlte.data-table>
         </div>
     </div>
+    @include('admin.order.partials._convert_to_sale_modal')
 @endsection
-
-@include('admin.order.partials._convert_to_sale_modal')
 
 @push('scripts')
     @vite('resources/js/modules/orders/index.js')

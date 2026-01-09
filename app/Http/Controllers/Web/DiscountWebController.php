@@ -7,15 +7,18 @@ use App\Http\Requests\Discount\DiscountWebRequest;
 use App\Models\Discount;
 use App\Services\DiscountService;
 use Exception;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class DiscountWebController extends Controller
 {
+    use AuthorizesRequests;
     public function __construct(
         protected DiscountService $discountService
     ) {}
 
     public function index()
     {
+        $this->authorize('viewAny', Discount::class);
         // Obtenemos los datos ya formateados desde el servicio
         $rowData = $this->discountService->getAllDiscountsForDataTable();
 
@@ -30,11 +33,15 @@ class DiscountWebController extends Controller
 
     public function create()
     {
+        $this->authorize('create', Discount::class);
+
         return view('admin.discount.create');
     }
 
     public function store(DiscountWebRequest $request)
     {
+        $this->authorize('create', Discount::class);
+
         try {
             $this->discountService->create($request->validated());
             return redirect()->route('web.discounts.index')
@@ -48,11 +55,15 @@ class DiscountWebController extends Controller
 
     public function edit(Discount $discount)
     {
+        $this->authorize('update', $discount);
+
         return view('admin.discount.edit', compact('discount'));
     }
 
     public function update(DiscountWebRequest $request, Discount $discount)
     {
+        $this->authorize('update', $discount);
+
         try {
             $this->discountService->update($discount, $request->validated());
             return redirect()->route('web.discounts.index')
@@ -66,6 +77,8 @@ class DiscountWebController extends Controller
 
     public function destroy(Discount $discount)
     {
+        $this->authorize('delete', $discount);
+
         $this->discountService->delete($discount);
         return redirect()->route('web.discounts.index')
             ->with('success', 'Descuento eliminado exitosamente');

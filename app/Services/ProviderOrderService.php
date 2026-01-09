@@ -158,33 +158,40 @@ class ProviderOrderService
 
     protected function formatForDataTable($model, int $index, array $options = []): array
     {
+        $totalsByCurrency = $model->items->groupBy('currency')
+            ->map(function ($items) {
+                $sum = $items->sum(fn($i) => $i->quantity * $i->unit_cost);
+                $currencyEnum = $items->first()->currency;
+
+                // Mapeo de colores basado en tus clases custom
+                $color = match ($currencyEnum->name) {
+                    'ARS' => '#10b981', // Emerald
+                    'USD' => '#0d6efd', // Ocean
+                    default => '#6c757d' // Gray
+                };
+
+                $formattedAmount = number_format($sum, 2, ',', '.');
+
+                // Retornamos el texto con peso de fuente y color específico
+                return "<div style='color: {$color}; font-weight: 700; white-space: nowrap;'>
+                        {$currencyEnum->symbol()} {$formattedAmount}
+                    </div>";
+            });
+
+        $totalHtml = $totalsByCurrency->implode('');
+
         return [
             'id' => $model->id,
-
-            // #
             'number' => $index + 1,
-
-            // Nro. Orden
             'order_id_text' => "#ORD-" . str_pad($model->id, 5, '0', STR_PAD_LEFT),
-
-            // Proveedor
             'provider' => $model->provider->business_name,
-
-            // Fecha Pedido
             'order_date' => $model->order_date->format('d/m/Y'),
-
-            // Entrega Est.
-            'expected_delivery_date' =>
-            $model->expected_delivery_date?->format('d/m/Y') ?? 'Pendiente',
-
-            // Estado (badge)
+            'expected_delivery_date' => $model->expected_delivery_date?->format('d/m/Y') ?? 'Pendiente',
             'status' => $this->resolveStatus($model, $options),
             'status_raw' => $model->status->value,
 
-            // Total Est.
-            'total' => $this->formatCurrency(
-                $model->items->sum(fn($i) => $i->quantity * $i->unit_cost)
-            ),
+            // Renderizado de texto en color
+            'total' => $totalHtml ?: '<span style="color: #6c757d;">$ 0,00</span>',
         ];
     }
 }

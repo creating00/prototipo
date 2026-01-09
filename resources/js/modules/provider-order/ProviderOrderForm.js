@@ -10,7 +10,7 @@ export class ProviderOrderForm {
         this.providerSelect = document.querySelector(
             'select[name="provider_id"]'
         );
-        this.totalLabel = document.getElementById("order-total");
+        this.totalLabel = document.getElementById("order-totals-container");
 
         this.rowManager = new ItemRowManager(
             this.container,
@@ -49,8 +49,18 @@ export class ProviderOrderForm {
             }
         });
 
-        this.container.addEventListener("input", () => {
-            this.rowManager.calculateTotals();
+        // Escucha cambios en inputs (cantidad y precio)
+        this.container.addEventListener("input", (e) => {
+            if (e.target.matches(".qty-input, input[id$='_amount']")) {
+                this.rowManager.calculateTotals();
+            }
+        });
+
+        // Escucha cambios en el select de moneda
+        this.container.addEventListener("change", (e) => {
+            if (e.target.matches("select[id$='_currency']")) {
+                this.rowManager.calculateTotals();
+            }
         });
     }
 

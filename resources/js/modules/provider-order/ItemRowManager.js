@@ -82,15 +82,15 @@ export class ItemRowManager {
 
         const { price, currency } = choice.customProperties || {};
         const costInput = row.querySelector(
-            ".cost-input-container input:not([type='hidden'])"
+            ".cost-input-container input[id$='_amount']"
         );
         const currencySelect = row.querySelector(
-            ".cost-input-container select"
+            ".cost-input-container select[id$='_currency']"
         );
 
         if (costInput) {
             costInput.value = price ?? 0;
-            costInput.dispatchEvent(new Event("input", { bubbles: true }));
+            // No disparamos calculateTotals aquí manualmente si el input ya burbujea
         }
 
         if (currencySelect && currency) {
@@ -99,6 +99,33 @@ export class ItemRowManager {
 
         this.calculateTotals();
         row.querySelector(".qty-input")?.focus();
+    }
+
+    renderTotals(totals) {
+        if (!this.totalLabel) return;
+
+        this.totalLabel.innerHTML = "";
+        const keys = Object.keys(totals);
+
+        if (keys.length === 0) {
+            this.totalLabel.textContent = "$ 0.00";
+            return;
+        }
+
+        keys.forEach((id) => {
+            const item = totals[id];
+            const div = document.createElement("div");
+            div.className = "d-block text-nowrap"; // Bootstrap classes
+            div.style.fontWeight = "bold";
+            div.textContent = `${item.label} ${item.sum.toLocaleString(
+                undefined,
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                }
+            )}`;
+            this.totalLabel.appendChild(div);
+        });
     }
 
     refreshAllChoices() {
@@ -110,6 +137,40 @@ export class ItemRowManager {
     }
 
     calculateTotals() {
-        OrderUIHelper.calculateTotals("#items-container", "#order-total");
+        const totals = {}; // Objeto: { 1: { sum: 0, label: 'ARS' }, 2: { sum: 0, label: 'USD' } }
+        const rows = this.container.querySelectorAll(".item-row");
+
+        rows.forEach((row) => {
+            const qty = parseFloat(row.querySelector(".qty-input").value) || 0;
+            const amountInput = row.querySelector("input[id$='_amount']");
+            const currencySelect = row.querySelector("select[id$='_currency']");
+
+            if (!amountInput || !currencySelect) return;
+
+            const amount = parseFloat(amountInput.value) || 0;
+            const currencyId = currencySelect.value;
+            const currencyText =
+                currencySelect.options[currencySelect.selectedIndex]?.text ||
+                "";
+            const subtotal = qty * amount;
+
+            // Actualizar el subtotal visual de la fila
+            const rowSubtotalDisplay = row.querySelector(".row-subtotal");
+            if (rowSubtotalDisplay) {
+                rowSubtotalDisplay.textContent = `${currencyText} ${subtotal.toFixed(
+                    2
+                )}`;
+            }
+
+            // Acumular por moneda
+            if (currencyId) {
+                if (!totals[currencyId]) {
+                    totals[currencyId] = { sum: 0, label: currencyText };
+                }
+                totals[currencyId].sum += subtotal;
+            }
+        });
+
+        this.renderTotals(totals);
     }
 }

@@ -17,6 +17,17 @@ enum ProviderProductStatus: int
         };
     }
 
+    public function badgeClass(): string
+    {
+        $colorClass = match ($this) {
+            self::ACTIVE       => 'badge-custom-pastel-green',
+            self::INACTIVE     => 'badge-custom-pastel-red',
+            self::DISCONTINUED => 'badge-custom-pastel-yellow',
+        };
+
+        return "<span class='badge-custom {$colorClass}'>{$this->label()}</span>";
+    }
+
     public static function forSelect(): array
     {
         $options = [];

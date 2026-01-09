@@ -16,13 +16,19 @@ return [
             ],
         ],
         [
-            'type' => 'submenu',
+            'type' => 'single',
             'icon' => 'bi bi-cart-fill',
             'label' => 'Ventas',
-            'subitems' => [
-                ['href' => 'web.sales.index', 'label' => 'Listar Ventas'],
-            ],
+            'href' => 'web.sales.create-client', 'label' => 'Realizar Ventas'
         ],
+        // [
+        //     'type' => 'submenu',
+        //     'icon' => 'bi bi-cart-fill',
+        //     'label' => 'Ventas',
+        //     'subitems' => [
+        //         ['href' => 'web.sales.index', 'label' => 'Listar Ventas'],
+        //     ],
+        // ],
         [
             'type' => 'submenu',
             'icon' => 'bi bi-box-seam-fill',
@@ -40,7 +46,7 @@ return [
             'subitems' => [
                 ['href' => 'web.users.index', 'label' => 'Listar Usuarios'],
                 ['href' => 'web.users.create', 'label' => 'Crear Usuario'],
-                ['href' => '#', 'label' => 'Roles'],
+                // ['href' => '#', 'label' => 'Roles'],
             ],
         ],
         // [

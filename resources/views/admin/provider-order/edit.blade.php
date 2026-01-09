@@ -12,7 +12,7 @@
             <h4>Editando Orden #{{ $order->id }}</h4>
             <div>
                 <a href="{{ route('web.provider-orders.index') }}" class="btn btn-secondary">Volver</a>
-                @if ($order->status === \App\Enums\ProviderOrderStatus::DRAFT)
+                @if ($order->status === \App\Enums\ProviderOrderStatus::PENDING)
                     <button type="submit" class="btn btn-success">Actualizar Cambios</button>
                 @endif
             </div>

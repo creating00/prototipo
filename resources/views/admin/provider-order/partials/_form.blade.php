@@ -37,11 +37,11 @@
                             <label class="compact-select-label fw-bold small">
                                 Estado del Pedido <span class="text-danger">*</span>
                             </label>
-                            <x-adminlte.select name="status" label="" :options="$formData->statusOptions"
-                                :value="old(
-                                    'status',
-                                    $order?->status->value ?? \App\Enums\ProviderOrderStatus::PENDING->value,
-                                )" required />
+                            <x-adminlte.select name="status" label="" :options="$formData->statusOptions" :value="old(
+                                'status',
+                                $order?->status->value ?? \App\Enums\ProviderOrderStatus::PENDING->value,
+                            )"
+                                required />
                         </div>
                     </div>
                 </div>
@@ -64,9 +64,9 @@
                 <table class="table table-valign-middle" id="items-table">
                     <thead class="bg-light">
                         <tr>
-                            <th style="width: 35%">Producto</th>
+                            <th style="width: 25%">Producto</th>
                             <th style="width: 10%">Cant.</th>
-                            <th style="width: 20%">Costo Unit.</th>
+                            <th style="width: 25%">Costo Unit.</th>
                             <th style="width: 15%" class="text-end">Subtotal</th>
                             <th style="width: 5%"></th>
                         </tr>
@@ -84,7 +84,9 @@
                     <tfoot>
                         <tr class="bg-light">
                             <th colspan="3" class="text-right">TOTAL ESTIMADO:</th>
-                            <th id="order-total" class="text-end">$ 0.00</th>
+                            <th id="order-totals-container" class="text-end">
+                                <div class="total-ars">$ 0.00</div>
+                            </th>
                             <th></th>
                         </tr>
                     </tfoot>

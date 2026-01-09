@@ -10,17 +10,28 @@
             :rowData="$rowData" withActions="true">
 
             {{-- Botones por fila (Edit y Delete) --}}
-            <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit"
-                data-tooltip="Editar Descuento" />
 
-            <x-adminlte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete"
-                data-tooltip="Eliminar Descuento" />
+            <x-slot name="actions">
+                <div class="d-flex justify-content-center gap-1">
+                    @canResource('discounts.update')
+                    <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit"
+                        data-tooltip="Editar Descuento" />
+                    @endcanResource
+
+                    @canResource('discounts.delete')
+                    <x-adminlte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete"
+                        data-tooltip="Eliminar Descuento" />
+                    @endcanResource
+                </div>
+            </x-slot>
 
             {{-- Botón para crear nuevo descuento --}}
             <x-slot name="headerButtons">
+                @canResource('discounts.create')
                 <x-adminlte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-new">
                     Nuevo Descuento
                 </x-adminlte.button>
+                @endcanResource
             </x-slot>
 
         </x-adminlte.data-table>

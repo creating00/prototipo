@@ -58,7 +58,7 @@ class ProviderWebController extends BaseProviderController
             'Código Proveedor',
             'Lead Time',
             'Estado',
-            'Precio vigente',
+            // 'Precio vigente',
         ];
 
         $hiddenFields = ['id'];
@@ -70,11 +70,11 @@ class ProviderWebController extends BaseProviderController
                 'product' => $pp->product->name ?? '—',
                 'provider_code' => $pp->provider_code ?? '—',
                 'lead_time_days' => $pp->lead_time_days ?? '—',
-                'status' => $pp->status->label(),
-                'price' => $pp->currentPrice
-                    ? $pp->currentPrice->currency->symbol() . ' ' .
-                    number_format($pp->currentPrice->cost_price, 2)
-                    : '—',
+                'status' => $pp->status->badgeClass(),
+                // 'price' => $pp->currentPrice
+                //     ? $pp->currentPrice->currency->symbol() . ' ' .
+                //     number_format($pp->currentPrice->cost_price, 2)
+                //     : '—',
             ];
         })->toArray();
 

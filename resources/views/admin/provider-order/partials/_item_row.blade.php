@@ -19,7 +19,6 @@
     </td>
     <td class="align-middle">
         <div class="cost-input-container">
-            {{-- EL CAMBIO CLAVE: $item?->currency?->value --}}
             <x-currency-price-input name="unit_cost_row_{{ $index }}" label="" :amount-value="$item?->unit_cost ?? 0"
                 :currency-value="$item?->currency?->value" :currency-options="$formData->currencyOptions" />
         </div>
