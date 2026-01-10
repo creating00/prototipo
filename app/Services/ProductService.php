@@ -108,10 +108,15 @@ class ProductService
         return Product::with(['category', 'ratings', 'productBranches.prices'])->get();
     }
 
-    public function getAllForSummary(?int $branchId = null): Collection
+    public function getAllForSummary(?int $branchId = null, ?int $categoryId = null): Collection
     {
         $branchId = $branchId ?? $this->currentBranchId();
-        $products = Product::with(['category', 'ratings', 'productBranches.prices'])->get();
+
+        $products = Product::with(['category', 'ratings', 'productBranches.prices'])
+            ->when($categoryId, function ($query, $categoryId) {
+                $query->where('category_id', $categoryId);
+            })
+            ->get();
 
         return $this->presenterService->formatForSummary($products, $branchId);
     }

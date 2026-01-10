@@ -12,9 +12,16 @@ class ProductController extends BaseProductController
 {
     public function index(Request $request)
     {
-        $branchId = $request->query('branchId'); // obtiene ?branchId=1
+        $validated = $request->validate([
+            'branchId' => 'nullable|integer',
+            'categoryId' => 'nullable|integer',
+        ]);
+
+        $branchId = $validated['branchId'] ?? null; // obtiene ?branchId=1
+        $categoryId = $validated['categoryId'] ?? null;
+
         return response()->json(
-            $this->productService->getAllForSummary($branchId)
+            $this->productService->getAllForSummary($branchId, $categoryId)
         );
     }
 
