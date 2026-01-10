@@ -51,6 +51,63 @@ class ProductPresenterService
         });
     }
 
+    public function formatForSummaryByBranch(Collection $products): Collection
+    {
+        return $products->map(function ($product) {
+            return [
+                'id' => $product->id,
+                'code' => $product->code,
+                'name' => $product->name,
+                'description' => $product->description,
+                'image' => $product->image,
+                'category_id' => $product->category_id,
+                'category' => $product->category?->name,
+                'average_rating' => $product->average_rating,
+                'branches' => $product->productBranches->map(function ($branch) {
+                    return [
+                        'branch_id' => $branch->branch_id,
+                        'branch_name' => $branch->branch->name,
+                        'stock' => $branch->stock,
+                        'status' => $branch->status?->value,
+                        'prices' => $branch->prices->mapWithKeys(
+                            fn($price) => [
+                                $price->type->name => [
+                                    'amount' => $price->amount,
+                                    'currency' => $price->currency->value,
+                                    'formatted' => $price->getFormattedAmount(),
+                                ]
+                            ]
+                        ),
+                    ];
+                }),
+            ];
+        });
+    }
+
+    public function formatForSummaryByBranchLite(Collection $products): Collection
+    {
+        return $products->map(function ($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'category_id' => $product->category_id,
+                'category' => $product->category?->name,
+                'average_rating' => $product->average_rating,
+                'branches' => $product->productBranches->mapWithKeys(function ($branch) {
+                    return [
+                        $branch->branch_id => [
+                            'stock' => $branch->stock,
+                            'status' => $branch->status?->value,
+                            'prices' => $branch->prices->mapWithKeys(
+                                fn($price) => [$price->type->name => $price->amount]
+                            ),
+                        ]
+                    ];
+                }),
+            ];
+        });
+    }
+
     private function formatPriceModel(?ProductBranchPrice $model, string $class = ''): string
     {
         if (!$model) {

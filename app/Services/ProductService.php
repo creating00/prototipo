@@ -110,15 +110,27 @@ class ProductService
 
     public function getAllForSummary(?int $branchId = null, ?int $categoryId = null): Collection
     {
-        $branchId = $branchId ?? $this->currentBranchId();
+        // Closure para filtrar productBranches según stock y branchId opcional
+        $branchFilter = function ($query) use ($branchId) {
+            $query->where('stock', '>', 0);
 
-        $products = Product::with(['category', 'ratings', 'productBranches.prices'])
-            ->when($categoryId, function ($query, $categoryId) {
-                $query->where('category_id', $categoryId);
-            })
+            if ($branchId) {
+                $query->where('branch_id', $branchId);
+            }
+
+            $query->with('prices', 'branch');
+        };
+
+        $products = Product::with([
+            'category',
+            'ratings',
+            'productBranches' => $branchFilter
+        ])
+            ->whereHas('productBranches', $branchFilter)
+            ->when($categoryId, fn($query) => $query->where('category_id', $categoryId))
             ->get();
 
-        return $this->presenterService->formatForSummary($products, $branchId);
+        return $this->presenterService->formatForSummaryByBranch($products);
     }
 
     public function getAllForDataTable(): array
