@@ -12,13 +12,17 @@ class PriceAuditService
      */
     public function recordModification(array $data): void
     {
+        if (empty($data['user_id'])) {
+            throw new \LogicException('user_id es obligatorio para registrar una modificación de precio');
+        }
+
         $original = (float) $data['original_price'];
         $modified = (float) $data['modified_price'];
 
         if ($this->hasChanged($original, $modified)) {
             PriceModification::create([
                 'branch_id'      => $data['branch_id'],
-                'user_id'        => Auth::id() ?? $data['user_id'] ?? null,
+                'user_id'        => $data['user_id'],
                 'product_id'     => $data['product_id'],
                 'original_price' => $original,
                 'modified_price' => $modified,

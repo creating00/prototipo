@@ -157,6 +157,13 @@ class OrderService
                 ? \App\Enums\PaymentType::Transfer->value
                 : \App\Enums\PaymentType::Cash->value;
 
+            $userId = $options['user_id']
+                ?? $this->userId();
+
+            if (!$userId) {
+                throw new \Exception('No se pudo determinar el usuario que convierte la orden en venta.');
+            }
+
             $data = [
                 'source_order_id' => $order->id,
                 'branch_id'       => $order->branch_id,
@@ -294,7 +301,7 @@ class OrderService
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|numeric|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.unit_price' => 'nullable|numeric|min:0',
             'customer_type' => 'required|in:App\Models\Client,App\Models\Branch',
         ];
 

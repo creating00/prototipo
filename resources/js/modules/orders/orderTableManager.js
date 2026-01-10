@@ -125,22 +125,37 @@ function setupConvertModal({ orderId, total, customerType }) {
     const inputAmount = document.getElementById("convert_amount_received");
     const selectPayment = document.getElementById("convert_payment_type");
 
-    if (displayId) displayId.textContent = orderId;
+    if (!inputAmount || !selectPayment || !selectPayment._choices) return;
 
-    if (inputAmount) {
-        inputAmount.value = total;
-        inputAmount.readOnly = true;
+    // Mostrar ID de orden
+    if (displayId) {
+        displayId.textContent = orderId;
     }
-
-    if (!selectPayment || !selectPayment._choices) return;
 
     const isBranch = customerType?.includes("Branch");
     const paymentValue = isBranch ? "3" : "1";
 
+    // ----- Monto recibido -----
+    inputAmount.value = total;
+    inputAmount.readOnly = isBranch;
+
+    // ----- Método de pago -----
     selectPayment._choices.removeActiveItems();
     selectPayment._choices.setChoiceByValue(paymentValue);
 
-    selectPayment._choices.disable();
+    if (isBranch) {
+        selectPayment._choices.disable();
+        selectPayment.closest(".choices")?.classList.add("is-disabled");
+    } else {
+        selectPayment._choices.enable();
+        selectPayment.closest(".choices")?.classList.remove("is-disabled");
+    }
+
+    // ----- Inicializar cálculos -----
+    bindConvertAmountListener(total);
+
+    // Forzar cálculo inicial (cambio, saldo, estado)
+    inputAmount.dispatchEvent(new Event("input"));
 }
 
 function resetConvertModal() {
@@ -154,8 +169,63 @@ function resetConvertModal() {
 
     if (inputAmount) {
         inputAmount.value = "";
-        inputAmount.removeAttribute("readonly");
+        inputAmount.readOnly = false;
     }
+}
+
+function calculatePaymentStatus({ total, received }) {
+    const t = parseFloat(total) || 0;
+    const r = parseFloat(received) || 0;
+
+    let change = 0;
+    let remaining = 0;
+    let status = "pending";
+
+    if (r >= t) {
+        change = r - t;
+        remaining = 0;
+        status = "paid";
+    } else {
+        change = 0;
+        remaining = t - r;
+        status = "partial";
+    }
+
+    return { change, remaining, status };
+}
+
+function bindConvertAmountListener(total) {
+    const inputAmount = document.getElementById("convert_amount_received");
+    const inputChange = document.getElementById("convert_change_returned");
+    const inputRemaining = document.getElementById("convert_remaining_balance");
+    const statusContainer = document.getElementById("convert_payment_status");
+
+    if (!inputAmount) return;
+
+    inputAmount.addEventListener("input", () => {
+        const { change, remaining, status } = calculatePaymentStatus({
+            total,
+            received: inputAmount.value,
+        });
+
+        if (inputChange) inputChange.value = change.toFixed(2);
+        if (inputRemaining) inputRemaining.value = remaining.toFixed(2);
+
+        if (statusContainer) {
+            let badgeClass = "bg-secondary";
+            let label = "Esperando datos";
+
+            if (status === "paid") {
+                badgeClass = "bg-success";
+                label = "Pagado";
+            } else if (status === "partial") {
+                badgeClass = "bg-warning";
+                label = "Pago Parcial";
+            }
+
+            statusContainer.innerHTML = `<span class="badge ${badgeClass}">${label}</span>`;
+        }
+    });
 }
 
 export function initOrderTable() {

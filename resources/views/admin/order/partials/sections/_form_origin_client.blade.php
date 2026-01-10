@@ -20,6 +20,6 @@
         <label class="compact-select-label fw-bold small">
             Estado del Pedido <span class="text-danger">*</span>
         </label>
-        <x-adminlte.select name="status" label="" :options="$statusOptions" :value="old('status', $order->status->value ?? 0)" required />
+        <x-adminlte.select name="status" label="" :options="$statusOptions" :value="old('status', $order->status->value ?? 1)" required />
     </div>
 </div>

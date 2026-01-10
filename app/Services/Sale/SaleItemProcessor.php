@@ -37,6 +37,7 @@ class SaleItemProcessor extends BaseItemProcessor
 
         $this->auditService->recordModification([
             'branch_id'      => $model->branch_id,
+            'user_id'        => $model->user_id,
             'product_id'     => $product->id,
             'original_price' => $originalPrice,
             'modified_price' => $unitPrice,
