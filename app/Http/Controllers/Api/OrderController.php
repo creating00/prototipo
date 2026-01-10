@@ -12,6 +12,16 @@ class OrderController extends BaseOrderController
 {
     use AuthTrait;
 
+    protected $clientService;
+
+    public function __construct(
+        \App\Services\OrderService $orderService,
+        \App\Services\ClientService $clientService
+    ) {
+        parent::__construct($orderService);
+        $this->clientService = $clientService;
+    }
+
     public function index()
     {
         return response()->json(
@@ -43,25 +53,29 @@ class OrderController extends BaseOrderController
     {
         try {
             $data = $request->all();
-
             $data['source'] = OrderSource::Ecommerce->value;
 
-            // Validar customer_type explícito
             if (!isset($data['customer_type'])) {
-                return response()->json([
-                    'error' => 'customer_type is required'
-                ], 422);
+                return response()->json(['error' => 'customer_type is required'], 422);
             }
 
-            // Forzar reglas según customer_type
+            // Validación lógica para Clientes
             if ($data['customer_type'] === Client::class) {
-                if (!isset($data['client_id'])) {
+                // Si no hay ID y tampoco hay datos de cliente nuevo, error
+                if (!isset($data['client_id']) && !isset($data['client'])) {
                     return response()->json([
-                        'error' => 'client_id is required for client orders'
+                        'error' => 'client_id or client data is required for client orders'
                     ], 422);
+                }
+
+                // Si es invitado (viene 'client'), lo creamos o buscamos antes de pasar al service de órdenes
+                if (!isset($data['client_id']) && isset($data['client'])) {
+                    $client = $this->clientService->findOrCreate($data['client']);
+                    $data['client_id'] = $client->id;
                 }
             }
 
+            // Validación para Sucursales (Transferencias)
             if ($data['customer_type'] === \App\Models\Branch::class) {
                 if (!isset($data['branch_recipient_id'])) {
                     return response()->json([
@@ -77,12 +91,11 @@ class OrderController extends BaseOrderController
                 'total_amount' => $order->total_amount,
                 'status' => $order->status,
                 'created_at' => $order->created_at,
-                //'data'=> $data
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'errors' => $e->errors()
-            ], 422);
+            return response()->json(['errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
