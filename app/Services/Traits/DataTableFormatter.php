@@ -3,6 +3,7 @@
 namespace App\Services\Traits;
 
 use App\Enums\CurrencyType;
+use App\Models\Sale;
 
 trait DataTableFormatter
 {
@@ -99,6 +100,26 @@ trait DataTableFormatter
             'phone'        => $phone,
             'whatsapp-url' => $phone ? $this->getWhatsAppLink($model, $phone) : null,
         ];
+    }
+
+    protected function formatSaleForDataTable(Sale $sale, int $index): array
+    {
+        $row = $this->formatForDataTable($sale, $index);
+
+        $saleTypeHtml = $sale->sale_type
+            ? sprintf(
+                '<span class="%s">%s</span>',
+                $sale->sale_type->badgeClass(),
+                $sale->sale_type->label()
+            )
+            : '';
+
+        // Insertar "Tipo" después de "customer"
+        return array_merge(
+            array_slice($row, 0, 4, true),
+            ['sale_type' => $saleTypeHtml],
+            array_slice($row, 4, null, true)
+        );
     }
 
     private function cleanPhoneNumber(?string $phone): string

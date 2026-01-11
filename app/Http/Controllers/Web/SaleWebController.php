@@ -21,8 +21,15 @@ class SaleWebController extends BaseSaleController
         $rowData = $this->saleService->getAllSalesForDataTable();
         $sales = $this->saleService->getAllSales();
 
-        $headers = ['#', 'Sucursal', 'Cliente', 'Total', 'Estado', 'Creado en:'];
-        $hiddenFields = ['id', 'status_raw', 'phone', 'whatsapp-url', 'customer_type'];
+        $headers = ['#', 'Sucursal', 'Cliente', 'Tipo', 'Total', 'Estado', 'Creado en:'];
+        $hiddenFields = [
+            'id',
+            'status_raw',
+            'phone',
+            'whatsapp-url',
+            'customer_type'
+        ];
+
 
         return view('admin.sales.index', compact('sales', 'rowData', 'headers', 'hiddenFields'));
     }

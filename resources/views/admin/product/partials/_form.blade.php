@@ -11,8 +11,7 @@
 <div class="form-section">
     <h3 class="form-section-title">Información Básica</h3>
 
-    <div class="row g-3 align-items-center">
-
+    <div class="row g-3 align-items-start">
         {{-- Código --}}
         <div class="col-md-6">
             <x-bootstrap.compact-input id="code" name="code" label="Código de Producto" placeholder="Ej: PRD-001"
@@ -34,43 +33,52 @@
         </div>
 
         {{-- Imagen --}}
-        <div class="col-md-4 compact-media">
+        <div class="col-md-4">
+            <div class="compact-media">
+                {{-- Subir archivo --}}
+                <x-bootstrap.compact-file-input name="imageFile" label="Imagen" accept="image/*" />
 
-            {{-- Subir archivo --}}
-            <x-bootstrap.compact-file-input name="imageFile" label="Imagen" accept="image/*" />
-
-            {{-- URL externa --}}
-            <div class="form-group">
-                <label for="image_url">URL de imagen externa</label>
-                <div class="input-group">
-                    <input type="url" name="imageUrl" id="image_url" class="form-control"
-                        placeholder="https://ejemplo.com/imagen.jpg"
-                        value="{{ old('imageUrl', $formData->product?->image ?? '') }}">
-                    <button type="button" class="btn btn-outline-secondary" id="preview-button">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-            </div>
-
-            {{-- Imagen actual --}}
-            @if ($formData->product?->image)
-                <div class="mt-2">
-                    <img src="{{ $formData->product?->image }}" alt="Imagen actual"
-                        class="img-fluid rounded border p-1">
-
-                    <div class="form-check mt-2">
-                        <input type="checkbox" name="removeImage" id="removeImage" value="1"
-                            class="form-check-input" {{ old('removeImage') ? 'checked' : '' }}>
-                        <label for="removeImage" class="form-check-label text-danger">
-                            <i class="fas fa-trash"></i> Eliminar imagen actual
-                        </label>
+                {{-- URL externa --}}
+                <div class="form-group">
+                    <label for="image_url">URL de imagen externa</label>
+                    <div class="input-group">
+                        <input type="url" name="imageUrl" id="image_url" class="form-control"
+                            placeholder="https://ejemplo.com/imagen.jpg"
+                            value="{{ old('imageUrl', $formData->product?->image ?? '') }}">
+                        <button type="button" class="btn btn-outline-secondary" id="preview-button">
+                            <i class="fas fa-eye"></i>
+                        </button>
                     </div>
-
-                    <small class="form-text text-muted">
-                        Deja ambos campos vacíos para mantener la imagen actual.
-                    </small>
                 </div>
-            @endif
+
+                {{-- Imagen actual --}}
+                @if ($formData->product?->image)
+                    <div class="mt-3 p-2 border rounded bg-light">
+                        <div class="d-flex align-items-center">
+                            {{-- Miniatura fija --}}
+                            <div class="flex-shrink-0 me-3">
+                                <img src="{{ $formData->product->image }}" alt="Imagen actual" class="img-thumbnail"
+                                    style="width: 80px; height: 80px; object-fit: cover;">
+                            </div>
+
+                            {{-- Controles --}}
+                            <div class="flex-grow-1">
+                                <div class="form-check mb-1">
+                                    <input type="checkbox" name="removeImage" id="removeImage" value="1"
+                                        class="form-check-input" {{ old('removeImage') ? 'checked' : '' }}>
+                                    <label for="removeImage" class="form-check-label text-danger fw-bold"
+                                        style="font-size: 0.75rem;">
+                                        <i class="fas fa-trash-alt"></i> Eliminar
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block" style="font-size: 0.7rem; line-height: 1.1;">
+                                    Se mantendrá si no subes otra.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
         </div>
     </div>
 </div>
@@ -117,8 +125,8 @@
     {{-- Moneda (Currency - Select se mantiene) --}}
     <div class="row">
         <div class="col-md-4">
-            <x-currency-price-input name="purchase_price" label="Precio de Compra (Costo)" :amount-value="old('purchase_price.amount', $formData->price(PriceType::PURCHASE->value))"
-                :currency-value="old('purchase_price.currency', $formData->currency(PriceType::PURCHASE->value))" :currency-options="$formData->currencyOptions" />
+            <x-currency-price-input name="purchase_price" label="Precio de Compra (Costo)" :amount-value="old('purchase_price_amount', $formData->price(PriceType::PURCHASE->value))"
+                :currency-value="old('purchase_price_currency', $formData->currency(PriceType::PURCHASE->value))" :currency-options="$formData->currencyOptions" />
         </div>
         <div class="col-md-4">
             <x-currency-price-input name="sale_price" label="Precio de Venta (Minorista)" :amount-value="old('sale_price.amount', $formData->price(PriceType::SALE->value))"

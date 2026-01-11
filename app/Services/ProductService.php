@@ -81,15 +81,11 @@ class ProductService
 
     public function getProductForEdit(int $productId, int $branchId): Product
     {
+        // Cargamos la relación de forma condicional sin filtrar la existencia del producto base
         return Product::with([
             'category',
             'productBranches' => function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
-            },
-            'productBranches.prices' => function ($query) use ($branchId) {
-                $query->whereHas('productBranch', function ($q) use ($branchId) {
-                    $q->where('branch_id', $branchId);
-                });
+                $query->where('branch_id', $branchId)->with('prices');
             }
         ])->findOrFail($productId);
     }

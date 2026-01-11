@@ -30,15 +30,20 @@ class ProductBranchService
 
     public function updateBranchDataForProduct(Product $product, array $data): ProductBranch
     {
-        $branch = $product->productBranches()
-            ->where('branch_id', $data['branch_id'])
-            ->firstOrFail();
+        // $branch = $product->productBranches()
+        //     ->where('branch_id', $data['branch_id'])
+        //     ->firstOrFail();
 
-        $branch->update([
-            'stock'               => $data['stock'] ?? $branch->stock,
-            'low_stock_threshold' => $data['low_stock_threshold'] ?? $branch->low_stock_threshold,
-            'status'              => $data['status'] ?? $branch->status,
-        ]);
+        $branch = $product->productBranches()->updateOrCreate(
+            [
+                'branch_id' => $data['branch_id'],
+            ],
+            [
+                'stock'               => $data['stock'] ?? 0,
+                'low_stock_threshold' => $data['low_stock_threshold'] ?? 5,
+                'status'              => $data['status'],
+            ]
+        );
 
         $this->priceService->updatePricesForBranch($branch, $data);
 

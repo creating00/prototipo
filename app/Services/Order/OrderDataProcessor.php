@@ -98,9 +98,15 @@ class OrderDataProcessor
             $data['customer_id'] = $data['client_id'];
             $data['branch_id'] = $data['branch_id'] ?? $this->currentBranchId();
         } else {
-            $data['customer_id'] = $this->currentBranchId();
-            $data['branch_id'] = $data['branch_recipient_id'];
-            $data['branch_recipient_id'] = $data['customer_id'];
+            if (isset($data['branch_recipient_id'])) {
+                $data['customer_id'] = $data['branch_recipient_id'];
+            }
+
+            if (!isset($data['customer_id'])) {
+                throw new \Exception('customer_id es obligatorio para pedidos entre sucursales');
+            }
+
+            $data['branch_id'] = $data['branch_id'] ?? $this->currentBranchId();
         }
     }
 

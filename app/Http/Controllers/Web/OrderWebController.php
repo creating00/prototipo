@@ -176,7 +176,7 @@ class OrderWebController extends BaseOrderController
             'originBranch',
             'destinationBranches',
             'statusOptions'
-        ));
+        ) + ['isEdit' => false]);
     }
 
     public function store(Request $request)
@@ -210,13 +210,40 @@ class OrderWebController extends BaseOrderController
         $order = $this->orderService->getOrderById($id);
         $this->authorize('update', $order);
 
+        $isEdit = true;
+
+        $customer_type = $order->customer_type;
+        $branchService = app(BranchService::class);
+
+        $branches = collect([
+            $branchService->getUserBranch($this->currentBranchId())
+        ]);
+
+        // Inicializamos variables nulas para evitar el error "Undefined variable"
+        $originBranch = null;
+        $destinationBranches = collect();
+        $statusOptions = [];
+
+        if ($customer_type === 'App\Models\Branch') {
+            $originBranch = $branchService->getUserBranch($order->branch_id);
+            $destinationBranches = collect($branchService->getAllBranchesExcept($order->branch_id));
+            $statusOptions = OrderStatus::forInternalOrder();
+        } else {
+            $statusOptions = OrderStatus::forSale();
+        }
+
         return view('admin.order.edit', [
             'order'               => $order,
+            'isEdit'              => $isEdit,
+            'customer_type'       => $customer_type,
             'existingOrderItems'  => $this->orderService->buildOrderItemsHtml($order),
-            'branches'            => app(BranchService::class)->getAllBranches(),
+            'branches'            => $branches,
+            // 'branches'            => $branchService->getAllBranches(),
             'categories'          => app(CategoryService::class)->getAllCategories(),
             'clients'             => app(ClientService::class)->getAllClients(),
-            'statusOptions'       => OrderStatus::forSelect(),
+            'statusOptions'       => $statusOptions,
+            'originBranch'        => $originBranch,
+            'destinationBranches' => $destinationBranches,
         ]);
     }
 
@@ -224,15 +251,33 @@ class OrderWebController extends BaseOrderController
     {
         $order = $this->orderService->getOrderById($id);
         $this->authorize('update', $order);
+
         try {
             $order = $this->orderService->updateOrder($id, $request->all());
 
-            // Redirigir según el tipo de cliente del pedido actualizado
-            $route = ($order->customer_type === 'App\Models\Branch')
-                ? 'web.orders.purchases'
-                : 'web.orders.index';
+            $userBranchId = $this->currentBranchId();
 
-            return redirect()->route($route)->with('success', 'Orden actualizada.');
+            if ($order->customer_type === \App\Models\Branch::class) {
+
+                // Soy sucursal ORIGEN (envía)
+                if ((int) $order->branch_id === (int) $userBranchId) {
+                    return redirect()
+                        ->route('web.orders.index')
+                        ->with('success', 'Pedido actualizado correctamente.');
+                }
+
+                // Soy sucursal DESTINO (recibe / compra)
+                if ((int) $order->customer_id === (int) $userBranchId) {
+                    return redirect()
+                        ->route('web.orders.purchases')
+                        ->with('success', 'Pedido actualizado correctamente.');
+                }
+            }
+
+            // Pedido a cliente
+            return redirect()
+                ->route('web.orders.index')
+                ->with('success', 'Orden actualizada correctamente.');
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()
                 ->back()

@@ -58,14 +58,12 @@ class SaleService
     {
         $branchId = $this->currentBranchId();
 
-        $sales = Sale::with(['branch', 'customer'])
+        return Sale::with(['branch', 'customer'])
             ->forBranch($branchId)
             ->orderBy('created_at', 'desc')
-            ->get();
-
-        return $sales->map(
-            fn($sale, $index) => $this->formatForDataTable($sale, $index)
-        )->toArray();
+            ->get()
+            ->map(fn(Sale $sale, $index) => $this->formatSaleForDataTable($sale, $index))
+            ->toArray();
     }
 
     /**

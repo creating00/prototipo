@@ -105,6 +105,8 @@ class OrderService
         $order = $this->getOrderById($id);
         $validated = $this->validateOrderData($data, $order->id);
 
+        $validated['branch_id'] = $order->branch_id;
+
         return DB::transaction(function () use ($order, $validated) {
             $this->itemProcessor->releaseStock($order);
             $order->items()->delete();
@@ -320,8 +322,11 @@ class OrderService
                 $rules['client_id'] = 'required|exists:clients,id';
             }
         } elseif (($data['customer_type'] ?? null) === \App\Models\Branch::class) {
-
-            $rules['branch_recipient_id'] = 'required|exists:branches,id';
+            if (isset($data['customer_id'])) {
+                $rules['customer_id'] = 'required|exists:branches,id';
+            } else {
+                $rules['branch_recipient_id'] = 'required|exists:branches,id';
+            }
         }
 
         /**

@@ -5,11 +5,29 @@
 @section('content')
     <x-adminlte.alert-manager />
 
-    <x-adminlte.form action="{{ route('web.orders.store') }}" method="POST" title="Crear Nuevo Pedido"
-        submit-text="Guardar Pedido" submitting-text="Registrando pedido...">
+    <x-adminlte.form id="orderForm" action="{{ route('web.orders.store') }}" method="POST" title="Crear Nuevo Pedido">
+        {{-- Header Actions --}}
+        <x-slot:headerActions>
+            <a href="{{ route('web.orders.index') }}" class="btn btn-sm btn-default mr-1">
+                Cancelar
+            </a>
+
+            <button type="submit" form="orderForm" class="btn btn-sm btn-primary" x-bind:disabled="submitting">
+                <i class="fas fa-save mr-1"></i>
+                <span x-show="!submitting">
+                    Guardar Pedido <span class="kbd-shortcut">F12</span>
+                </span>
+                <span x-show="submitting" x-cloak>
+                    Registrando pedido...
+                </span>
+            </button>
+        </x-slot:headerActions>
+
+        {{-- Datos ocultos --}}
         <input type="hidden" name="customer_type" value="App\Models\Client">
         <input type="hidden" id="existing_order_items" value="[]">
 
+        {{-- Formulario --}}
         @include('admin.order.partials._form', [
             'order' => null,
             'branches' => $branches,

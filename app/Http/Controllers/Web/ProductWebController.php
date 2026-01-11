@@ -99,19 +99,26 @@ class ProductWebController extends BaseProductController
         $isAdmin = $user->hasRole('admin');
         $branchUserId = $this->currentBranchId();
 
-        // Obtenemos el producto. 
-        // Si no es admin, el service probablemente ya filtra que pertenezca a la sucursal.
+        // Obtiene el producto (falle solo si el ID de producto no existe en absoluto)
         $product = $this->productService->getProductForEdit($id, $branchUserId);
-
         $this->authorize('update', $product);
 
-        // Obtenemos la relación de sucursal específica
-        $productBranch = $product->productBranches->firstOrFail();
+        // Intentamos obtener la relación desde la colección cargada
+        $productBranch = $product->productBranches->first();
 
-        // Lógica de sucursales para el ViewModel
+        // Si no existe, instanciamos uno nuevo en memoria para el formulario
+        if (!$productBranch) {
+            $productBranch = new \App\Models\ProductBranch([
+                'product_id' => $product->id,
+                'branch_id' => $branchUserId,
+                'stock' => 0,
+                'status' => \App\Enums\ProductStatus::Available
+            ]);
+        }
+
         $branches = $isAdmin
             ? app(BranchService::class)->getAllBranches()
-            : app(BranchService::class)->getAllBranches()->where('id', $productBranch->branch_id);
+            : app(BranchService::class)->getAllBranches()->where('id', $branchUserId);
 
         $formData = new ProductFormData(
             product: $product,
@@ -120,7 +127,7 @@ class ProductWebController extends BaseProductController
             currencyOptions: CurrencyType::forSelect(),
             branches: $branches,
             categories: app(CategoryService::class)->getAllCategories(),
-            provinces: Province::orderBy('name')->get(),
+            provinces: \App\Models\Province::orderBy('name')->get(),
             branchUserId: $branchUserId,
             isAdmin: $isAdmin
         );
@@ -138,7 +145,8 @@ class ProductWebController extends BaseProductController
                 product: $product,
                 data: $request->except(['imageFile', 'imageUrl', 'removeImage']),
                 imageFile: $request->file('imageFile'),
-                imageUrl: $request->input('imageUrl')
+                imageUrl: $request->input('imageUrl'),
+                removeImage: $request->boolean('removeImage')
             );
 
             return redirect()
