@@ -1,8 +1,9 @@
 import orderItems from "./partials/order-items";
-import orderModal from "./partials/order-modal";
-import orderSearch from "./partials/order-search";
+// import orderModal from "./partials/order-modal";
+// import orderSearch from "./partials/order-search";
 import customerType from "./partials/customer-type";
 import branchFilter from "./partials/branch-filter";
+import productAutocomplete from "../sales/partials/product-autocomplete";
 import ShortcutManager from "../../helpers/ShortcutManager.js";
 import ViewManager from "../../helpers/ViewManager.js";
 
@@ -19,9 +20,10 @@ const OrderForm = {
     initModules() {
         if (customerType) customerType.init();
         orderItems.init();
-        orderSearch.init();
-        orderModal.init();
+        // orderSearch.init();
+        // orderModal.init();
         if (branchFilter) branchFilter.init();
+        if (productAutocomplete) productAutocomplete.init();
     },
 
     initShortcuts() {
@@ -49,15 +51,15 @@ const OrderForm = {
                     }
                 },
             },
-            {
-                key: "F4",
-                allowInInputs: true,
-                action: () =>
-                    ShortcutManager.openModal(
-                        "modal-product-search",
-                        'input[type="search"]'
-                    ),
-            },
+            // {
+            //     key: "F4",
+            //     allowInInputs: true,
+            //     action: () =>
+            //         ShortcutManager.openModal(
+            //             "modal-product-search",
+            //             'input[type="search"]'
+            //         ),
+            // },
             {
                 key: "F12",
                 allowInInputs: true,

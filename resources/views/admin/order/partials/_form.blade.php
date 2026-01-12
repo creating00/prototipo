@@ -66,52 +66,30 @@
     <div class="col-md-9">
         <div class="card card-outline card-success mb-3 shadow-sm">
             <div class="card-header">
-                <div class="row align-items-center g-3">
-                    <div class="col-md-6">
-                        <h3 class="card-title mb-0">Productos del Pedido</h3>
+                <div class="row align-items-center w-100 g-3">
+                    <div class="col-md-6 d-flex align-items-center">
+                        <h3 class="card-title mb-0 mt-2">Productos / Items</h3>
                     </div>
                     <div class="col-md-6">
-                        <div class="compact-input-wrapper">
-                            <label class="compact-input-label">
-                                Buscador de Productos <kbd class="kbd-shortcut">F1</kbd>
-                            </label>
-
-                            <div class="input-group input-group-sm">
-                                <input type="text" id="product_search_code" class="form-control compact-input"
-                                    placeholder="Escanee SKU o escriba código..." autocomplete="off">
-
-                                <button type="button" class="btn btn-custom btn-custom-aqua"
-                                    id="btn-open-product-modal">
-                                    <i class="fas fa-list-ul mr-1"></i>
-                                    <span class="kbd-shortcut"
-                                        style="color: inherit; background: rgba(0,0,0,0.1); border: none; box-shadow: none;">
-                                        F4
-                                    </span>
-                                </button>
-                            </div>
-                        </div>
+                        @include('admin.sales.partials.sections._product_search')
                     </div>
                 </div>
             </div>
 
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm table-striped table-hover align-middle mb-0" id="order-items-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width: 35%">Producto</th>
-                                <th style="width: 12%">Stock</th>
-                                <th style="width: 12%">Precio</th>
-                                <th style="width: 12%">Cantidad</th>
-                                <th style="width: 15%">Subtotal</th>
-                                <th style="width: 8%" class="text-center">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-
-                        </tbody>
-                    </table>
-                </div>
+            <div class="table-responsive">
+                <table class="table table-striped table-bsaleed align-middle" id="order-items-table">
+                    <thead>
+                        <tr>
+                            <th width="18%">Producto</th>
+                            <th width="7%">Stock</th>
+                            <th width="20%">Precio</th>
+                            <th width="6%">Cantidad</th>
+                            <th width="15%">Subtotal</th>
+                            <th width="8%"></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
 
             {{-- FOOTER CON SINTAXIS BOOTSTRAP 5 --}}

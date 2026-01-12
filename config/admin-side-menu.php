@@ -4,44 +4,12 @@
 return [
     'items' => [
         [
-            'type' => 'header',
+            'type'  => 'header',
             'title' => 'ADMINISTRACIÓN',
         ],
         [
             'type' => 'submenu',
-            'icon' => 'bi bi-list-ol',
-            'label' => 'Pedidos',
-            'subitems' => [
-                ['href' => 'web.orders.index', 'label' => 'Listar Pedidos'],
-            ],
-        ],
-        [
-            'type' => 'single',
-            'icon' => 'bi bi-cart-fill',
-            'label' => 'Ventas',
-            'href' => 'web.sales.create-client', 'label' => 'Realizar Ventas'
-        ],
-        // [
-        //     'type' => 'submenu',
-        //     'icon' => 'bi bi-cart-fill',
-        //     'label' => 'Ventas',
-        //     'subitems' => [
-        //         ['href' => 'web.sales.index', 'label' => 'Listar Ventas'],
-        //     ],
-        // ],
-        [
-            'type' => 'submenu',
-            'icon' => 'bi bi-box-seam-fill',
-            'label' => 'Productos',
-            'subitems' => [
-                ['href' => 'web.products.index', 'label' => 'Listar Productos'],
-                ['href' => 'web.products.create', 'label' => 'Crear Producto'],
-                ['href' => 'web.categories.index', 'label' => 'Categorías'],
-            ],
-        ],
-        [
-            'type' => 'submenu',
-            'icon' => 'bi bi-people-fill',
+            'icon' => 'bi bi-person-badge',
             'label' => 'Usuarios',
             'subitems' => [
                 ['href' => 'web.users.index', 'label' => 'Listar Usuarios'],
@@ -49,39 +17,73 @@ return [
                 // ['href' => '#', 'label' => 'Roles'],
             ],
         ],
-        // [
-        //     'type' => 'submenu',
-        //     'icon' => 'bi bi-list-ol',
-        //     'label' => 'Sucursales',
-        //     'subitems' => [
-        //         ['href' => 'web.branches.index', 'label' => 'Listar Sucursales'],
-        //     ],
-        // ],
-        // [
-        //     'type' => 'submenu',
-        //     'icon' => 'bi bi-cart-fill',
-        //     'label' => 'Proveedores',
-        //     'subitems' => [
-        //         ['href' => 'web.providers.index', 'label' => 'Listar Proveedores'],
-        //     ],
-        // ],
-        // [
-        //     'type' => 'submenu',
-        //     'icon' => 'bi bi-cart-fill',
-        //     'label' => 'Gastos',
-        //     'subitems' => [
-        //         ['href' => 'web.expenses.index', 'label' => 'Listar Gastos'],
-        //     ],
-        // ],
-        // [
-        //     'type' => 'submenu',
-        //     'icon' => 'bi bi-cart-fill',
-        //     'label' => 'Ventas',
-        //     'subitems' => [
-        //         ['href' => '#', 'label' => 'Nueva Venta'],
-        //         ['href' => '#', 'label' => 'Historial'],
-        //         ['href' => '#', 'label' => 'Reportes'],
-        //     ],
-        // ],
+
+        // VENTAS
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-cart-fill',
+            'label' => 'Ventas',
+            'href'  => 'web.sales.create-client',
+        ],
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-receipt',
+            'label' => 'Registro de Ventas',
+            'href'  => 'web.sales.index',
+        ],
+
+        // GASTOS
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-cash-coin',
+            'label' => 'Gastos',
+            'href'  => 'web.expenses.index',
+        ],
+
+        // PRODUCTOS
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-box-seam',
+            'label' => 'Productos',
+            'href'  => 'web.products.index',
+        ],
+
+        // CLIENTES
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-people-fill',
+            'label' => 'Clientes',
+            'href'  => 'web.clients.index',
+        ],
+
+        // SUCURSALES
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-building',
+            'label' => 'Sucursales',
+            'href'  => 'web.branches.index',
+        ],
+
+        // ANALÍTICO
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-graph-up-arrow',
+            'label' => 'Analítico',
+            'href'  => 'web.analytics.index',
+        ],
+
+        // PEDIDOS
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-list-check',
+            'label' => 'Pedidos',
+            'href'  => 'web.orders.index',
+        ],
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-journal-text',
+            'label' => 'Registro de Pedidos',
+            'href'  => 'web.orders.create-branch',
+        ],
     ],
 ];

@@ -1,31 +1,35 @@
 <?php
-// app/Traits/AuthTrait.php
+
 namespace App\Traits;
 
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 trait AuthTrait
 {
-    protected function currentUser()
+    protected function currentUser(): ?User
     {
         return Auth::user();
-    }
-
-    protected function currentBranchId(): ?int
-    {
-        // Forzamos Auth::user() y verificamos el atributo
-        $user = Auth::user();
-
-        if (!$user) {
-            return null;
-        }
-
-        // Si el id viene como string de la DB, nos aseguramos que sea int
-        return $user->branch_id ? (int) $user->branch_id : null;
     }
 
     protected function userId(): ?int
     {
         return Auth::id();
+    }
+
+    protected function currentBranchId(): ?int
+    {
+        return $this->currentUser()?->branch_id
+            ? (int) $this->currentUser()->branch_id
+            : null;
+    }
+
+    protected function redirectIfNotAdmin(string $route)
+    {
+        if (!$this->currentUser()?->hasRole('admin')) {
+            return redirect()->route($route);
+        }
+
+        return null;
     }
 }

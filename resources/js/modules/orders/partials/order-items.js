@@ -17,14 +17,16 @@ export default {
         this.table = document.querySelector("#order-items-table tbody");
         if (!this.table) return;
 
-        this.table.addEventListener("click", (e) => {
-            const btn = e.target.closest(".btn-remove-item");
-            if (btn) this.removeRow(btn.closest("tr"));
-        });
-
+        // Escucha el evento global. No importa quién lo dispare
+        // (el autocomplete o el escáner), este método agregará el producto.
         document.addEventListener("product:searchByCode", (e) => {
             if (!e.detail?.code) return;
             this.addProductByCode(e.detail.code);
+        });
+
+        this.table.addEventListener("click", (e) => {
+            const btn = e.target.closest(".btn-remove-item");
+            if (btn) this.removeRow(btn.closest("tr"));
         });
 
         this.updateRowIndices();
@@ -57,7 +59,9 @@ export default {
             }
 
             // fetchProduct ya dispara su propio Toast (success o error)
-            const { html } = await fetchProduct(code, branchId);
+            const { html } = await fetchProduct(code, branchId, "order");
+
+            console.log(html);
 
             this.clearInput();
 
@@ -137,7 +141,7 @@ export default {
     },
 
     clearInput() {
-        const input = document.querySelector("#product_search_code");
+        const input = document.querySelector("#product_search_input");
         if (input) {
             input.value = "";
             input.focus();

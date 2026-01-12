@@ -7,7 +7,9 @@
 
 <tr data-id="{{ $product->id }}" data-code="{{ $product->code }}">
     <td>
-        {{ $product->name }}
+        <span class="text-muted small">
+            {{ $product->name }}
+        </span>
         <input type="hidden" name="items[INDEX][product_id]" value="{{ $product->id }}">
     </td>
 
@@ -19,7 +21,7 @@
         <div class="input-group">
             <span class="input-group-text">$</span>
             <input type="number" class="form-control unit-price" name="items[INDEX][unit_price]"
-                value="{{ $unitPrice }}" {{ $allowEditPrice ? '' : 'readonly' }}>
+                value="{{ $unitPrice }}" {{ $allowEditPrice ? 'readonly' : 'readonly' }}>
 
             @if ($allowEditPrice)
                 <button type="button" class="btn btn-outline-warning btn-edit-price" data-status="off"

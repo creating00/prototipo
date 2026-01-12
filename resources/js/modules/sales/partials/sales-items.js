@@ -27,6 +27,7 @@ export default {
                 }
             });
 
+            // RECEPTOR: Escucha el evento del nuevo product-autocomplete.js
             document.addEventListener("product:searchByCode", (e) => {
                 this.addProductByCode(e.detail.code);
             });
@@ -227,7 +228,8 @@ export default {
     },
 
     clearInput() {
-        const input = document.querySelector("#product_search_code");
+        // ACTUALIZADO: Apunta al ID del nuevo buscador predictivo
+        const input = document.querySelector("#product_search_input");
         if (input) {
             input.value = "";
             input.focus();

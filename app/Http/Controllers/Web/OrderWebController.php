@@ -17,6 +17,10 @@ class OrderWebController extends BaseOrderController
 
     public function index()
     {
+        if ($redirect = $this->redirectIfNotAdmin('web.orders.create-branch')) {
+            return $redirect;
+        }
+
         $this->authorize('viewAny', Order::class);
 
         $rowData = $this->orderService->getAllOrdersForDataTable();

@@ -16,6 +16,10 @@ class SaleWebController extends BaseSaleController
 
     public function index()
     {
+        if ($redirect = $this->redirectIfNotAdmin('web.sales.create-client')) {
+            return $redirect;
+        }
+
         $this->authorize('viewAny', Sale::class);
 
         $rowData = $this->saleService->getAllSalesForDataTable();
@@ -29,7 +33,6 @@ class SaleWebController extends BaseSaleController
             'whatsapp-url',
             'customer_type'
         ];
-
 
         return view('admin.sales.index', compact('sales', 'rowData', 'headers', 'hiddenFields'));
     }

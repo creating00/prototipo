@@ -1,7 +1,7 @@
 // resources/js/modules/sales/form.js
 import salesItems from "./partials/sales-items";
-import orderModal from "../../modules/orders/partials/order-modal";
-import orderSearch from "../../modules/orders/partials/order-search";
+// import orderModal from "../../modules/orders/partials/order-modal";
+// import orderSearch from "../../modules/orders/partials/order-search";
 import customerType from "../../modules/orders/partials/customer-type";
 import branchFilter from "../../modules/orders/partials/branch-filter";
 import ShortcutManager from "../../helpers/ShortcutManager.js";
@@ -9,6 +9,7 @@ import ViewManager from "../../helpers/ViewManager.js";
 import salePayment from "./partials/sale-payment";
 import saleDiscount from "./partials/sale-discount";
 import saleSummary from "./partials/sale-summary";
+import productAutocomplete from "./partials/product-autocomplete";
 
 export function initSaleForm({ existingItems = [] } = {}) {
     const customerTypeInput = document.querySelector(
@@ -32,13 +33,14 @@ export function initSaleForm({ existingItems = [] } = {}) {
     }
 
     // 1. Inicialización de componentes
+    productAutocomplete.init();
     customerType.init();
     saleDiscount.init();
     salePayment.init();
     saleSummary.init();
     salesItems.init();
-    orderSearch.init();
-    orderModal.init();
+    //orderSearch.init();
+    //orderModal.init();
     branchFilter.init();
 
     if (existingItems.length) {
@@ -52,7 +54,7 @@ export function initSaleForm({ existingItems = [] } = {}) {
             allowInInputs: true,
             action: () => {
                 const searchInput = document.getElementById(
-                    "product_search_code"
+                    "product_search_input"
                 );
                 if (searchInput) {
                     searchInput.focus();
@@ -65,15 +67,15 @@ export function initSaleForm({ existingItems = [] } = {}) {
             allowInInputs: true,
             action: () => ShortcutManager.openModal("modalClient"),
         },
-        {
-            key: "F4",
-            allowInInputs: true,
-            action: () =>
-                ShortcutManager.openModal(
-                    "modal-product-search",
-                    'input[type="search"]'
-                ),
-        },
+        // {
+        //     key: "F4",
+        //     allowInInputs: true,
+        //     action: () =>
+        //         ShortcutManager.openModal(
+        //             "modal-product-search",
+        //             'input[type="search"]'
+        //         ),
+        // },
         {
             key: "b",
             ctrl: true,
@@ -110,6 +112,6 @@ export function initSaleForm({ existingItems = [] } = {}) {
     // 3. Vista
     ViewManager.initSmartScroll(
         ".card-primary.card-outline",
-        "#product_search_code"
+        "#product_search_input"
     );
 }

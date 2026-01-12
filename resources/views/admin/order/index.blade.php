@@ -78,14 +78,15 @@
                 <x-slot name="headerButtons">
                     @canResource('orders.create_client')
                     {{-- Pedidos Sucursal → Cliente --}}
-                    <x-adminlte.button color="primary" icon="fas fa-user" class="me-1 btn-header-new-client">
+                    <x-adminlte.button color="primary" icon="fas fa-user" class="me-1 btn-header-new-client d-none">
                         Nuevo Pedido a Cliente
                     </x-adminlte.button>
                     @endcanResource
 
-                    {{-- Pedidos Sucursal → Sucursal --}}
+                    {{-- Pedidos Sucursal → Sucursal --}} 
                     @canResource('orders.create_branch')
-                    <x-adminlte.button color="custom-graphite" icon="fas fa-building" class="me-1 btn-header-new-branch">
+                    {{-- custom-graphite --}}
+                    <x-adminlte.button color="primary" icon="fas fa-building" class="me-1 btn-header-new-branch">
                         Nuevo Pedido entre Sucursales
                     </x-adminlte.button>
                     @endcanResource

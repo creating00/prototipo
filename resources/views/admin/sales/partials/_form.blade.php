@@ -59,32 +59,12 @@
         {{-- Productos de la Venta --}}
         <div class="card card-outline card-success mb-3">
             <div class="card-header">
-                {{-- Cambiamos align-items-end por align-items-center --}}
                 <div class="row align-items-center w-100 g-3">
                     <div class="col-md-6 d-flex align-items-center">
-                        {{-- Eliminamos margin bottom para que no desplace el eje --}}
                         <h3 class="card-title mb-0 mt-2">Productos / Items</h3>
                     </div>
                     <div class="col-md-6">
-                        <div class="compact-input-wrapper">
-                            <label class="compact-input-label">
-                                Buscador de Productos <kbd class="kbd-shortcut">F1</kbd>
-                            </label>
-
-                            <div class="input-group input-group-sm">
-                                <input type="text" id="product_search_code" class="form-control compact-input"
-                                    placeholder="Escanee SKU o escriba código..." autocomplete="off">
-
-                                <button type="button" class="btn btn-custom btn-custom-aqua"
-                                    id="btn-open-product-modal">
-                                    <i class="fas fa-list-ul mr-1"></i>
-                                    <span class="kbd-shortcut"
-                                        style="color: inherit; background: rgba(0,0,0,0.1); border: none; box-shadow: none;">
-                                        F4
-                                    </span>
-                                </button>
-                            </div>
-                        </div>
+                        @include('admin.sales.partials.sections._product_search')
                     </div>
                 </div>
             </div>

@@ -55,8 +55,6 @@ class ProductController extends BaseProductController
             return response()->json(['error' => 'Product not found in this branch'], 404);
         }
 
-
-
         return response()->json([
             'product' => [
                 'id'         => $product->id,
@@ -82,6 +80,7 @@ class ProductController extends BaseProductController
     {
         $branchId = $request->get('branch_id');
         $categoryId = $request->get('category_id');
+        $search = $request->get('q'); // Término de búsqueda
 
         if (!$branchId) {
             return response()->json(['error' => 'Branch ID is required'], 400);
@@ -89,14 +88,22 @@ class ProductController extends BaseProductController
 
         $query = Product::query();
 
-        // Filtro por categoría si viene en la petición
+        // Filtro por búsqueda (Nombre o Código)
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%");
+            });
+        }
+
         if ($categoryId) {
             $query->where('category_id', $categoryId);
         }
 
+        // Limitamos a 15 resultados para eficiencia del dropdown
         $products = $query->with(['productBranches' => function ($q) use ($branchId) {
             $q->where('branch_id', $branchId)->with('prices');
-        }])->get();
+        }])->limit(15)->get();
 
         $response = $products->map(function ($product) use ($branchId) {
             $branch = $product->productBranches->first();
