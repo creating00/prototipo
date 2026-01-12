@@ -33,7 +33,7 @@ const OrderForm = {
                 allowInInputs: true,
                 action: () => {
                     const searchInput = document.getElementById(
-                        "product_search_code"
+                        "product_search_input"
                     );
                     if (searchInput) {
                         searchInput.focus();
@@ -80,7 +80,7 @@ const OrderForm = {
         // Mantiene la tarjeta de origen visible mientras haces scroll en la lista de productos
         ViewManager.initSmartScroll(
             ".card-primary.card-outline",
-            "#product_search_code"
+            "#product_search_input"
         );
     },
 

@@ -44,7 +44,7 @@
         ])
     </x-adminlte.form>
 
-    @include('admin.product.partials._modal_product_search')
+    {{-- @include('admin.product.partials._modal_product_search') --}}
     @include('admin.client.partials._modal-create')
 
     {{-- Aquí es donde ocurre la magia: pasamos isBranchTransfer --}}
