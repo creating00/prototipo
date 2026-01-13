@@ -25,8 +25,15 @@
     @include('admin.category.partials._modal-create')
     @include('admin.branch.partials._modal-create')
     @include('admin.product.partials._image-modal-preview')
+    @include('admin.provider.partials._modal-create')
 @endsection
 
 @push('scripts')
-    @vite('resources/js/modules/products/edit.js')
+    <script>
+        // Inyectamos los datos para que el Manager los tome al iniciar
+        window.ProductFormData = {
+            existingProviders: @json($formData->product->providers)
+        };
+    </script>
+    @vite('resources/js/modules/products/product-form.js')
 @endpush

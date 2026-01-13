@@ -22,23 +22,25 @@
         </script>
     @endif
 
-    <x-adminlte.alert-manager />
+    <div class="row justify-content-center">
+        <div class="col-12" style="max-width: 80%;">
+            <x-adminlte.alert-manager />
 
-    <x-adminlte.form id="saleForm" action="{{ route('web.sales.store') }}" title="Nueva Venta">
+            <x-adminlte.form id="saleForm" action="{{ route('web.sales.store') }}" title="Nueva Venta">
+                <x-slot:headerActions>
+                    <a href="{{ route('web.sales.index') }}" class="btn btn-sm btn-default mr-1">Cancelar</a>
+                    <button type="submit" form="saleForm" class="btn btn-sm btn-primary" x-bind:disabled="submitting">
+                        <i class="fas fa-save mr-1"></i>
+                        <span x-show="!submitting">Procesar Pago <span class="kbd-shortcut">F12</span></span>
+                        <span x-show="submitting" x-cloak>Procesando...</span>
+                    </button>
+                </x-slot:headerActions>
 
-        <x-slot:headerActions>
-            <a href="{{ route('web.sales.index') }}" class="btn btn-sm btn-default mr-1">Cancelar</a>
-            <button type="submit" form="saleForm" class="btn btn-sm btn-primary" x-bind:disabled="submitting">
-                <i class="fas fa-save mr-1"></i>
-                <span x-show="!submitting">Procesar Pago <span class="kbd-shortcut">F12</span></span>
-                <span x-show="submitting" x-cloak>Procesando...</span>
-            </button>
-        </x-slot:headerActions>
-
-        {{-- Contenido del Formulario --}}
-        @include('admin.sales.partials._form')
-
-    </x-adminlte.form>
+                {{-- Contenido del Formulario --}}
+                @include('admin.sales.partials._form')
+            </x-adminlte.form>
+        </div>
+    </div>
 
     {{-- @include('admin.product.partials._modal_product_search') --}}
     @include('admin.client.partials._modal-create')

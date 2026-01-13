@@ -13,23 +13,21 @@ class ProviderProductService
 
     public function attachProductToProvider(array $data): ProviderProduct
     {
-        if (!isset($data['branch_id'])) {
-            throw new \InvalidArgumentException('El ID de la sucursal es requerido.');
-        }
+        // Buscamos si ya existe la relación
+        $providerProduct = ProviderProduct::where('product_id', $data['product_id'])
+            ->where('provider_id', $data['provider_id'])
+            ->first();
 
-        // Validamos existencia solo dentro de la sucursal actual
-        $exists = ProviderProduct::where('provider_id', $data['provider_id'])
-            ->where('product_id', $data['product_id'])
-            ->exists();
-
-        if ($exists) {
-            throw ValidationException::withMessages([
-                'product_id' => 'El proveedor ya tiene asociado este producto en esta sucursal.',
-            ]);
+        if ($providerProduct) {
+            // OPCIONAL: Si quieres que registros viejos se vuelvan globales al tocarlos
+            if ($providerProduct->branch_id !== null) {
+                $providerProduct->update(['branch_id' => null]);
+            }
+            return $providerProduct;
         }
 
         return ProviderProduct::create([
-            'branch_id'      => $data['branch_id'],
+            'branch_id'      => null,
             'provider_id'    => $data['provider_id'],
             'product_id'     => $data['product_id'],
             'provider_code'  => $data['provider_code'] ?? null,

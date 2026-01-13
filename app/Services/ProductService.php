@@ -36,6 +36,8 @@ class ProductService
 
         $this->branchService->createBranchDataForProduct($product, $validated);
 
+        $this->syncProviders($product, $validated['providers'] ?? []);
+
         return $product->fresh();
     }
 
@@ -61,7 +63,36 @@ class ProductService
             $this->branchService->updateBranchDataForProduct($product, $validated);
         }
 
+        $this->syncProviders($product, $validated['providers'] ?? []);
+
         return $product->fresh();
+    }
+
+    protected function syncProviders(Product $product, array $providerIds): void
+    {
+        $service = app(ProviderProductService::class);
+
+        $currentIds = \App\Models\ProviderProduct::where('product_id', $product->id)
+            ->pluck('provider_id')
+            ->toArray();
+
+        // Eliminar obsoletos
+        $toDelete = array_diff($currentIds, $providerIds);
+        if (!empty($toDelete)) {
+            \App\Models\ProviderProduct::where('product_id', $product->id)
+                ->whereIn('provider_id', $toDelete)
+                ->delete();
+        }
+
+        // Agregar nuevos como globales
+        $toAdd = array_diff($providerIds, $currentIds);
+        foreach ($toAdd as $id) {
+            $service->attachProductToProvider([
+                'product_id'  => $product->id,
+                'provider_id' => $id,
+                'branch_id'   => null // Relación global explícita
+            ]);
+        }
     }
 
     public function delete(Product $product): void
@@ -83,6 +114,7 @@ class ProductService
     {
         // Cargamos la relación de forma condicional sin filtrar la existencia del producto base
         return Product::with([
+            'providers',
             'category',
             'productBranches' => function ($query) use ($branchId) {
                 $query->where('branch_id', $branchId)->with('prices');
@@ -134,6 +166,7 @@ class ProductService
         $branchId = $branchId ?? $this->currentBranchId();
         $products = Product::with([
             'category',
+            'providers',
             'productBranches' => fn($q) => $q->where('branch_id', $branchId),
             'productBranches.prices',
         ])->get();

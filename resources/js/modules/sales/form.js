@@ -1,6 +1,6 @@
 // resources/js/modules/sales/form.js
 import salesItems from "./partials/sales-items";
-// import orderModal from "../../modules/orders/partials/order-modal";
+import orderModal from "../../modules/orders/partials/order-modal";
 // import orderSearch from "../../modules/orders/partials/order-search";
 import customerType from "../../modules/orders/partials/customer-type";
 import branchFilter from "../../modules/orders/partials/branch-filter";
@@ -40,7 +40,7 @@ export function initSaleForm({ existingItems = [] } = {}) {
     saleSummary.init();
     salesItems.init();
     //orderSearch.init();
-    //orderModal.init();
+    orderModal.init();
     branchFilter.init();
 
     if (existingItems.length) {

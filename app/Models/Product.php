@@ -58,6 +58,15 @@ class Product extends Model
         return $this->hasMany(ProductBranch::class);
     }
 
+    public function providers()
+    {
+        // Relación de muchos a muchos a través de la tabla pivote
+        return $this->belongsToMany(Provider::class, 'provider_products')
+            ->withPivot(['provider_code', 'lead_time_days', 'status'])
+            ->withTimestamps()
+            ->wherePivot('deleted_at', null);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Branch contextual helpers

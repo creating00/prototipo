@@ -19,6 +19,7 @@ class DynamicModal extends Component
     public ?string $formView;
     public array $formData;
     public bool $localSubmit;
+    public ?string $successEvent;
 
     /**
      * Create a new component instance.
@@ -34,6 +35,7 @@ class DynamicModal extends Component
         ?string $refreshUrl = null,
         ?string $formView = null,
         array $formData = [],
+        ?string $successEvent = null,
         bool $localSubmit = false
     ) {
         $this->modalId = $modalId;
@@ -46,6 +48,7 @@ class DynamicModal extends Component
         $this->refreshUrl = $refreshUrl;
         $this->formView = $formView;
         $this->formData = $formData;
+        $this->successEvent = $successEvent;
         $this->localSubmit = $localSubmit;
     }
 

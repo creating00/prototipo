@@ -15,7 +15,7 @@
         </div>
 
         {{-- Descuento --}}
-        <div class="col-6">
+        <div class="col-6 d-none">
             <label for="discount_id" class="form-label small mb-1">
                 Descuento
             </label>
@@ -31,7 +31,7 @@
         </div>
 
         {{-- Descuento aplicado --}}
-        <div class="col-6">
+        <div class="col-6 d-none">
             <small class="text-muted">Descuento aplicado</small>
             <div class="fw-semibold text-danger">
                 - $ <span id="discount_amount_display">
@@ -66,15 +66,18 @@
 <hr class="my-3">
 
 {{-- Datos de pago --}}
-<div class="row g-3 equal-height-selects align-items-center">
+<div class="row g-3 equal-height-selects">
     <div class="col-md-3">
         <x-bootstrap.compact-input id="sale_date" name="sale_date_modal" type="date" label="Fecha de Venta"
             value="{{ $saleDate }}" />
     </div>
 
-    <div class="col-md-3 compact-select-wrapper">
-        <x-adminlte.select name="payment_type_modal" label="" :options="$paymentOptions" :value="old('payment_type', $sale->payment_type ?? 1)"
-            :showPlaceholder="false" />
+    <div class="col-md-3">
+        <div class="compact-select-wrapper">
+            <x-adminlte.select name="payment_type_modal" label="" :options="$paymentOptions" :value="old('payment_type', $sale->payment_type ?? 1)"
+                :showPlaceholder="false" />
+        </div>
+
     </div>
 
     <div class="col-md-3">

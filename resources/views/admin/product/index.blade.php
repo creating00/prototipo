@@ -27,15 +27,20 @@
             {{-- Botones de cabecera --}}
             <x-slot name="headerButtons">
                 @canResource('products.create')
-                <a href="{{ route('web.products.create') }}">
-                    <x-adminlte.button color="primary" icon="fas fa-plus">
-                        Nuevo Producto
-                    </x-adminlte.button>
-                </a>
+                <x-adminlte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-new">
+                    Nuevo Producto
+                </x-adminlte.button>
+                @endcanResource
+
+                @canResource('providers.create')
+                <x-adminlte.button color="custom-dark-blue" icon="fas fa-plus" class="me-1 btn-header-new-provider">
+                    Nuevo Proveedor
+                </x-adminlte.button>
                 @endcanResource
             </x-slot>
         </x-adminlte.data-table>
     </div>
+    @include('admin.provider.partials._modal-create')
 @endsection
 
 @push('scripts')

@@ -23,7 +23,7 @@ class ProductWebController extends BaseProductController
         $this->authorize('viewAny', Product::class);
         $rowData = $this->productService->getAllForDataTable();
 
-        $headers = ['#', 'Código', 'Nombre', 'Precio Compra', 'Precio Venta', 'Stock', 'Estado'];
+        $headers = ['#', 'Código', 'Nombre', 'Precio Compra', 'Precio Venta', 'Stock', 'Proveedor/es', 'Estado'];
         $hiddenFields = ['id', 'purchase_price_raw', 'sale_price_raw'];
 
         return view('admin.product.index', compact('rowData', 'headers', 'hiddenFields'));

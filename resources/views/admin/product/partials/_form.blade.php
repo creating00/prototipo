@@ -142,6 +142,11 @@
 
 <div>
     <hr class="my-3">
+    @include('admin.product.partials.sections._provider_search')
+</div>
+
+<div>
+    <hr class="my-3">
 
     <h3 class="form-section-title">Ubicación y Clasificación</h3>
 

@@ -59,6 +59,13 @@ export class ModalSubmitHandler {
 
             const data = await HttpClient.post(route, formData, csrf);
 
+            const successEventName = button.dataset.successEvent;
+            if (successEventName) {
+                document.dispatchEvent(
+                    new CustomEvent(successEventName, { detail: data })
+                );
+            }
+
             if (selectId) {
                 await this.selectUpdater.update(
                     selectId,

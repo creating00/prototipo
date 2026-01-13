@@ -3,6 +3,7 @@
 @section('page-title', 'Crear Pedido')
 
 @section('content')
+
     <x-adminlte.alert-manager />
 
     <x-adminlte.form id="orderForm" action="{{ route('web.orders.store') }}" method="POST" title="Crear Nuevo Pedido">

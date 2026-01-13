@@ -47,6 +47,7 @@
                     @if ($route) data-route="{{ $route }}" @endif
                     @if (!empty($localSubmit) && $localSubmit) data-local-submit="true" @endif
                     @if ($selectId) data-select-id="{{ $selectId }}" @endif
+                    @if($successEvent) data-success-event="{{ $successEvent }}" @endif
                     data-field-name="display_name" data-refresh-on-save="{{ $refreshOnSave ? 'true' : 'false' }}"
                     data-refresh-url="{{ $refreshUrl ?? '' }}">
                     <span class="spinner-border spinner-border-sm d-none me-2"></span>

@@ -1,85 +1,66 @@
 import { getCurrentBranchId } from "../../../config/datatables";
-import orderModal from "../../orders/partials/order-modal";
+import AutocompleteBase from "../../../helpers/autocomplete-base";
 
 export default {
-    input: null,
-    resultsList: null,
-    spinner: null,
-    template: null,
-    currentIndex: -1,
-    debounceTimeout: null,
-    abortController: null,
-    cache: {},
+    instance: null,
+    templateEmpty: null,
 
     init() {
-        this.input = document.querySelector("#product_search_input");
-        this.resultsList = document.querySelector("#search-results-list");
-        this.spinner = document.querySelector("#search-spinner");
-        this.template = document.querySelector("#tpl-search-item");
         this.templateEmpty = document.querySelector("#tpl-search-empty");
 
-        if (this.input) {
-            this.setupEvents();
-            this.setupExtraActions();
-        }
-    },
-
-    setupEvents() {
-        this.input.addEventListener("input", () => this.handleInput());
-        this.input.addEventListener("keydown", (e) => this.handleNavigation(e));
-
-        document.addEventListener("click", (e) => {
-            if (
-                !this.input.contains(e.target) &&
-                !this.resultsList?.contains(e.target)
-            ) {
-                this.hideResults();
-            }
+        this.instance = new AutocompleteBase({
+            inputSelector: "#product_search_input",
+            resultsListSelector: "#search-results-list",
+            spinnerSelector: "#search-spinner",
+            templateSelector: "#tpl-search-item",
         });
-    },
 
-    // Unificamos el botón de búsqueda manual (lupa) si existe
-    setupExtraActions() {
-        const btnSearch = document.querySelector("#btn-search-product");
-        if (btnSearch) {
-            btnSearch.addEventListener("click", () => this.openProductModal());
+        if (this.instance.input) {
+            // Desvincular el evento base para usar nuestra lógica de delay (Barcode)
+            this.instance.input.removeEventListener(
+                "input",
+                this.instance.handleInput
+            );
+
+            this.instance.input.addEventListener("input", () =>
+                this.handleCustomInput()
+            );
+
+            this.instance.search = (query) => this.search(query);
         }
     },
 
-    openProductModal() {
-        if (orderModal.dataTable) orderModal.reloadTable();
-        $("#productSearchModal").modal("show");
-    },
-
-    handleInput() {
-        clearTimeout(this.debounceTimeout);
-        const query = this.input.value.trim();
+    handleCustomInput() {
+        clearTimeout(this.instance.debounceTimeout);
+        const query = this.instance.input.value.trim();
 
         if (query.length < 2) {
-            this.cancelSearch();
-            this.hideResults();
+            this.instance.cancelSearch();
+            this.instance.hideResults();
             return;
         }
 
-        // 1. Verificar Cache antes de ir al servidor
-        if (this.cache[query]) {
-            this.renderResults(this.cache[query]);
+        if (this.instance.cache[query]) {
+            this.renderResults(this.instance.cache[query]);
             return;
         }
 
-        // 2. Si parece un código de barras (ej. más de 8 caracteres),
-        // disparamos más rápido (100ms) que una búsqueda normal (250ms)
+        // Lógica específica: barcode (rápido) vs nombre (normal)
         const delay = query.length > 7 ? 100 : 250;
-        this.debounceTimeout = setTimeout(() => this.search(query), delay);
+        this.instance.debounceTimeout = setTimeout(
+            () => this.search(query),
+            delay
+        );
     },
 
     async search(query) {
-        this.cancelSearch();
+        this.instance.cancelSearch();
         const branchId = getCurrentBranchId();
         if (!branchId) return;
 
-        this.abortController = new AbortController();
-        if (this.spinner) this.spinner.style.display = "block";
+        this.instance.abortController = new AbortController();
+        if (this.instance.spinner)
+            this.instance.spinner.style.display = "block";
 
         try {
             const url = `/api/inventory/list?q=${encodeURIComponent(
@@ -87,58 +68,42 @@ export default {
             )}&branch_id=${branchId}`;
             const response = await fetch(url, {
                 headers: { Accept: "application/json" },
-                signal: this.abortController.signal,
+                signal: this.instance.abortController.signal,
             });
 
             const data = await response.json();
             const products = Array.isArray(data) ? data : data.data || [];
 
-            // 3. Guardar en cache para la próxima vez
-            this.cache[query] = products;
-
+            this.instance.cache[query] = products;
             this.renderResults(products);
         } catch (error) {
             if (error.name === "AbortError") return;
-            console.error("Autocomplete Error:", error);
             this.renderResults([]);
         } finally {
-            if (this.spinner) this.spinner.style.display = "none";
-        }
-    },
-
-    clearCache() {
-        this.cache = {};
-    },
-
-    cancelSearch() {
-        if (this.abortController) {
-            this.abortController.abort();
-            this.abortController = null;
+            if (this.instance.spinner)
+                this.instance.spinner.style.display = "none";
         }
     },
 
     renderResults(products) {
-        if (!this.resultsList) return;
+        const list = this.instance.resultsList;
+        if (!list) return;
 
-        // SEGURIDAD: Si el input está vacío, no renderizar nada.
-        // Esto evita que una respuesta lenta de la API muestre resultados
-        // después de que el escáner limpió el input.
-        if (this.input.value.trim() === "") {
-            this.hideResults();
+        if (this.instance.input.value.trim() === "") {
+            this.instance.hideResults();
             return;
         }
 
-        this.resultsList.innerHTML = "";
-        const items = Array.isArray(products) ? products : products.data || [];
-        this.currentIndex = items.length > 0 ? 0 : -1;
+        list.innerHTML = "";
+        this.instance.currentIndex = products.length > 0 ? 0 : -1;
 
-        if (items.length === 0) {
+        if (products.length === 0) {
             this.showEmptyState();
             return;
         }
 
-        items.forEach((product, index) => {
-            const clone = this.template.content.cloneNode(true);
+        products.forEach((product, index) => {
+            const clone = this.instance.template.content.cloneNode(true);
             const link = clone.querySelector(".dropdown-item");
             if (index === 0) link.classList.add("active");
 
@@ -155,85 +120,38 @@ export default {
                 this.selectProduct(product.code);
             });
 
-            this.resultsList.appendChild(clone);
+            list.appendChild(clone);
         });
 
-        this.showResults();
-    },
-
-    handleNavigation(e) {
-        if (e.key === "Enter" && this.currentIndex === -1) {
-            // Si presiona Enter y no hay resultados desplegados,
-            // intentamos buscar directamente el código escrito
-            const code = this.input.value.trim();
-            if (code) {
-                e.preventDefault();
-                this.selectProduct(code);
-            }
-            return;
-        }
-
-        const items = this.resultsList.querySelectorAll(".dropdown-item");
-        if (!items.length) return;
-
-        if (e.key === "ArrowDown") {
-            e.preventDefault();
-            this.currentIndex = Math.min(
-                this.currentIndex + 1,
-                items.length - 1
-            );
-            this.highlightItem(items);
-        } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            this.currentIndex = Math.max(this.currentIndex - 1, 0);
-            this.highlightItem(items);
-        } else if (e.key === "Enter") {
-            if (this.currentIndex >= 0) {
-                e.preventDefault();
-                items[this.currentIndex].click();
-            }
-        } else if (e.key === "Escape") {
-            this.hideResults();
-        }
-    },
-
-    highlightItem(items) {
-        items.forEach((item, index) => {
-            item.classList.toggle("active", index === this.currentIndex);
-            if (index === this.currentIndex)
-                item.scrollIntoView({ block: "nearest" });
-        });
+        this.instance.showResults();
     },
 
     selectProduct(code) {
-        this.cancelSearch(); // NUEVO: Cancelamos cualquier búsqueda en curso inmediatamente
+        this.instance.cancelSearch();
         document.dispatchEvent(
-            new CustomEvent("product:searchByCode", {
-                detail: { code },
-            })
+            new CustomEvent("product:searchByCode", { detail: { code } })
         );
-        this.input.value = "";
-        this.hideResults();
-    },
-
-    showResults() {
-        this.resultsList.style.display = "block";
-        this.resultsList.classList.add("show");
-    },
-
-    hideResults() {
-        if (this.resultsList) {
-            this.resultsList.style.display = "none";
-            this.resultsList.classList.remove("show");
-        }
-        this.currentIndex = -1;
+        this.instance.input.value = "";
+        this.instance.hideResults();
     },
 
     showEmptyState() {
         if (this.templateEmpty) {
             const clone = this.templateEmpty.content.cloneNode(true);
-            this.resultsList.appendChild(clone);
-            this.showResults();
+            this.instance.resultsList.appendChild(clone);
+            this.instance.showResults();
+        }
+    },
+
+    setupExtraActions() {
+        const btnSearch = document.querySelector("#btn-search-product");
+        if (btnSearch) {
+            btnSearch.addEventListener("click", () => {
+                // Notificamos que se requiere abrir la búsqueda avanzada
+                document.dispatchEvent(
+                    new CustomEvent("product:openAdvancedSearch")
+                );
+            });
         }
     },
 };

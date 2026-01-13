@@ -61,8 +61,6 @@ export default {
             // fetchProduct ya dispara su propio Toast (success o error)
             const { html } = await fetchProduct(code, branchId, "order");
 
-            console.log(html);
-
             this.clearInput();
 
             const row = this.findRow(code);

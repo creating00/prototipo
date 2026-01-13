@@ -15,8 +15,9 @@
     @include('admin.category.partials._modal-create')
     @include('admin.branch.partials._modal-create')
     @include('admin.product.partials._image-modal-preview')
+    @include('admin.provider.partials._modal-create')
 @endsection
 
 @push('scripts')
-    @vite('resources/js/modules/products/create.js')
+    @vite('resources/js/modules/products/product-form.js')
 @endpush

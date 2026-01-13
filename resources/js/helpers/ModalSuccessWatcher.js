@@ -5,45 +5,52 @@ export class ModalSuccessWatcher {
     /**
      * @param {string} modalId - El ID del elemento modal.
      * @param {Function} onSuccess - Callback a ejecutar si se detecta éxito.
+     * @param {string|null} eventName - Nombre del evento global a escuchar para capturar datos (opcional).
      */
-    static watch(modalId, onSuccess) {
+    static watch(modalId, onSuccess, eventName = null) {
         const modalElement = document.getElementById(modalId);
         if (!modalElement) return;
 
         let formSubmitted = false;
+        let capturedData = null;
+
         const saveBtn = modalElement.querySelector(
             "[data-dynamic-modal-submit]"
         );
 
-        // Registrar intento de envío
+        // Handler para capturar datos si se especificó un evento
+        const dataHandler = (e) => {
+            capturedData = e.detail?.data || e.detail;
+        };
+
+        if (eventName) {
+            document.addEventListener(eventName, dataHandler);
+        }
+
         const clickHandler = () => {
             formSubmitted = true;
         };
 
         saveBtn?.addEventListener("click", clickHandler);
 
-        // Detectar cierre del modal
         modalElement.addEventListener(
             "hidden.bs.modal",
             function listener() {
-                /**
-                 * Lógica de éxito:
-                 * 1. El usuario hizo clic en guardar.
-                 * 2. El botón no está deshabilitado (el proceso terminó).
-                 * 3. El formulario se reseteó (comportamiento del core en éxito).
-                 */
                 const form = modalElement.querySelector("form");
 
                 if (formSubmitted && saveBtn && !saveBtn.disabled && form) {
-                    // Verificación adicional: si el form se reseteó, los campos requeridos suelen estar vacíos
-                    // o simplemente confiamos en que el core cerró el modal tras el éxito.
-                    onSuccess();
+                    // Se pasa capturedData (será null si no hay evento o no se disparó)
+                    onSuccess(capturedData);
                 }
 
                 // Limpieza total
                 saveBtn?.removeEventListener("click", clickHandler);
+                if (eventName) {
+                    document.removeEventListener(eventName, dataHandler);
+                }
                 modalElement.removeEventListener("hidden.bs.modal", listener);
                 formSubmitted = false;
+                capturedData = null;
             },
             { once: true }
         );

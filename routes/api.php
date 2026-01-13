@@ -34,6 +34,10 @@ Route::prefix('inventory')->group(function () {
     Route::get('by-code/{code}', [ProductController::class, 'findByCode']);
 });
 Route::apiResource('products', ProductController::class);
+
+Route::get('providers/search', [ProviderController::class, 'search'])->name('providers.search');
+Route::get('providers/list-basic', [ProviderController::class, 'listBasic'])->name('providers.list-basic');
+
 Route::apiResource('providers', ProviderController::class);
 Route::prefix('providers/{provider}')->group(function () {
     // Obtener lista de productos (usada por tu Select dinámico)
@@ -50,6 +54,7 @@ Route::prefix('providers/{provider}')->group(function () {
     Route::put('products/{providerProduct}', [ProviderProductController::class, 'update'])
         ->name('providers.products.update');
 });
+
 Route::get('/clients/search', [ClientController::class, 'search']);
 Route::apiResource('clients', ClientController::class);
 // Rutas públicas para e-commerce (creación de órdenes)

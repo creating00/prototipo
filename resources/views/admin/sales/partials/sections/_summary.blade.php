@@ -17,29 +17,27 @@
 
 <hr class="my-2">
 
-{{-- Total + Estado + Notas --}}
-<div class="row g-2 align-items-stretch">
-
-    {{-- Total y Estado --}}
-    <div class="col-8 d-flex flex-column justify-content-between">
-        <div>
-            <small class="text-muted">Total</small>
-            <div class="fs-3 fw-bold text-success lh-1">
-                $ <span id="summary_total">0.00</span>
-            </div>
-        </div>
-
-        <div class="mt-2">
-            <small class="text-muted">Estado del Pago</small>
-            <div id="summary_payment_status">
-                <span class="badge bg-secondary">Pendiente</span>
-            </div>
+{{-- Total + Estado + Notas (una línea) --}}
+<div class="row g-2 align-items-center">
+    {{-- Total --}}
+    <div class="col-auto d-flex flex-column me-4">
+        <small class="text-muted">Total</small>
+        <div class="fs-5 fw-bold text-success lh-1">
+            $ <span id="summary_total">0.00</span>
         </div>
     </div>
 
-    {{-- Notas --}}
-    <div class="col-4">
-        <x-bootstrap.compact-text-area id="notes" name="notes" label="Notas" rows="5"
+    {{-- Estado del Pago --}}
+    <div class="col-auto me-4">
+        <small class="text-muted d-block">Estado del Pago</small>
+        <div id="summary_payment_status">
+            <span class="badge bg-secondary">Pendiente</span>
+        </div>
+    </div>
+
+    {{-- Notas (ocupa el resto del espacio) --}}
+    <div class="col">
+        <x-bootstrap.compact-text-area id="notes" name="notes" label="Notas" rows="2"
             placeholder="Observaciones..." value="{{ old('notes', $sale->notes ?? '') }}" />
     </div>
 </div>

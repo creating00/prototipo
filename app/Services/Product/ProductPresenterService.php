@@ -14,6 +14,33 @@ class ProductPresenterService
             $purchaseModel = $product->purchasePriceModel($branchId);
             $saleModel = $product->salePriceModel($branchId);
 
+            $providers = $product->providers;
+            $count = $providers->count();
+            $providerHtml = '<span class="text-muted small">Sin proveedores</span>';
+
+            if ($count > 0) {
+                // Nombres para los spans visibles
+                $displayNames = $providers->take(2)->pluck('business_name');
+
+                // Nombres para el tooltip (todos los proveedores)
+                $allNames = $providers->pluck('business_name')->implode("\n");
+
+                $htmlParts = $displayNames->map(
+                    fn($name) =>
+                    "<span class='d-block small text-truncate' style='line-height: 1.2; max-width: 150px;'>" . e($name) . "</span>"
+                );
+
+                if ($count > 2) {
+                    $extra = $count - 2;
+                    // Agregamos el atributo title con la lista completa
+                    $htmlParts->push(
+                        "<span class='text-primary small fw-bold cursor-help' title='" . e($allNames) . "'>+{$extra} más</span>"
+                    );
+                }
+
+                $providerHtml = $htmlParts->implode('');
+            }
+
             return [
                 'id' => $product->id,
                 'number' => $index + 1,
@@ -24,6 +51,7 @@ class ProductPresenterService
                 'purchase_price_raw' => $purchaseModel?->amount,
                 'sale_price_raw' => $saleModel?->amount,
                 'stock' => $product->getStock($branchId),
+                'provider' => $providerHtml,
                 'status' => $this->resolveProductStatusBadge($product->getStatus($branchId)),
             ];
         })->toArray();

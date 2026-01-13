@@ -1,11 +1,13 @@
 import orderItems from "./partials/order-items";
-// import orderModal from "./partials/order-modal";
+import orderModal from "./partials/order-modal";
 // import orderSearch from "./partials/order-search";
 import customerType from "./partials/customer-type";
 import branchFilter from "./partials/branch-filter";
 import productAutocomplete from "../sales/partials/product-autocomplete";
 import ShortcutManager from "../../helpers/ShortcutManager.js";
 import ViewManager from "../../helpers/ViewManager.js";
+
+import orderCurrency from "./partials/order-currency";
 
 const OrderForm = {
     init() {
@@ -21,7 +23,8 @@ const OrderForm = {
         if (customerType) customerType.init();
         orderItems.init();
         // orderSearch.init();
-        // orderModal.init();
+        orderCurrency.init();
+        orderModal.init();
         if (branchFilter) branchFilter.init();
         if (productAutocomplete) productAutocomplete.init();
     },

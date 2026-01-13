@@ -1,5 +1,6 @@
 import { TableManager } from "../../components/TableManager";
 import { deleteItem } from "../../utils/deleteHelper";
+import { ModalSuccessWatcher } from "../../helpers/ModalSuccessWatcher";
 
 const TABLE_CONFIG = {
     tableId: "products-table",
@@ -26,6 +27,25 @@ const TABLE_CONFIG = {
             selector: ".btn-header-new",
             handler: (baseUrl) => {
                 window.location.href = `${baseUrl}/create`;
+            },
+        },
+        newProvider: {
+            selector: ".btn-header-new-provider",
+            handler: () => {
+                const modalId = "modalProvider";
+                const modalElement = document.getElementById(modalId);
+
+                if (modalElement) {
+                    const modal =
+                        bootstrap.Modal.getOrCreateInstance(modalElement);
+
+                    // Observamos el éxito del modal para refrescar la tabla
+                    ModalSuccessWatcher.watch(modalId, () => {
+                        window.location.reload();
+                    });
+
+                    modal.show();
+                }
             },
         },
     },
