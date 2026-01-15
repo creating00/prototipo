@@ -9,7 +9,7 @@
                 <div class="input-group input-group-sm">
                     {{-- Input de búsqueda --}}
                     <input type="text" id="provider_search_input" class="form-control compact-input"
-                        placeholder="Buscar por RUC, Razón Social o Nombre Corto..." autocomplete="off">
+                        placeholder="Buscar por CUIT, Razón Social o Nombre Corto..." autocomplete="off">
 
                     {{-- Contador al lado del input --}}
                     <span class="input-group-text bg-light border-end-0 text-muted" id="provider-count-display"
@@ -65,7 +65,7 @@
                         <thead class="table-dark">
                             <tr>
                                 <th>Razón Social</th>
-                                <th>Tax ID (CUIT/RUC)</th>
+                                <th>CUIT</th>
                                 <th>Teléfono</th>
                                 <th class="text-end">Acción</th>
                             </tr>

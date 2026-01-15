@@ -37,20 +37,26 @@ export function productModalAjax(data, callback, settings) {
 }
 
 /**
- * Obtiene el ID de sucursal que provee el stock (Origen).
- * @returns {string|null}
+ * Obtiene el ID de sucursal que debe usarse para filtrar stock.
+ * Prioridad:
+ * 1. branch_recipient_id (si existe)
+ * 2. current_branch_id (ventas)
+ * 3. branch_id (origen)
  */
 export function getCurrentBranchId() {
-    // 1. Buscamos el input explícito de sucursal de origen (Ventas)
-    const branchIdInput = document.getElementById("current_branch_id");
-    if (branchIdInput?.value) return branchIdInput.value;
-
-    // 2. Fallback para Órdenes/Traspasos si fuera necesario
-    const sender = document.querySelector('select[name="branch_id"]');
+    // 1. Sucursal destinataria (traspasos / órdenes)
     const recipient = document.querySelector(
         'select[name="branch_recipient_id"]'
     );
+    if (recipient?.value) return recipient.value;
 
-    // En Ventas, siempre queremos el origen para ver stock
-    return sender?.value || recipient?.value || null;
+    // 2. Input explícito (ventas)
+    const branchIdInput = document.getElementById("current_branch_id");
+    if (branchIdInput?.value) return branchIdInput.value;
+
+    // 3. Sucursal origen
+    const sender = document.querySelector('select[name="branch_id"]');
+    if (sender?.value) return sender.value;
+
+    return null;
 }

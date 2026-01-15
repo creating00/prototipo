@@ -47,6 +47,11 @@
 
             {{-- Botones superiores --}}
             <x-slot name="headerButtons">
+                @canResource('repair_amounts.viewAny')
+                <a href="{{ route('web.repair-amounts.index') }}" class="btn btn-outline-info me-1">
+                    <i class="fas fa-tools me-1"></i> Configurar Montos
+                </a>
+                @endcanResource
                 {{-- Ventas Sucursal → Cliente --}}
                 @canResource('sales.create_client')
                 <x-adminlte.button color="primary" icon="fas fa-user" class="me-1 btn-header-new-client">
@@ -60,6 +65,13 @@
                     Nueva Venta entre Sucursales
                 </x-adminlte.button>
                 @endcanResource
+
+                {{-- @canResource('repair_amounts.create')
+                <x-adminlte.button color="info" icon="fas fa-tools" class="me-1 btn-header-new-repair"
+                    data-url="{{ route('web.repair-amounts.index') }}">
+                    Nuevo Monto de Reparación
+                </x-adminlte.button>
+                @endcanResource --}}
             </x-slot>
         </x-adminlte.data-table>
     </div>

@@ -58,6 +58,15 @@ class SaleWebController extends BaseSaleController
         $branchService = app(\App\Services\BranchService::class);
         $categoryService = app(\App\Services\CategoryService::class);
         $discountService = app(\App\Services\DiscountService::class);
+        $repairAmountService = app(\App\Services\RepairAmountService::class);
+        $userBranchId = $this->currentBranchId();
+
+        $activeRepairAmounts = \App\Models\RepairAmount::query()
+            ->forBranch($userBranchId)
+            ->active()
+            ->get()
+            ->pluck('amount', 'repair_type.value') // [type_id => amount]
+            ->toArray();
 
         // Opciones base de pago
         $paymentOptions = [
@@ -74,12 +83,14 @@ class SaleWebController extends BaseSaleController
 
         $data = [
             'customer_type'   => $customerType,
-            'branches'        => $branchService->getAllBranches(),
             'categories'      => $categoryService->getAllCategories(),
             'statusOptions'   => SaleStatus::forSelect(),
             'saleTypeOptions' => SaleType::forSelect(),
             'repairTypes'     => RepairType::forSelect(),
-            'saleDate'        => $sale ? \Carbon\Carbon::parse($sale->sale_date)->format('Y-m-d') : now()->format('Y-m-d'),
+            'repairAmountsMap' => $activeRepairAmounts,
+            'saleDate'        => $sale
+                ? \Carbon\Carbon::parse($sale->sale_date)->format('Y-m-d')
+                : now()->format('Y-m-d'),
             'paymentOptions'  => $paymentOptions,
             'discountOptions' => $discountService->getForSelect(),
             'discountMap'     => $discountService->getValueMap(),
@@ -87,11 +98,21 @@ class SaleWebController extends BaseSaleController
 
         if ($customerType === 'App\Models\Client') {
             $clientService = app(\App\Services\ClientService::class);
+
+            $originBranch = $branchService->getUserBranch($userBranchId);
+            if (!$originBranch) {
+                abort(404, 'Sucursal de origen no encontrada.');
+            }
+
+            $data['branches'] = collect([$originBranch]);
+
             $data['clients'] = $clientService->getAllClients();
+
             $defaultDoc = config('app.default_client_document');
-            $data['defaultClientId'] = $data['clients']->where('document', $defaultDoc)->first()?->id;
+            $data['defaultClientId'] = $data['clients']
+                ->where('document', $defaultDoc)
+                ->first()?->id;
         } else {
-            $userBranchId = $this->currentBranchId();
             $originBranch = $branchService->getUserBranch($userBranchId);
 
             if (!$originBranch) {
@@ -99,6 +120,7 @@ class SaleWebController extends BaseSaleController
             }
 
             $data['originBranch'] = $originBranch;
+            $data['branches'] = $branchService->getAllBranches();
             $data['destinationBranches'] = $branchService->getAllBranchesExcept($userBranchId);
         }
 

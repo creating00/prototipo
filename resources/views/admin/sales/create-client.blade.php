@@ -55,6 +55,9 @@
         window.DISCOUNT_AMOUNT_MAP = @json($discountMap);
         //console.log(window.DISCOUNT_AMOUNT_MAP);
     </script>
+    <script>
+        window.repairAmountsMap = @json($repairAmountsMap);
+    </script>
 
     @vite('resources/js/modules/sales/create.js')
 @endpush

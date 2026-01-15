@@ -3,16 +3,19 @@
 @section('page-title', 'Editar Producto')
 
 @section('content')
-    <x-adminlte.alert-manager />
-    <x-adminlte.form action="{{ route('web.products.update', $formData->product) }}" method="POST"
-        title="Editar Producto: {{ $formData->product->name }}" submit-text="Actualizar Producto"
-        submitting-text="Actualizando producto..." enctype="multipart/form-data" {{-- ¡Necesario para subir imágenes! --}}>
-        @method('PUT')
-        @include('admin.product.partials._form', [
-            'formData' => $formData,
-        ])
-    </x-adminlte.form>
-
+    <div class="row justify-content-center">
+        <div class="col-12" style="max-width: 100%;">
+            <x-adminlte.alert-manager />
+            <x-adminlte.form action="{{ route('web.products.update', $formData->product) }}" method="POST"
+                title="Editar Producto: {{ $formData->product->name }}" submit-text="Actualizar Producto"
+                submitting-text="Actualizando producto..." enctype="multipart/form-data" {{-- ¡Necesario para subir imágenes! --}}>
+                @method('PUT')
+                @include('admin.product.partials._form', [
+                    'formData' => $formData,
+                ])
+            </x-adminlte.form>
+        </div>
+    </div>
     <x-adminlte.toast-container>
         <x-adminlte.toast id="toastWarning" color="warning" title="Eliminar imagen" time="Ahora" icon="fas fa-trash">
             <div class="toast-body">

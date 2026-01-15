@@ -19,7 +19,7 @@ enum SaleType: int
     {
         return match ($this) {
             self::Sale   => 'badge-custom badge-custom-pastel-blue', // Ejemplo
-            self::Repair => 'badge-custom badge-custom-pastel-orange', // Ejemplo
+            self::Repair => 'badge-custom badge-custom-pastel-purple', // Ejemplo
         };
     }
 

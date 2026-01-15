@@ -204,3 +204,11 @@
     --badge-shadow: rgba(200, 175, 255, 0.5);
     color: #4b0082 !important;
 }
+
+.badge-custom-outline-carbon {
+    --badge-bg: transparent;
+    --badge-bg-hover: #2d333b;
+    --badge-shadow: rgba(45, 51, 59, 0.2);
+    color: #2d333b !important;
+    border: 1px solid #2d333b !important;
+}

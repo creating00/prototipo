@@ -44,7 +44,22 @@ const salePayment = {
 
         if (repairTypeSelect) {
             repairTypeSelect.addEventListener("change", (e) => {
-                dispatchRepairCategoryChanged(e.target.value || null);
+                const typeId = e.target.value;
+
+                // Lógica para asignar el monto automático
+                const amounts = window.repairAmountsMap || {};
+                const repairInput = document.getElementById("repair_amount");
+
+                if (typeId && amounts[typeId] !== undefined) {
+                    if (repairInput) {
+                        repairInput.value = amounts[typeId];
+                        // Actualizamos el total de la venta llamando a tu método existente
+                        this.setSaleTotalFromRepair();
+                    }
+                }
+
+                // Mantenemos tu despacho de evento original para categorías
+                dispatchRepairCategoryChanged(typeId || null);
             });
         }
 
@@ -203,7 +218,25 @@ const salePayment = {
 
     setSaleTotalFromRepair: function () {
         const repairInput = document.getElementById("repair_amount");
-        this.saleTotal = parseFloat(repairInput?.value) || 0;
+        const value = parseFloat(repairInput?.value) || 0;
+
+        this.saleTotal = value;
+
+        // 1. Notificar al resumen (Summary)
+        // En reparaciones, usualmente el subtotal es igual al total antes de descuentos
+        document.dispatchEvent(
+            new CustomEvent("sale:subtotalUpdated", {
+                detail: { subtotal: value },
+            })
+        );
+
+        document.dispatchEvent(
+            new CustomEvent("sale:totalUpdated", {
+                detail: { total: value },
+            })
+        );
+
+        // 2. Recalcular vueltos y saldos
         this.calculateChangeAndBalance();
     },
 

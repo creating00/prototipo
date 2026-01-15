@@ -21,6 +21,13 @@ export default {
             });
         }
 
+        if (!this._branchListenerAttached) {
+            document.addEventListener("branch:changed", () => {
+                this.reloadTable();
+            });
+            this._branchListenerAttached = true;
+        }
+
         document.addEventListener("click", (e) => {
             const btn = e.target.closest(".btn-select-product");
             if (!btn) return;

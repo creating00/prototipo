@@ -77,13 +77,14 @@ return [
             'type' => 'single',
             'icon' => 'bi bi-list-check',
             'label' => 'Pedidos',
-            'href'  => 'web.orders.index',
+            'href'  => 'web.orders.create-branch',
         ],
         [
             'type' => 'single',
             'icon' => 'bi bi-journal-text',
             'label' => 'Registro de Pedidos',
-            'href'  => 'web.orders.create-branch',
+            'href'  => 'web.orders.index',
+
         ],
     ],
 ];

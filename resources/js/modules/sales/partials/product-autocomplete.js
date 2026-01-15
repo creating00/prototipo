@@ -1,5 +1,34 @@
 import { getCurrentBranchId } from "../../../config/datatables";
+import { getRepairCategoryId } from "@/helpers/repair-category";
 import AutocompleteBase from "../../../helpers/autocomplete-base";
+
+function setupFiltersChangeListener(autocomplete, moduleRef) {
+    const selectors = [
+        'select[name="branch_id"]',
+        'select[name="branch_recipient_id"]',
+        'select[name="repair_type_id"]',
+        "#repair_type",
+    ];
+
+    selectors.forEach((selector) => {
+        const el = document.querySelector(selector);
+        if (!el) return;
+
+        el.addEventListener("change", () => {
+            autocomplete.cancelSearch();
+            autocomplete.cache = {};
+            autocomplete.hideResults();
+
+            // Actualizar el placeholder visualmente
+            moduleRef.updatePlaceholder();
+
+            const query = autocomplete.input.value.trim();
+            if (query.length >= 2) {
+                autocomplete.search(query);
+            }
+        });
+    });
+}
 
 export default {
     instance: null,
@@ -16,17 +45,51 @@ export default {
         });
 
         if (this.instance.input) {
-            // Desvincular el evento base para usar nuestra lógica de delay (Barcode)
             this.instance.input.removeEventListener(
                 "input",
                 this.instance.handleInput
             );
-
             this.instance.input.addEventListener("input", () =>
                 this.handleCustomInput()
             );
-
             this.instance.search = (query) => this.search(query);
+
+            // Inicializar placeholder
+            this.updatePlaceholder();
+        }
+
+        setupFiltersChangeListener(this.instance, this);
+    },
+
+    updatePlaceholder() {
+        const input = this.instance.input;
+        const indicator = document.getElementById("search-filter-indicator");
+        if (!input) return;
+
+        const repairSelect =
+            document.getElementById("repair_type") ||
+            document.querySelector('select[name="repair_type_id"]');
+
+        const categoryId = getRepairCategoryId();
+        const selectedText =
+            repairSelect?.options[repairSelect.selectedIndex]?.text;
+
+        if (categoryId && selectedText) {
+            input.placeholder = `Buscando en ${selectedText}...`;
+            // Cambiamos el borde del input para indicar filtro activo
+            input.style.borderColor = "#0dcaf0";
+
+            if (indicator) {
+                indicator.innerHTML = `
+                    <span class="badge rounded-pill bg-info-subtle text-info border border-info-subtle shadow-sm" 
+                          style="font-size: 0.65rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">
+                        <i class="fas fa-filter me-1"></i>Filtro: ${selectedText}
+                    </span>`;
+            }
+        } else {
+            input.placeholder = "Escriba código o nombre...";
+            input.style.borderColor = ""; // Reset al color de tus clases CSS
+            if (indicator) indicator.innerHTML = "";
         }
     },
 
@@ -45,7 +108,6 @@ export default {
             return;
         }
 
-        // Lógica específica: barcode (rápido) vs nombre (normal)
         const delay = query.length > 7 ? 100 : 250;
         this.instance.debounceTimeout = setTimeout(
             () => this.search(query),
@@ -55,7 +117,10 @@ export default {
 
     async search(query) {
         this.instance.cancelSearch();
+
         const branchId = getCurrentBranchId();
+        const categoryId = getRepairCategoryId(); // Obtenemos categoría activa
+
         if (!branchId) return;
 
         this.instance.abortController = new AbortController();
@@ -63,10 +128,16 @@ export default {
             this.instance.spinner.style.display = "block";
 
         try {
-            const url = `/api/inventory/list?q=${encodeURIComponent(
-                query
-            )}&branch_id=${branchId}`;
-            const response = await fetch(url, {
+            // Construcción dinámica de URL
+            const url = new URL("/api/inventory/list", window.location.origin);
+            url.searchParams.append("q", query);
+            url.searchParams.append("branch_id", branchId);
+
+            if (categoryId) {
+                url.searchParams.append("category_id", categoryId);
+            }
+
+            const response = await fetch(url.toString(), {
                 headers: { Accept: "application/json" },
                 signal: this.instance.abortController.signal,
             });

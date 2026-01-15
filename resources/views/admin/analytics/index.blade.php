@@ -155,18 +155,29 @@
                             <tr>
                                 <th>Producto</th>
                                 <th class="text-end">Stock</th>
+                                <th class="text-center">Mín.</th>
                                 <th class="text-center">Estado</th>
                             </tr>
                         </x-slot>
                         @foreach ($stockReport as $item)
                             <tr>
-                                <td>{{ $item['name'] }}</td>
-                                <td class="text-end">{{ $item['stock'] }}</td>
+                                <td>
+                                    <span class="text-sm text-muted text-uppercase d-block text-truncate"
+                                        style="max-width: 180px;" title="{{ $item['name'] }}">
+                                        {{ $item['name'] }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="font-weight-bold">{{ $item['stock'] }}</span>
+                                </td>
+                                <td class="text-center text-muted">
+                                    <small>{{ $item['threshold'] }}</small>
+                                </td>
                                 <td class="text-center">
                                     @if ($item['is_low'])
-                                        <span class="badge badge-danger">Bajo</span>
-                                    @else
-                                        <span class="badge-custom badge-custom-green">OK</span>
+                                        <span class="badge-custom badge-custom-crimson">Bajo</span>
+                                    @elseif ($item['is_near'])
+                                        <span class="badge-custom badge-custom-apricot">Próximo</span>
                                     @endif
                                 </td>
                             </tr>

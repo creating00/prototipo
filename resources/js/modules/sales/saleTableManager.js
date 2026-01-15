@@ -68,6 +68,18 @@ const TABLE_CONFIG = {
                 window.location.href = `${baseUrl}/create-branch`;
             },
         },
+        newRepair: {
+            selector: ".btn-header-new-repair",
+            handler: () => {
+                // Seleccionamos el botón directamente por su clase
+                const btn = document.querySelector(".btn-header-new-repair");
+                const customUrl = btn ? btn.getAttribute("data-url") : null;
+
+                if (customUrl) {
+                    window.location.href = `${customUrl}/create`;
+                }
+            },
+        },
     },
 };
 

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ProductStatus;
 use App\Models\{Sale, Product, Client, Payment, Expense, ProductBranch};
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -132,14 +133,21 @@ class AnalyticsService
 
     private function getStockReport(int $branchId)
     {
+        // Margen de aviso preventivo sobre el umbral
+        $alertMargin = 10;
+
         return ProductBranch::with('product')
             ->where('branch_id', $branchId)
+            ->where('status', '!=', ProductStatus::Discontinued)
+            // Filtrado eficiente en SQL
+            ->whereRaw('stock <= (low_stock_threshold + ?)', [$alertMargin])
             ->get()
             ->map(fn($pb) => [
                 'name'      => $pb->product->name,
                 'stock'     => $pb->stock,
+                'threshold' => $pb->low_stock_threshold,
                 'is_low'    => $pb->stock <= $pb->low_stock_threshold,
-                'threshold' => $pb->low_stock_threshold
+                'is_near'   => $pb->stock > $pb->low_stock_threshold
             ]);
     }
 

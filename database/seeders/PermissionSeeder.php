@@ -69,6 +69,9 @@ class PermissionSeeder extends Seeder
 
         // Auditoría / Históricos
         'price_modifications' => ['view'],
+
+        //Monto por tipo de reraparacion
+        'repair_amounts' => ['view', 'create', 'update', 'delete'],
     ];
 
     // Roles con permisos definidos (puede moverse a config/roles.php)

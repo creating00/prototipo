@@ -1,14 +1,18 @@
 <div class="card" data-base-url="{{ url()->current() }}">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title mb-0">{{ $title }}</h3>
+    @if (($title !== '' && $title !== 'DataTable') || isset($headerButtons))
+        <div class="card-header d-flex justify-content-between align-items-center">
+            @if ($title !== '' && $title !== 'DataTable')
+                <h3 class="card-title mb-0">{{ $title }}</h3>
+            @endif
 
-        {{-- Slot para botones del header --}}
-        @if (isset($headerButtons))
-            <div class="card-tools ms-auto">
-                {{ $headerButtons }}
-            </div>
-        @endif
-    </div>
+            {{-- Slot para botones del header --}}
+            @if (isset($headerButtons))
+                <div class="card-tools ms-auto">
+                    {{ $headerButtons }}
+                </div>
+            @endif
+        </div>
+    @endif
 
     <div class="card-body">
         <div @class(['table-responsive' => $responsive])>
