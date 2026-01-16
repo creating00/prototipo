@@ -50,7 +50,7 @@
 
                     <div class="col-md-3">
                         <strong><i class="fas fa-laptop me-1"></i> Canal</strong><br>
-                        {{ $order->source == 1 ? 'Backoffice' : 'Ecommerce' }}
+                        {{ $order->source->label() }}
                     </div>
 
                     <div class="col-md-6">

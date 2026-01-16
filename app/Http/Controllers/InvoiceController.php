@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
+use App\Enums\SaleType;
+use App\Enums\RepairType;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -10,51 +12,43 @@ class InvoiceController extends Controller
 {
     public function generate($paymentId)
     {
+        // Carga relaciones segun modelos proporcionados
         $payment = Payment::with([
-            'order.items.product.branch',
-            'order.client',
-            'order.user'
+            'paymentable.items.product.category',
+            'paymentable.branch',
+            'paymentable.user'
         ])->findOrFail($paymentId);
 
-        $order   = $payment->order;
-        $client  = $order->client;
-        $items   = $order->items;
+        $sale = $payment->paymentable;
+        $client = $sale->customer;
+        $branch = $sale->branch;
 
-        $firstItem = $items->first();
-        $branch = $firstItem ? $firstItem->product->branch : null;
-
-        // Datos de factura
         $invoice = [
             'number'   => 'INV-' . now()->format('Y') . '-' . $payment->id,
             'date'     => $payment->created_at->format('d/m/Y'),
             'due_date' => $payment->created_at->addDays(30)->format('d/m/Y'),
             'status'   => 'Pagada',
+            'type'     => $sale->sale_type->label(),
         ];
 
-        // Datos de la empresa (Sucursal)
         $company = [
             'name'    => 'TECNONAUTA',
-            'address' => $branch ? ($branch->address . ' - ' . $branch->name) : 'Dirección no disponible',
+            'address' => $branch ? "{$branch->address} - {$branch->name}" : 'Dirección no disponible',
             'city'    => '---',
             'phone'   => '000',
             'email'   => 'example@mail.com',
-            'tax_id'  => '',
         ];
 
-        // Datos del cliente
         $clientData = [
-            'name'    => $client->full_name,
-            'address' => $client->address,
-            'city'    => '',
-            'phone'   => $client->phone,
-            'email'   => '',
-            'tax_id'  => $client->document,
+            'name'    => $sale->customer_name,
+            'address' => $client->address ?? '',
+            'phone'   => $client->phone ?? '',
+            'tax_id'  => $client->document ?? '',
         ];
 
-        // Múltiples ítems basados en los productos de la orden
-        $items = $order->items->map(function ($item) {
+        $items = $sale->items->map(function ($item) use ($sale) {
             return [
-                'description' => $item->product->name,
+                'description' => $this->resolveItemDescription($sale, $item),
                 'quantity'    => $item->quantity,
                 'unit'        => '',
                 'price'       => $item->unit_price,
@@ -62,17 +56,12 @@ class InvoiceController extends Controller
             ];
         })->toArray();
 
-        // Calcular totales
-        $subtotal = $order->total_amount;
-        $tax_rate = 0;
-        $tax      = $subtotal * ($tax_rate / 100);
-        $total    = $subtotal + $tax;
 
         $totals = [
-            'subtotal' => $subtotal,
-            'tax_rate' => $tax_rate,
-            'tax'      => $tax,
-            'total'    => $total,
+            'subtotal' => $sale->total_amount,
+            'tax_rate' => 0,
+            'tax'      => 0,
+            'total'    => $sale->total_amount,
         ];
 
         return Pdf::loadView('invoices.invoice', [
@@ -82,5 +71,34 @@ class InvoiceController extends Controller
             'items'   => $items,
             'totals'  => $totals,
         ])->stream('factura-' . $invoice['number'] . '.pdf');
+    }
+
+    private function resolveItemDescription($sale, $item): string
+    {
+        $description = $item->product->name;
+
+        if ($sale->sale_type === SaleType::Repair) {
+            $repairLabel = $this->getRepairLabel($item->product->category_id);
+            $description = "[{$repairLabel}] {$description}";
+        }
+
+        return $description;
+    }
+
+
+    /**
+     * Busca el label del Enum RepairType segun el ID de categoria.
+     */
+    private function getRepairLabel(?int $categoryId): string
+    {
+        if (!$categoryId) return 'Reparación';
+
+        foreach (RepairType::cases() as $repair) {
+            if ($repair->categoryId() === $categoryId) {
+                return $repair->label();
+            }
+        }
+
+        return 'Reparación General';
     }
 }

@@ -56,6 +56,12 @@ export default {
 
             // Inicializar placeholder
             this.updatePlaceholder();
+
+            document.addEventListener("sale:typeChanged", () => {
+                this.instance.clear(); // Limpia input y resultados
+                this.instance.cache = {}; // Limpia cache por seguridad
+                this.updatePlaceholder(); // Remueve el indicador azul/filtro
+            });
         }
 
         setupFiltersChangeListener(this.instance, this);
@@ -70,25 +76,31 @@ export default {
             document.getElementById("repair_type") ||
             document.querySelector('select[name="repair_type_id"]');
 
-        const categoryId = getRepairCategoryId();
+        const isRepairMode = repairSelect && !repairSelect.disabled;
+        const categoryId = isRepairMode ? getRepairCategoryId() : null;
+
         const selectedText =
             repairSelect?.options[repairSelect.selectedIndex]?.text;
 
-        if (categoryId && selectedText) {
+        if (
+            categoryId &&
+            selectedText &&
+            selectedText !== "Seleccione tipo de reparación"
+        ) {
             input.placeholder = `Buscando en ${selectedText}...`;
-            // Cambiamos el borde del input para indicar filtro activo
             input.style.borderColor = "#0dcaf0";
 
             if (indicator) {
                 indicator.innerHTML = `
-                    <span class="badge rounded-pill bg-info-subtle text-info border border-info-subtle shadow-sm" 
-                          style="font-size: 0.65rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">
-                        <i class="fas fa-filter me-1"></i>Filtro: ${selectedText}
-                    </span>`;
+                <span class="badge rounded-pill bg-info-subtle text-info border border-info-subtle shadow-sm" 
+                      style="font-size: 0.65rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">
+                    <i class="fas fa-filter me-1"></i>Filtro: ${selectedText}
+                </span>`;
             }
         } else {
+            // RESET TOTAL: Limpia el placeholder y el SPAN
             input.placeholder = "Escriba código o nombre...";
-            input.style.borderColor = ""; // Reset al color de tus clases CSS
+            input.style.borderColor = "";
             if (indicator) indicator.innerHTML = "";
         }
     },

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\OrderSource;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\BaseOrderController;
 use App\Models\Order;
@@ -59,7 +60,6 @@ class OrderWebController extends BaseOrderController
         $order = $this->orderService->getOrderById($id);
         $this->authorize('view', $order);
 
-        // El Service ya configuró: ['#', 'Producto', 'Cantidad', 'Precio Unitario', 'Subtotal']
         $itemsData = $this->orderService->getOrderItemsData($order);
 
         $backUrl = route('web.orders.index');
@@ -78,7 +78,6 @@ class OrderWebController extends BaseOrderController
         $this->authorize('viewAny', Order::class);
         $rowData = $this->orderService->getPurchasedOrdersForDataTable();
 
-        // Añadimos 'Fecha Recepción' y 'Recibido por'
         $headers = [
             '#',
             'Proveedor (Sucursal)',
@@ -180,7 +179,7 @@ class OrderWebController extends BaseOrderController
             'originBranch',
             'destinationBranches',
             'statusOptions'
-        ) + ['isEdit' => false]);
+        ) + ['isEdit' => false, 'order' => null]);
     }
 
     public function store(Request $request)
@@ -192,7 +191,10 @@ class OrderWebController extends BaseOrderController
         }
 
         try {
-            $order = $this->orderService->createOrder($request->all());
+            $data = $request->all();
+            $data['source'] = OrderSource::Backoffice->value;
+            $data['user_id'] = $this->userId();
+            $order = $this->orderService->createOrder($data);
 
             // Si el destino es una sucursal, es una "Compra"
             if ($request->customer_type === 'App\Models\Branch') {
@@ -220,7 +222,7 @@ class OrderWebController extends BaseOrderController
         $branchService = app(BranchService::class);
 
         $branches = collect([
-            $branchService->getUserBranch($this->currentBranchId())
+            $branchService->getUserBranch($order->customer_id)
         ]);
 
         // Inicializamos variables nulas para evitar el error "Undefined variable"
@@ -229,8 +231,11 @@ class OrderWebController extends BaseOrderController
         $statusOptions = [];
 
         if ($customer_type === 'App\Models\Branch') {
+            // 2. Sucursales que pueden ser "Proveedoras"
+            // Deben ser todas excepto la sucursal que está pidiendo (customer_id)
+            $destinationBranches = collect($branchService->getAllBranchesExcept($order->customer_id));
+
             $originBranch = $branchService->getUserBranch($order->branch_id);
-            $destinationBranches = collect($branchService->getAllBranchesExcept($order->branch_id));
             $statusOptions = OrderStatus::forInternalOrder();
         } else {
             $statusOptions = OrderStatus::forSale();

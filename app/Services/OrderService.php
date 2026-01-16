@@ -105,16 +105,22 @@ class OrderService
         $order = $this->getOrderById($id);
         $validated = $this->validateOrderData($data, $order->id);
 
-        $validated['branch_id'] = $order->branch_id;
-
         return DB::transaction(function () use ($order, $validated) {
+            // 1. Liberar stock de la sucursal proveedora actual (antes de borrar/cambiar)
             $this->itemProcessor->releaseStock($order);
+
+            // 2. Limpiar items antiguos
             $order->items()->delete();
 
+            // 3. Procesar datos nuevos (aquí handleInternalOrder decide los IDs)
             $orderData = $this->dataProcessor->prepare($validated, $order);
+
+            // 4. Actualizar el registro de la orden (por si cambió el proveedor)
             $this->updateOrderRecord($order, $orderData);
 
+            // 5. Sincronizar nuevos items (usará el branch_id actualizado del paso 4)
             $total = $this->itemProcessor->sync($order, $orderData['items']);
+
             $order->update(['total_amount' => $total]);
 
             return $order->fresh();
@@ -154,13 +160,11 @@ class OrderService
                 throw new \Exception("Esta orden ya fue convertida a venta.");
             }
 
-            // Determinamos el tipo de pago por defecto si no se envía uno
             $defaultPaymentType = ($order->customer_type === Branch::class)
                 ? \App\Enums\PaymentType::Transfer->value
                 : \App\Enums\PaymentType::Cash->value;
 
-            $userId = $options['user_id']
-                ?? $this->userId();
+            $userId = $options['user_id'] ?? $this->userId();
 
             if (!$userId) {
                 throw new \Exception('No se pudo determinar el usuario que convierte la orden en venta.');
@@ -169,29 +173,27 @@ class OrderService
             $data = [
                 'source_order_id' => $order->id,
                 'branch_id'       => $order->branch_id,
-                'user_id'         => $options['user_id'] ?? ($this->userId() ?? $order->user_id),
+                'user_id'         => $userId,
                 'customer_type'   => $order->customer_type,
-                'client_id'           => ($order->customer_type === Client::class) ? $order->customer_id : null,
-                'branch_recipient_id' => ($order->customer_type === Branch::class) ? $order->customer_id : null,
-
-                'sale_type' => \App\Enums\SaleType::Sale->value,
-                'sale_date' => now()->format('Y-m-d'),
-                'status'    => \App\Enums\SaleStatus::Paid->value,
-
-                'items'     => $order->items->map(fn($i) => [
+                'sale_type'       => \App\Enums\SaleType::Sale->value,
+                'sale_date'       => now()->format('Y-m-d'),
+                'status'          => \App\Enums\SaleStatus::Paid->value,
+                'items'           => $order->items->map(fn($i) => [
                     'product_id' => $i->product_id,
                     'quantity'   => $i->quantity,
                     'unit_price' => $i->unit_price,
                 ])->toArray(),
-
-                // Prioridad al payment_type enviado
                 'payment_type'    => $options['payment_type'] ?? $defaultPaymentType,
-
-                // Monto recibido (por defecto el total de la orden)
                 'amount_received' => $options['amount_received'] ?? $order->total_amount,
+                'skip_stock_movement' => true,
             ];
 
-            $data['skip_stock_movement'] = true;
+            // Mapeo dinámico según el tipo de cliente para satisfacer la validación de SaleService
+            if ($order->customer_type === Client::class) {
+                $data['client_id'] = $order->customer_id;
+            } else {
+                $data['branch_recipient_id'] = $order->customer_id;
+            }
 
             $sale = app(SaleService::class)->createSale($data);
 
@@ -271,7 +273,6 @@ class OrderService
             $statusSource = $reception ?? $order;
 
             return [
-                // --- CAMPOS OCULTOS (No afectan el orden visual) ---
                 'id'            => $order->id,
                 'status_raw'    => is_object($statusSource->status) ? $statusSource->status->value : $statusSource->status,
                 'is_received'   => $reception ? 'true' : 'false',
@@ -279,8 +280,6 @@ class OrderService
                 'customer_type' => $order->customer_type,
                 'phone'         => $this->cleanPhoneNumber($order->customer?->phone),
                 'observation'   => $reception ? ($reception->observation ?? 'Sin notas') : '---',
-
-                // --- CAMPOS VISIBLES (Deben seguir el orden de $headers) ---
                 'number'        => $index + 1,                                  // #
                 'branch'        => $order->branch->name ?? 'N/A',               // Proveedor
                 'total'         => $this->formatCurrency($order->total_amount), // Total
@@ -294,6 +293,9 @@ class OrderService
 
     protected function getValidationRules(array $data): array
     {
+        $source = $data['source'] ?? null;
+        $customerType = $data['customer_type'] ?? null;
+
         $rules = [
             'branch_id' => 'nullable|exists:branches,id',
             'status' => 'required|integer',
@@ -307,37 +309,27 @@ class OrderService
             'customer_type' => 'required|in:App\Models\Client,App\Models\Branch',
         ];
 
-        /**
-         * Reglas específicas por tipo de customer
-         */
-        if (($data['customer_type'] ?? null) === Client::class) {
-
-            // Ecommerce puede enviar client embebido
-            if (($data['source'] ?? null) == OrderSource::Ecommerce->value) {
-                $rules['client'] = 'required|array';
-                $rules['client.document'] = 'required|string';
-                $rules['client.full_name'] = 'required|string';
+        // Validación por tipo de Cliente
+        if ($customerType === Client::class) {
+            if ($source == OrderSource::Ecommerce->value) {
+                // Ecommerce puede enviar token o datos del cliente
+                $rules['token'] = 'nullable|string';
+                $rules['client'] = 'required_without:token|array';
+                $rules['client.document'] = 'required_with:client|string';
+                $rules['client.full_name'] = 'required_with:client|string';
             } else {
-                // Backoffice
                 $rules['client_id'] = 'required|exists:clients,id';
             }
-        } elseif (($data['customer_type'] ?? null) === \App\Models\Branch::class) {
-            if (isset($data['customer_id'])) {
-                $rules['customer_id'] = 'required|exists:branches,id';
-            } else {
-                $rules['branch_recipient_id'] = 'required|exists:branches,id';
-            }
+        }
+        // Validación por tipo Sucursal
+        elseif ($customerType === \App\Models\Branch::class) {
+            $rules['branch_recipient_id'] = 'required_without:customer_id|exists:branches,id';
+            $rules['customer_id'] = 'required_without:branch_recipient_id|exists:branches,id';
         }
 
-        /**
-         * Reglas específicas por source
-         */
-        if (($data['source'] ?? null) == OrderSource::Backoffice->value) {
+        // El user_id solo es obligatorio si viene del Backoffice
+        if ($source == OrderSource::Backoffice->value) {
             $rules['user_id'] = 'required|exists:users,id';
-        }
-
-        if (($data['source'] ?? null) == OrderSource::Ecommerce->value) {
-            $rules['token'] = 'nullable|string';
         }
 
         return $rules;

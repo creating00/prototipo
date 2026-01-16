@@ -124,10 +124,16 @@
                         @php $subtotal += $item->subtotal; @endphp
                         <tr>
                             <td>
-                                {{ $item->quantity }}x {{ $item->product->name ?? 'Producto' }}
+                                {{ $item->quantity }}x {{ $item->descriptionForReceipt($sale) }}
                             </td>
                             <td class="text-right">
-                                ${{ number_format($item->subtotal, 2, ',', '.') }}
+                                @if ($sale->sale_type === \App\Enums\SaleType::Repair)
+                                    @if ($loop->first)
+                                        ${{ number_format($sale->total_amount, 2, ',', '.') }}
+                                    @endif
+                                @else
+                                    ${{ number_format($item->subtotal, 2, ',', '.') }}
+                                @endif
                             </td>
                         </tr>
                     @endforeach
@@ -135,7 +141,12 @@
                     <tr class="total-row">
                         <td>SUBTOTAL</td>
                         <td class="text-right">
-                            ${{ number_format($subtotal, 2, ',', '.') }}
+                            ${{ number_format(
+                                $sale->sale_type === \App\Enums\SaleType::Repair ? $sale->total_amount : $subtotal,
+                                2,
+                                ',',
+                                '.',
+                            ) }}
                         </td>
                     </tr>
 

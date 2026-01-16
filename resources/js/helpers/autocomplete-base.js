@@ -94,4 +94,15 @@ export default class AutocompleteBase {
         }
         this.currentIndex = -1;
     }
+
+    clear() {
+        if (this.input) {
+            this.input.value = "";
+        }
+        this.hideResults();
+        this.cancelSearch();
+        this.currentIndex = -1;
+        // Opcional: limpiar cache si los productos dependen del tipo de venta
+        // this.cache = {};
+    }
 }

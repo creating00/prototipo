@@ -26,46 +26,23 @@ class OrderDataProcessor
         $data = $validated;
 
         if (($data['source'] ?? null) == OrderSource::Ecommerce->value) {
-
-            /**
-             * Ecommerce → Cliente
-             */
             if (($data['customer_type'] ?? null) === Client::class) {
-
                 if (isset($data['token'])) {
                     $this->handleTokenOrder($data);
                 } elseif (isset($data['client'])) {
                     $this->handleEcommerceOrder($data);
-                } else {
-                    throw new \Exception(
-                        'Debes enviar token o client para pedidos Ecommerce a clientes'
-                    );
                 }
-
-                /**
-                 * Ecommerce → Branch (Branch to Branch)
-                 */
             } elseif (($data['customer_type'] ?? null) === \App\Models\Branch::class) {
-
-                if (!isset($data['branch_recipient_id'])) {
-                    throw new \Exception('branch_recipient_id es obligatorio para pedidos entre sucursales');
-                }
-
-                $data['customer_id'] = $data['branch_recipient_id'];
-                $data['customer_type'] = \App\Models\Branch::class;
+                // Usamos la misma lógica interna para procesar los IDs de sucursal
+                $this->handleInternalOrder($data);
                 $data['user_id'] = $this->getDefaultEcommerceUser()->id;
-                $data['branch_id'] = $data['branch_id'] ?? $this->currentBranchId();
-            } else {
-                throw new \Exception('customer_type no soportado para Ecommerce');
             }
         } else {
-            // Backoffice
             $this->handleInternalOrder($data);
         }
 
         return $data;
     }
-
 
     protected function handleTokenOrder(array &$data): void
     {
@@ -98,15 +75,30 @@ class OrderDataProcessor
             $data['customer_id'] = $data['client_id'];
             $data['branch_id'] = $data['branch_id'] ?? $this->currentBranchId();
         } else {
+            // FLUJO DE SUCURSALES
+            $myBranchId = $this->currentBranchId();
+
+            // Si existe branch_recipient_id, es un CREATE (necesita inversión inicial)
             if (isset($data['branch_recipient_id'])) {
-                $data['customer_id'] = $data['branch_recipient_id'];
+                $data['branch_id'] = $data['branch_recipient_id'];
+                $data['customer_id'] = $myBranchId;
+            }
+            // Si no existe, es un UPDATE o ya viene con customer_id definido
+            else {
+                // Validamos que existan los campos necesarios
+                $data['branch_id'] = $data['branch_id'] ?? null;
+                $data['customer_id'] = $data['customer_id'] ?? $myBranchId;
             }
 
-            if (!isset($data['customer_id'])) {
-                throw new \Exception('customer_id es obligatorio para pedidos entre sucursales');
+            if (!$data['branch_id']) {
+                throw new \Exception('Debe seleccionar una sucursal proveedora.');
             }
 
-            $data['branch_id'] = $data['branch_id'] ?? $this->currentBranchId();
+            if ($data['branch_id'] == $data['customer_id']) {
+                throw new \Exception('No puedes realizar un pedido a la misma sucursal.');
+            }
+
+            $data['customer_type'] = \App\Models\Branch::class;
         }
     }
 

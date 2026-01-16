@@ -45,25 +45,18 @@ const salePayment = {
         if (repairTypeSelect) {
             repairTypeSelect.addEventListener("change", (e) => {
                 const typeId = e.target.value;
-
-                // Lógica para asignar el monto automático
                 const amounts = window.repairAmountsMap || {};
                 const repairInput = document.getElementById("repair_amount");
 
-                if (typeId && amounts[typeId] !== undefined) {
-                    if (repairInput) {
-                        repairInput.value = amounts[typeId];
-                        // Actualizamos el total de la venta llamando a tu método existente
-                        this.setSaleTotalFromRepair();
-                    }
+                if (typeId && amounts[typeId] !== undefined && repairInput) {
+                    repairInput.value = amounts[typeId];
+                    this.setSaleTotalFromRepair();
                 }
-
-                // Mantenemos tu despacho de evento original para categorías
                 dispatchRepairCategoryChanged(typeId || null);
             });
         }
 
-        // --- 2. Eventos de Monto Recibido y Cálculos ---
+        // --- 2. Eventos de Monto Recibido ---
         const amountReceivedInput = document.getElementById("amount_received");
         if (amountReceivedInput) {
             ["input", "change"].forEach((event) =>
@@ -82,14 +75,18 @@ const salePayment = {
             );
         }
 
+        // --- 3. Escuchar actualizaciones de Total ---
         document.addEventListener("sale:totalUpdated", (event) => {
-            if (this.saleType !== SALE_TYPE.REPAIR) {
-                this.saleTotal = parseFloat(event.detail.total) || 0;
-                this.calculateChangeAndBalance();
+            // Bloqueo: Si es reparación, solo aceptamos eventos marcados como reparación
+            if (this.saleType === SALE_TYPE.REPAIR && !event.detail.isRepair) {
+                return;
             }
+
+            this.saleTotal = parseFloat(event.detail.total) || 0;
+            this.calculateChangeAndBalance();
         });
 
-        // --- 3. Eventos de Sincronización Automática (Modal -> Form) ---
+        // --- 4. Sincronización Automática (Modal -> Hidden Inputs) ---
         Object.keys(this.fieldsToSync).forEach((modalId) => {
             const modalEl = document.getElementById(modalId);
             if (modalEl) {
@@ -104,19 +101,7 @@ const salePayment = {
             }
         });
 
-        // Sincronización especial para el Select del Modal
-        const modalPaymentType = document.querySelector(
-            'select[name="payment_type_modal"]'
-        );
-        if (modalPaymentType) {
-            modalPaymentType.addEventListener("change", (e) => {
-                const hiddenType = document.getElementById(
-                    "hidden_payment_type"
-                );
-                if (hiddenType) hiddenType.value = e.target.value;
-            });
-        }
-
+        // Sincronización de Descuento
         const discountSelect = document.getElementById("discount_id");
         if (discountSelect) {
             discountSelect.addEventListener("change", (e) => {
@@ -156,6 +141,8 @@ const salePayment = {
         this.applySaleTypeUI();
     },
 
+    // resources/js/modules/sales/partials/sale-payment.js
+
     handleSaleTypeChange: function () {
         const saleTypeSelect = document.querySelector(
             'select[name="sale_type"]'
@@ -163,9 +150,19 @@ const salePayment = {
         if (!saleTypeSelect) return;
 
         this.saleType = saleTypeSelect.value;
+
+        // Notificar siempre que el tipo cambie para limpiar la tabla de productos
+        // Esto asegura que si pasas de Reparación -> Venta, la tabla también se limpie
+        document.dispatchEvent(
+            new CustomEvent("sale:typeChanged", {
+                detail: { saleType: this.saleType },
+            })
+        );
+
         this.applySaleTypeUI();
         this.calculateChangeAndBalance();
     },
+    // resources/js/modules/sales/partials/sale-payment.js
 
     applySaleTypeUI: function () {
         const saleTotalWrapper = document.getElementById("sale-total-wrapper");
@@ -190,6 +187,7 @@ const salePayment = {
 
             this.setSaleTotalFromRepair();
         } else {
+            // --- MODO VENTA ---
             repairWrapper?.classList.add("d-none");
             repairTypeWrapper?.classList.add("d-none");
             saleTotalWrapper?.classList.remove("d-none");
@@ -197,21 +195,27 @@ const salePayment = {
             if (repairInput) {
                 repairInput.disabled = true;
                 repairInput.value = "";
+                repairInput.dispatchEvent(new Event("input"));
             }
             if (hiddenRepair) {
                 hiddenRepair.disabled = true;
                 hiddenRepair.value = "";
             }
 
+            // LIMPIEZA DE SELECT (Choices.js)
             if (repairTypeSelect) {
-                repairTypeSelect.disabled = true;
-                repairTypeSelect.value = "";
+                // Comprobamos si la instancia de Choices existe (guardada en x-init)
                 if (repairTypeSelect._choices) {
-                    repairTypeSelect._choices.removeActiveItems();
+                    // setChoiceByValue('') selecciona la opción con valor vacío (el placeholder)
                     repairTypeSelect._choices.setChoiceByValue("");
+                } else {
+                    repairTypeSelect.value = "";
                 }
+
+                repairTypeSelect.disabled = true;
+                dispatchRepairCategoryChanged(null);
             }
-            dispatchRepairCategoryChanged(null);
+
             this.setSaleTotalFromSale();
         }
     },
@@ -222,21 +226,20 @@ const salePayment = {
 
         this.saleTotal = value;
 
-        // 1. Notificar al resumen (Summary)
-        // En reparaciones, usualmente el subtotal es igual al total antes de descuentos
-        document.dispatchEvent(
-            new CustomEvent("sale:subtotalUpdated", {
-                detail: { subtotal: value },
-            })
-        );
+        // Actualizar los SPAN del resumen directamente para asegurar consistencia
+        const summarySubtotal = document.getElementById("summary_subtotal");
+        const summaryTotal = document.getElementById("summary_total");
 
+        if (summarySubtotal) summarySubtotal.textContent = value.toFixed(2);
+        if (summaryTotal) summaryTotal.textContent = value.toFixed(2);
+
+        // Notificar al resto del sistema
         document.dispatchEvent(
             new CustomEvent("sale:totalUpdated", {
-                detail: { total: value },
+                detail: { total: value, isRepair: true },
             })
         );
 
-        // 2. Recalcular vueltos y saldos
         this.calculateChangeAndBalance();
     },
 

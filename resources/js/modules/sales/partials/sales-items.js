@@ -32,9 +32,31 @@ export default {
                 this.addProductByCode(e.detail.code);
             });
 
+            document.addEventListener("sale:typeChanged", () => {
+                this.clearTable();
+            });
+
             this.updateRowIndices();
             this.updateTotal();
         }
+    },
+    clearTable() {
+        // Re-seleccionamos para asegurar que tenemos el elemento actual del DOM
+        this.table = document.querySelector("#order-items-table tbody");
+
+        if (!this.table) {
+            console.warn("No se encontró la tabla para limpiar");
+            return;
+        }
+
+        // Método más agresivo y seguro para limpiar
+        this.table.innerHTML = "";
+
+        // Actualizamos el estado visual y los inputs ocultos
+        this.updateRowIndices();
+        this.updateTotal();
+
+        console.log("Tabla limpiada exitosamente");
     },
     addRow(html) {
         if (!this.table) {
@@ -194,32 +216,37 @@ export default {
 
         return null;
     },
-    // En sale-items.js, asegúrate de que updateTotal sea así:
     updateTotal() {
         if (!this.table) return;
 
-        const subtotal = Array.from(
-            this.table.querySelectorAll(".subtotal")
-        ).reduce((sum, input) => sum + parseFloat(input.value || 0), 0);
+        const saleTypeSelect = document.querySelector(
+            'select[name="sale_type"]'
+        );
+        const isRepair = saleTypeSelect && saleTypeSelect.value === "2";
+
+        // Si es reparación, el subtotal de productos para el sistema es 0
+        const subtotal = isRepair
+            ? 0
+            : Array.from(this.table.querySelectorAll(".subtotal")).reduce(
+                  (sum, input) => sum + parseFloat(input.value || 0),
+                  0
+              );
 
         const subtotalInput = document.getElementById("subtotal_amount");
         const subtotalDisplay = document.getElementById(
             "subtotal_amount_display"
         );
 
-        if (subtotalInput) {
-            subtotalInput.value = subtotal.toFixed(2);
-        }
+        if (subtotalInput) subtotalInput.value = subtotal.toFixed(2);
+        if (subtotalDisplay) subtotalDisplay.textContent = subtotal.toFixed(2);
 
-        if (subtotalDisplay) {
-            subtotalDisplay.textContent = subtotal.toFixed(2);
+        if (!isRepair) {
+            document.dispatchEvent(
+                new CustomEvent("sale:subtotalUpdated", {
+                    detail: { subtotal },
+                })
+            );
         }
-
-        document.dispatchEvent(
-            new CustomEvent("sale:subtotalUpdated", {
-                detail: { subtotal },
-            })
-        );
     },
     removeRow(row) {
         row.remove();
