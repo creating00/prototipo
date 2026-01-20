@@ -67,14 +67,18 @@ class AnalyticsService
         $startDate = $hasRange ? $filters['start_date'] : now()->startOfMonth();
         $endDate = $hasRange ? $filters['end_date'] : now()->endOfMonth();
 
+        // Usa el scope sumConverted del modelo (que usa el trait)
         $boxes['expenses_today']['number'] = Expense::forBranch($branchId)
-            ->whereDate('created_at', today())->sum('amount');
+            ->whereDate('date', today())
+            ->sumConverted();
 
         $boxes['expenses_month']['number'] = Expense::forBranch($branchId)
-            ->whereBetween('created_at', [$startDate, $endDate])->sum('amount');
+            ->whereBetween('date', [$startDate, $endDate])
+            ->sumConverted();
 
         $boxes['expenses_year']['number'] = Expense::forBranch($branchId)
-            ->whereYear('created_at', now()->year)->sum('amount');
+            ->whereYear('date', now()->year)
+            ->sumConverted();
 
         return $boxes;
     }

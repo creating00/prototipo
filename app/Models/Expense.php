@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Enums\CurrencyType;
 use App\Enums\PaymentType;
+use App\Services\CurrencyExchangeService;
+use App\Traits\ConvertsCurrency;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
@@ -11,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Expense extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, ConvertsCurrency;
 
     protected $fillable = [
         'user_id',
@@ -59,6 +61,18 @@ class Expense extends Model
         return $this->belongsTo(ExpenseType::class);
     }
 
+    public function getAmountInArsAttribute(): float
+    {
+        $currencyService = app(CurrencyExchangeService::class);
+        return $currencyService->convertToArs($this->amount, $this->currency);
+    }
+
+    public function getAmountInUsdAttribute(): float
+    {
+        $currencyService = app(CurrencyExchangeService::class);
+        return $currencyService->convertToUsd($this->amount, $this->currency);
+    }
+
     // Scopes de filtrado
     public function scopeForBranch($query, int $branchId)
     {
@@ -76,5 +90,10 @@ class Expense extends Model
         return $query
             ->whereYear('date', Carbon::now()->year)
             ->whereMonth('date', Carbon::now()->month);
+    }
+
+    public function scopeBetweenDates($query, $startDate, $endDate)
+    {
+        return $query->whereBetween('date', [$startDate, $endDate]);
     }
 }

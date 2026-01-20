@@ -29,14 +29,57 @@ const orderCurrency = {
 
     bindEvents() {
         document.addEventListener("sale:totalUpdated", () =>
-            this.calculateTotal()
+            this.calculateTotal(),
         );
     },
 
+    async syncRateWithBackend() {
+        try {
+            const response = await fetch("/api/currency/rate");
+            const data = await response.json();
+
+            if (data?.rate) {
+                this.dollarPrice = data.rate;
+                this.elements.dollarInput.value = this.formatCurrency(
+                    data.rate,
+                    "es-AR",
+                );
+                this.calculateTotal();
+                return data.rate;
+            }
+        } catch (error) {
+            console.log("Using frontend API rate");
+            return null;
+        }
+    },
+
     async fetchDollarPrice() {
+        // Estrategia: 1. Backend (cacheado), 2. API directa, 3. Fallback
+        const strategies = [
+            { name: "backend", fn: () => this.syncRateWithBackend() },
+            { name: "api", fn: () => this.fetchFromDolarApi() },
+        ];
+
+        for (const strategy of strategies) {
+            try {
+                const rate = await strategy.fn();
+                if (rate && rate > 0) {
+                    //console.log(`Rate obtained from ${strategy.name}: ${rate}`);
+                    return; // Salir si obtuvimos una tasa válida
+                }
+            } catch (error) {
+                console.warn(`Strategy ${strategy.name} failed:`, error);
+            }
+        }
+
+        // Si todo falla, usar fallback
+        this.useFallbackRate();
+    },
+
+    async fetchFromDolarApi() {
         try {
             const response = await fetch(
-                "https://dolarapi.com/v1/dolares/blue"
+                "https://dolarapi.com/v1/dolares/blue",
             );
             const data = await response.json();
 
@@ -44,7 +87,7 @@ const orderCurrency = {
                 this.dollarPrice = data.venta;
                 this.elements.dollarInput.value = this.formatCurrency(
                     this.dollarPrice,
-                    "es-AR"
+                    "es-AR",
                 );
                 this.calculateTotal();
             }
@@ -52,6 +95,16 @@ const orderCurrency = {
             console.error("DolarApi Error:", error);
             this.elements.dollarInput.value = "Error";
         }
+    },
+
+    useFallbackRate() {
+        this.dollarPrice = 1000; // Fallback
+        this.elements.dollarInput.value = this.formatCurrency(
+            this.dollarPrice,
+            "es-AR",
+        );
+        this.calculateTotal();
+        console.warn("Using fallback exchange rate: 1000");
     },
 
     calculateTotal() {
@@ -62,7 +115,7 @@ const orderCurrency = {
             const subtotal =
                 parseFloat(row.querySelector(".subtotal")?.value) || 0;
             const currency = row.querySelector(
-                'input[name*="[currency]"]'
+                'input[name*="[currency]"]',
             )?.value;
 
             currency === "USD" ? (sumUsd += subtotal) : (sumArs += subtotal);
@@ -96,7 +149,7 @@ const orderCurrency = {
         if (this.elements.totalUsd) {
             this.elements.totalUsd.value = this.formatCurrency(
                 totalUsd,
-                "en-US"
+                "en-US",
             );
         }
 
@@ -114,7 +167,7 @@ const orderCurrency = {
         document.dispatchEvent(
             new CustomEvent("order:totalsCalculated", {
                 detail: { ars, usd, cotizacion },
-            })
+            }),
         );
     },
 };

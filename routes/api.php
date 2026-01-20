@@ -19,6 +19,18 @@ use App\Http\Controllers\Api\ProviderProductController;
 use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\ProfileApiController;
 use App\Http\Controllers\Api\ProvinceController;
+use App\Services\CurrencyExchangeService;
+use Illuminate\Support\Facades\Cache;
+
+Route::get('/currency/rate', function (CurrencyExchangeService $service) {
+    $rate = $service->getCurrentDollarRate();
+
+    return response()->json([
+        'rate' => $rate,
+        'source' => 'dolarapi.com',
+        'timestamp' => now()->toIso8601String(),
+    ]);
+});
 
 Route::get('/provinces', [ProvinceController::class, 'index']);
 Route::get('/provinces/{id}', [ProvinceController::class, 'show']);
