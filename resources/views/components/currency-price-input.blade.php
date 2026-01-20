@@ -1,21 +1,20 @@
 <div class="currency-price-input compact-input-group-wrapper">
-    <label for="{{ $name }}_amount" class="compact-input-label">{{ $label }}</label>
     <div class="input-group">
-
-        {{-- Select de Moneda --}}
         <select class="form-select select-custom-turquoise" id="{{ $name }}_currency"
-            name="{{ $name }}_currency" style="" {{ $required ? 'required' : '' }}>
-
+            name="{{ $name }}_currency" {{ $required ? 'required' : '' }}>
             @foreach ($currencyOptions as $value => $text)
-                <option value="{{ $value }}" @if ($currencyValue == $value) selected @endif>
+                <option value="{{ $value }}" @selected($currencyValue == $value)>
                     {{ $text }}
                 </option>
             @endforeach
         </select>
 
-        {{-- Input de Monto --}}
-        <input type="number" class="form-control" id="{{ $name }}_amount" name="{{ $name }}_amount"
-            placeholder="0.00" value="{{ $amountValue }}" step="0.01" {{ $required ? 'required' : '' }}>
+        <div class="currency-input-wrapper">
+            <label class="compact-input-label">{{ $label }}</label>
+
+            <input type="number" onkeydown="return event.key !== '-'" class="form-control" id="{{ $name }}_amount" name="{{ $name }}_amount"
+                value="{{ $amountValue }}" step="0.01" min="0" {{ $required ? 'required' : '' }}>
+        </div>
     </div>
 
     {{-- Manejo de errores de Laravel --}}

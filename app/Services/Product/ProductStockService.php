@@ -4,6 +4,7 @@ namespace App\Services\Product;
 
 use App\Enums\ProductStatus;
 use App\Models\Product;
+use App\Models\ProductBranch;
 use Illuminate\Validation\ValidationException;
 
 class ProductStockService
@@ -13,7 +14,10 @@ class ProductStockService
      */
     public function reserve(Product $product, int $qty, int $branchId): void
     {
-        $productBranch = $product->productBranches()->where('branch_id', $branchId)->lockForUpdate()->first();
+        $productBranch = $product->productBranches()
+            ->where('branch_id', $branchId)
+            ->lockForUpdate()
+            ->first();
 
         if (!$productBranch) {
             throw ValidationException::withMessages([
@@ -23,11 +27,14 @@ class ProductStockService
 
         if ($productBranch->stock < $qty) {
             throw ValidationException::withMessages([
-                'stock' => "No hay suficiente stock en la sucursal seleccionada. Disponible: {$productBranch->stock}"
+                'stock' => "No hay suficiente stock. Disponible: {$productBranch->stock}"
             ]);
         }
 
         $productBranch->stock -= $qty;
+
+        $this->syncStatus($productBranch);
+
         $productBranch->save();
     }
 
@@ -36,12 +43,20 @@ class ProductStockService
      */
     public function release(Product $product, int $qty, int $branchId): void
     {
-        $productBranch = $product->productBranches()->where('branch_id', $branchId)->lockForUpdate()->first();
+        $productBranch = $product->productBranches()
+            ->where('branch_id', $branchId)
+            ->lockForUpdate()
+            ->first();
 
-        if ($productBranch) {
-            $productBranch->stock += $qty;
-            $productBranch->save();
+        if (!$productBranch) {
+            return;
         }
+
+        $productBranch->stock += $qty;
+
+        $this->syncStatus($productBranch);
+
+        $productBranch->save();
     }
 
     /**
@@ -50,17 +65,30 @@ class ProductStockService
      */
     public function addStock(Product $product, int $quantity, int $branchId): void
     {
-        // Usamos la relación definida en el modelo Product
         $productBranch = $product->productBranches()->updateOrCreate(
-            ['branch_id' => $branchId], // Si existe esta sucursal para este producto...
+            ['branch_id' => $branchId],
             [
-                // Si no existe, se crea con estos valores por defecto:
                 'status' => ProductStatus::Available,
-                // 'stock' se inicializa en 0 por defecto en DB, o puedes forzarlo aquí si es nuevo
             ]
         );
 
-        // increment() es atómico a nivel de base de datos (SET stock = stock + quantity)
         $productBranch->increment('stock', $quantity);
+
+        // Seguridad extra por si estaba en OutOfStock
+        if ($productBranch->stock > 0 && $productBranch->status !== ProductStatus::Available) {
+            $productBranch->status = ProductStatus::Available;
+            $productBranch->save();
+        }
+    }
+
+    private function syncStatus(ProductBranch $branch): void
+    {
+        if ($branch->stock <= 0) {
+            $branch->status = ProductStatus::OutOfStock;
+        } elseif ($branch->stock <= $branch->low_stock_threshold) {
+            $branch->status = ProductStatus::LowStock;
+        } else {
+            $branch->status = ProductStatus::Available;
+        }
     }
 }

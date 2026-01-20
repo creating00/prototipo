@@ -7,6 +7,7 @@ enum ProductStatus: int // 'int' es el tipo base (TINYINT)
     case Available = 1;
     case OutOfStock = 2;
     case Discontinued = 3;
+    case LowStock = 4;
 
     public function label(): string
     {
@@ -14,6 +15,7 @@ enum ProductStatus: int // 'int' es el tipo base (TINYINT)
             self::Available => 'Disponible',
             self::OutOfStock => 'Sin Stock',
             self::Discontinued => 'Descontinuado',
+            self::LowStock => 'Stock Bajo',
         };
     }
 

@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="row justify-content-center">
-        <div class="col-12" style="max-width: 80%;">
+        <div class="col-12" style="max-width: 90%;">
             <x-adminlte.alert-manager />
 
             <x-adminlte.form id="orderForm" action="{{ route('web.orders.store') }}" method="POST" title="Crear Nuevo Pedido">

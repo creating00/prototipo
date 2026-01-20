@@ -26,7 +26,7 @@ const OrderForm = {
         orderCurrency.init();
         orderModal.init();
         if (branchFilter) branchFilter.init();
-        if (productAutocomplete) productAutocomplete.init();
+        if (productAutocomplete) productAutocomplete.init({ context: 'order' });
     },
 
     initShortcuts() {

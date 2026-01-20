@@ -1,0 +1,14 @@
+/* resources/css/sidebar-neon.css */
+
+/* Selector de "Fuerza Bruta" para AdminLTE 4 */
+.app-sidebar[data-bs-theme="dark"] .nav-sidebar .nav-item .nav-link .nav-icon.text-neon-purple { color: #bc13fe !important; }
+.app-sidebar[data-bs-theme="dark"] .nav-sidebar .nav-item .nav-link .nav-icon.text-neon-green  { color: #39ff14 !important; }
+.app-sidebar[data-bs-theme="dark"] .nav-sidebar .nav-item .nav-link .nav-icon.text-neon-cyan   { color: #00f3ff !important; }
+.app-sidebar[data-bs-theme="dark"] .nav-sidebar .nav-item .nav-link .nav-icon.text-neon-orange { color: #ff6700 !important; }
+.app-sidebar[data-bs-theme="dark"] .nav-sidebar .nav-item .nav-link .nav-icon.text-neon-pink   { color: #ff007f !important; }
+
+/* Brillo y efectos (Opcional) */
+.nav-icon[class*="text-neon-"] {
+    opacity: 1 !important;
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.2));
+}

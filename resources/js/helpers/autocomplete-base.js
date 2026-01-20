@@ -87,6 +87,8 @@ export default class AutocompleteBase {
         this.resultsList.classList.add("show");
     }
 
+    renderResults(products) {}
+
     hideResults() {
         if (this.resultsList) {
             this.resultsList.style.display = "none";

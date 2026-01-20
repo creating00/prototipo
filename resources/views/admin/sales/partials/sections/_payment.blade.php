@@ -59,8 +59,7 @@
 
 <div id="repair-amount-wrapper" class="d-none">
     <x-bootstrap.compact-input id="repair_amount" name="repair_amount" type="number" label="Costo de la Reparación"
-        step="0.01" prefix="$" value="{{ old('repair_amount', $sale->repair_amount ?? '') }}"
-        oninput="window.salePayment?.setSaleTotalFromRepair()" required />
+        step="0.01" prefix="$" value="{{ old('repair_amount', $sale->repair_amount ?? '') }}" required />
 </div>
 
 <hr class="my-3">

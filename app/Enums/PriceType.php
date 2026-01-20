@@ -7,6 +7,7 @@ enum PriceType: int
     case PURCHASE = 1;
     case SALE = 2;
     case WHOLESALE = 3;
+    case REPAIR = 4;
 
     public function label(): string
     {
@@ -14,6 +15,7 @@ enum PriceType: int
             self::PURCHASE => 'Compra',
             self::SALE => 'Venta',
             self::WHOLESALE => 'Mayorista',
+            self::REPAIR => 'Reparación',
         };
     }
 

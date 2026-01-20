@@ -33,9 +33,10 @@ function setupFiltersChangeListener(autocomplete, moduleRef) {
 export default {
     instance: null,
     templateEmpty: null,
+    context: "sale",
 
-    init() {
-        this.templateEmpty = document.querySelector("#tpl-search-empty");
+    init(options = {}) {
+        if (options.context) this.context = options.context;
 
         this.instance = new AutocompleteBase({
             inputSelector: "#product_search_input",
@@ -45,22 +46,29 @@ export default {
         });
 
         if (this.instance.input) {
+            // ERROR CORREGIDO: Sobrescribir renderResults de la instancia
+            // y vincularlo al contexto de este objeto literal.
+            this.instance.renderResults = (products) =>
+                this.renderResults(products);
+
             this.instance.input.removeEventListener(
                 "input",
-                this.instance.handleInput
+                this.instance.handleInput,
             );
+
+            // Usar Arrow Function para que 'this' dentro de handleCustomInput sea este objeto
             this.instance.input.addEventListener("input", () =>
-                this.handleCustomInput()
+                this.handleCustomInput(),
             );
+
             this.instance.search = (query) => this.search(query);
 
-            // Inicializar placeholder
             this.updatePlaceholder();
 
             document.addEventListener("sale:typeChanged", () => {
-                this.instance.clear(); // Limpia input y resultados
-                this.instance.cache = {}; // Limpia cache por seguridad
-                this.updatePlaceholder(); // Remueve el indicador azul/filtro
+                this.instance.clear();
+                this.instance.cache = {};
+                this.updatePlaceholder();
             });
         }
 
@@ -116,6 +124,7 @@ export default {
         }
 
         if (this.instance.cache[query]) {
+            // Ahora 'this' es correcto y renderResults está disponible
             this.renderResults(this.instance.cache[query]);
             return;
         }
@@ -123,7 +132,7 @@ export default {
         const delay = query.length > 7 ? 100 : 250;
         this.instance.debounceTimeout = setTimeout(
             () => this.search(query),
-            delay
+            delay,
         );
     },
 
@@ -131,7 +140,17 @@ export default {
         this.instance.cancelSearch();
 
         const branchId = getCurrentBranchId();
-        const categoryId = getRepairCategoryId(); // Obtenemos categoría activa
+        const categoryId = getRepairCategoryId();
+
+        // Detectar si estamos en modo reparación basado en el select
+        const repairSelect =
+            document.getElementById("repair_type") ||
+            document.querySelector('select[name="repair_type_id"]');
+        const isRepair = !!(
+            repairSelect &&
+            !repairSelect.disabled &&
+            categoryId
+        );
 
         if (!branchId) return;
 
@@ -140,10 +159,13 @@ export default {
             this.instance.spinner.style.display = "block";
 
         try {
-            // Construcción dinámica de URL
             const url = new URL("/api/inventory/list", window.location.origin);
             url.searchParams.append("q", query);
             url.searchParams.append("branch_id", branchId);
+
+            // Enviamos el contexto y el estado de reparación
+            url.searchParams.append("context", this.context);
+            url.searchParams.append("is_repair", isRepair ? "1" : "0");
 
             if (categoryId) {
                 url.searchParams.append("category_id", categoryId);
@@ -200,6 +222,7 @@ export default {
 
             link.addEventListener("click", (e) => {
                 e.preventDefault();
+                // Usar arrow function o bind para asegurar que 'this' sea el objeto exportado
                 this.selectProduct(product.code);
             });
 
@@ -209,11 +232,37 @@ export default {
         this.instance.showResults();
     },
 
+    // resources/js/modules/sales/partials/product-autocomplete.js
+
     selectProduct(code) {
         this.instance.cancelSearch();
-        document.dispatchEvent(
-            new CustomEvent("product:searchByCode", { detail: { code } })
+
+        const categoryId = getRepairCategoryId();
+        const repairSelect =
+            document.getElementById("repair_type") ||
+            document.querySelector('select[name="repair_type_id"]');
+
+        const isRepair = !!(
+            repairSelect &&
+            !repairSelect.disabled &&
+            categoryId
         );
+
+        // Definimos el objeto que vamos a enviar
+        const eventDetail = {
+            code: code,
+            context: this.context,
+            is_repair: isRepair,
+        };
+
+        console.log("Despachando producto:", eventDetail);
+
+        document.dispatchEvent(
+            new CustomEvent("product:searchByCode", {
+                detail: eventDetail, // Asegúrate de usar el nombre de la variable definida arriba
+            }),
+        );
+
         this.instance.input.value = "";
         this.instance.hideResults();
     },
@@ -232,7 +281,7 @@ export default {
             btnSearch.addEventListener("click", () => {
                 // Notificamos que se requiere abrir la búsqueda avanzada
                 document.dispatchEvent(
-                    new CustomEvent("product:openAdvancedSearch")
+                    new CustomEvent("product:openAdvancedSearch"),
                 );
             });
         }

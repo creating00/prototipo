@@ -32,6 +32,10 @@ class ProductValidatorService
             // La moneda mayorista solo es requerida si se envió el monto
             'wholesale_price_currency' => 'required_with:wholesale_price_amount|integer|in:1,2',
 
+            // Precio de Reparación (Opcional)
+            'repair_price_amount' => 'nullable|numeric|min:0',
+            'repair_price_currency' => 'required_with:repair_price_amount|integer|in:1,2',
+
             'providers' => 'nullable|array',
             'providers.*' => 'exists:providers,id',
         ];

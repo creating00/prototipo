@@ -2,24 +2,26 @@
 
 namespace App\View\Components\Adminlte;
 
-use Closure;
-use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
 
 class SubMenuItem extends Component
 {
-    /**
-     * Create a new component instance.
-     */
-    public function __construct()
+    public $href;
+    public $icon;
+    public $label;
+    public $active;
+    public $color;
+
+    public function __construct($href = '#', $icon = 'bi bi-circle', $label = '', $active = false, $color = '')
     {
-        //
+        $this->href = $href;
+        $this->icon = $icon;
+        $this->label = $label;
+        $this->active = $active;
+        $this->color = $color;
     }
 
-    /**
-     * Get the view / contents that represent the component.
-     */
-    public function render(): View|Closure|string
+    public function render()
     {
         return view('components.adminlte.sub-menu-item');
     }

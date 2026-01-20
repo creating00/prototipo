@@ -3,11 +3,13 @@
     'icon' => '',
     'label' => '',
     'active' => false,
+    'color' => '',
 ])
 
 <li class="nav-item">
     <a href="{{ $href }}" class="nav-link {{ $active ? 'active' : '' }}">
-        <i class="nav-icon {{ $icon }}"></i>
+        {{-- Se agrega la variable $color a la clase del icono --}}
+        <i class="nav-icon {{ $icon }} {{ $color }}"></i>
         <p>{{ $label }}</p>
     </a>
 </li>

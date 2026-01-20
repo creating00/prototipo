@@ -18,7 +18,7 @@
     <table class="table table-striped table-bsaleed align-middle" id="order-items-table">
         <thead>
             <tr>
-                <th width="18%">Producto</th>
+                <th width="10%">Producto</th>
                 <th width="7%">Stock</th>
                 <th width="20%">Precio</th>
                 <th width="6%">Cantidad</th>

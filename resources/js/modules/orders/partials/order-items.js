@@ -1,35 +1,107 @@
+// resources/js/modules/orders/partials/order-items.js
 import { fetchProduct } from "./order-fetch";
 import { Toast } from "@/config/notifications";
-import {
-    addRow as addRowRow,
-    updateQuantity,
-    updateSubtotal,
-} from "./order-row";
+import { addRow as addRowRow, updateQuantity } from "./order-row";
 import { getCurrentBranchId } from "../../../config/datatables";
+import TableUiManager from "../../sales/services/TableUiManager";
 
 export default {
     table: null,
+    context: "order",
 
     init() {
-        if (this._initialized) return;
-        this._initialized = true;
-
         this.table = document.querySelector("#order-items-table tbody");
         if (!this.table) return;
 
-        // Escucha el evento global. No importa quién lo dispare
-        // (el autocomplete o el escáner), este método agregará el producto.
+        this.bindEvents();
+        this.refreshTableState();
+    },
+
+    bindEvents() {
+        // Usar arrow function para preservar el scope de 'this'
         document.addEventListener("product:searchByCode", (e) => {
-            if (!e.detail?.code) return;
-            this.addProductByCode(e.detail.code);
+            if (e.detail && e.detail.context === this.context) {
+                this.addProductByCode(e.detail);
+            }
         });
 
         this.table.addEventListener("click", (e) => {
             const btn = e.target.closest(".btn-remove-item");
             if (btn) this.removeRow(btn.closest("tr"));
         });
+    },
 
-        this.updateRowIndices();
+    async addProductByCode(payload) {
+        const { code, context, is_repair } = payload;
+        const branchId = getCurrentBranchId();
+
+        if (!branchId) {
+            Toast.fire({
+                icon: "warning",
+                title: "Atención",
+                text: "Seleccione sucursal.",
+            });
+            return;
+        }
+
+        try {
+            // Obtener datos del producto
+            const response = await fetchProduct(
+                code,
+                branchId,
+                context,
+                is_repair,
+            );
+
+            // Validar que la respuesta tenga el HTML necesario
+            if (!response || !response.html) {
+                console.error("No se recibió HTML del servidor");
+                return;
+            }
+
+            this.clearInput();
+
+            const row = this.findRow(code);
+            if (row) {
+                const qtyInput = row.querySelector(".quantity");
+                const currentQty = parseInt(qtyInput.value) || 0;
+
+                updateQuantity(row, currentQty + 1, {
+                    updateTotal: () => this.updateTotal(),
+                });
+            } else {
+                // Insertar nueva fila
+                this.addRow(response.html);
+            }
+
+            this.refreshTableState();
+        } catch (e) {
+            console.error("Error al procesar producto:", e);
+            this.clearInput();
+        }
+    },
+
+    findRow(code) {
+        if (!this.table) return null;
+        const normalized = code.toString().trim().toUpperCase();
+        return this.table.querySelector(`tr[data-code="${normalized}"]`);
+    },
+
+    updateTotal() {
+        if (!this.table) return;
+
+        const subtotals = Array.from(this.table.querySelectorAll(".subtotal"));
+        const total = subtotals.reduce(
+            (sum, input) => sum + parseFloat(input.value || 0),
+            0,
+        );
+
+        const totalInput = document.querySelector("#total_amount");
+        if (totalInput) totalInput.value = total.toFixed(2);
+
+        document.dispatchEvent(
+            new CustomEvent("sale:totalUpdated", { detail: { total } }),
+        );
     },
 
     addRow(html) {
@@ -37,104 +109,22 @@ export default {
             this.table = document.querySelector("#order-items-table tbody");
         }
 
+        if (!this.table) return;
+
         return addRowRow(this.table, html, {
             updateTotal: () => this.updateTotal(),
         });
     },
 
-    async addProductByCode(code) {
-        try {
-            const branchId = getCurrentBranchId();
-
-            if (!branchId) {
-                // Error local: No hay sucursal
-                const msg =
-                    "No se ha seleccionado una sucursal. Por favor, seleccione una sucursal primero.";
-                Toast.fire({
-                    icon: "warning",
-                    title: "Atención",
-                    text: msg,
-                });
-                throw new Error(msg);
-            }
-
-            // fetchProduct ya dispara su propio Toast (success o error)
-            const { html } = await fetchProduct(code, branchId, "order");
-
-            this.clearInput();
-
-            const row = this.findRow(code);
-
-            if (row) {
-                updateQuantity(
-                    row,
-                    parseInt(row.querySelector(".quantity").value) + 1,
-                    {
-                        updateTotal: () => this.updateTotal(),
-                    }
-                );
-            } else {
-                this.addRow(html);
-            }
-
-            this.updateRowIndices();
-            this.updateTotal();
-        } catch (e) {
-            // Si hay error (404, red, etc), limpiamos el input para el siguiente escaneo
-            this.clearInput();
-
-            // Opcional: registrar en consola para debug personal
-            console.debug("Operación de producto detenida:", e.message);
-        }
-    },
-
-    findRow(code) {
-        if (!this.table) {
-            this.table = document.querySelector("#order-items-table tbody");
-        }
-
-        if (!this.table) return null;
-
-        // Normaliza el código (elimina espacios, convierte a mayúsculas)
-        const normalizedCode = code.toString().trim().toUpperCase();
-
-        // Busca en todas las filas
-        const rows = this.table.querySelectorAll("tr[data-code]");
-        for (let row of rows) {
-            const rowCode = row.dataset.code?.toString().trim().toUpperCase();
-            if (rowCode === normalizedCode) {
-                return row;
-            }
-        }
-
-        return null;
-    },
-
-    updateTotal() {
-        if (!this.table) {
-            this.table = document.querySelector("#order-items-table tbody");
-        }
-
-        if (!this.table) return;
-
-        const total = Array.from(
-            this.table.querySelectorAll(".subtotal")
-        ).reduce((sum, input) => sum + parseFloat(input.value || 0), 0);
-
-        const totalInput = document.querySelector("#total_amount");
-        if (totalInput) {
-            totalInput.value = total.toFixed(2);
-        }
-
-        const event = new CustomEvent("sale:totalUpdated", {
-            detail: { total: total },
-        });
-        document.dispatchEvent(event);
-    },
-
     removeRow(row) {
+        if (!row) return;
         row.remove();
-        this.updateRowIndices();
+        this.refreshTableState();
+    },
+
+    refreshTableState() {
+        if (!this.table) return;
+        TableUiManager.updateIndices(this.table);
         this.updateTotal();
     },
 
@@ -144,25 +134,5 @@ export default {
             input.value = "";
             input.focus();
         }
-    },
-
-    updateRowIndices() {
-        if (!this.table) {
-            this.table = document.querySelector("#order-items-table tbody");
-        }
-
-        if (!this.table) return;
-
-        this.table.querySelectorAll("tr").forEach((row, index) => {
-            row.dataset.index = index;
-            row.querySelectorAll("input, select").forEach((input) => {
-                if (input.name) {
-                    input.name = input.name.replace(
-                        /items\[(\d+|INDEX)\]/,
-                        `items[${index}]`
-                    );
-                }
-            });
-        });
     },
 };

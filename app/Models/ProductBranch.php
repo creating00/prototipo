@@ -49,4 +49,9 @@ class ProductBranch extends Model
             ->where('currency', $currency)
             ->first();
     }
+
+    public function scopeAvailable($query)
+    {
+        return $query->where('status', ProductStatus::Available);
+    }
 }

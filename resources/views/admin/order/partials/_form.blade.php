@@ -95,37 +95,45 @@
             {{-- FOOTER CON SINTAXIS BOOTSTRAP 5 --}}
             <div class="card-footer bg-white border-top py-3">
                 <div class="row align-items-center">
-                    <div class="col-md-6 d-none d-md-block">
-                        <div class="d-flex flex-column justify-content-center h-100">
-                            <label class="small text-uppercase fw-bold text-primary mb-1">
-                                <i class="fas fa-chart-line me-1"></i> Cotización Dólar Blue (Venta)
-                            </label>
-
-                            <div class="input-group shadow-sm w-75">
-                                <span class="input-group-text bg-primary text-white border-primary">
-                                    <i class="fas fa-dollar-sign"></i>
-                                </span>
-                                <input type="text" id="current_dollar_price"
-                                    class="form-control bg-white text-center fw-bold" readonly value="Cargando...">
-                                <span class="input-group-text bg-light text-muted small">ARS</span>
-                            </div>
+                    {{-- Lado Izquierdo: Cotización --}}
+                    <div class="col-md-4">
+                        <label class="small text-uppercase fw-bold text-primary mb-1">
+                            <i class="fas fa-chart-line me-1"></i> Cotización Blue
+                        </label>
+                        <div class="input-group shadow-sm">
+                            <span class="input-group-text bg-primary text-white"><i
+                                    class="fas fa-dollar-sign"></i></span>
+                            <input type="text" id="current_dollar_price" class="form-control text-center fw-bold"
+                                readonly value="Cargando...">
                         </div>
                     </div>
 
-                    <div class="col-md-6">
-                        <div class="input-group shadow-sm mb-2">
-                            <span class="input-group-text bg-success text-white border-success">TOTAL ARS</span>
-                            <input type="number" name="total_amount" id="total_amount"
-                                class="form-control text-end total-field-footer"
-                                value="{{ old('total_amount', $order->total_amount ?? 0) }}" readonly step="0.01">
-                            <span class="input-group-text bg-light">$</span>
+                    {{-- Lado Derecho: Totales Mixtos --}}
+                    <div class="col-md-8">
+                        <div class="row g-2">
+                            {{-- Total en ARS (Suma ARS + (Suma USD * Cotización)) --}}
+                            <div class="col-6">
+                                <div class="input-group shadow-sm">
+                                    <span class="input-group-text bg-success text-white small">TOTAL ARS</span>
+                                    <input type="number" name="total_amount" id="total_amount"
+                                        class="form-control text-end fw-bold" readonly step="0.01">
+                                    <span class="input-group-text bg-light">$</span>
+                                </div>
+                            </div>
+                            {{-- Total en USD (Suma USD + (Suma ARS / Cotización)) --}}
+                            <div class="col-6">
+                                <div class="input-group shadow-sm">
+                                    <span class="input-group-text bg-primary text-white small">TOTAL USD</span>
+                                    <input type="text" id="total_amount_usd" class="form-control text-end fw-bold"
+                                        readonly>
+                                    <span class="input-group-text bg-light">U$D</span>
+                                </div>
+                            </div>
                         </div>
-
-                        <div class="input-group shadow-sm">
-                            <span class="input-group-text bg-info text-white border-info">TOTAL USD</span>
-                            <input type="text" id="total_amount_usd" class="form-control text-end bg-light"
-                                value="0.00" readonly>
-                            <span class="input-group-text bg-light">U$D</span>
+                        {{-- Desglose pequeño opcional --}}
+                        <div class="d-flex justify-content-end gap-3 mt-1 text-muted small">
+                            <span>Items ARS: <strong id="subtotal_ars_pure">$ 0.00</strong></span>
+                            <span>Items USD: <strong id="subtotal_usd_pure">U$D 0.00</strong></span>
                         </div>
                     </div>
                 </div>

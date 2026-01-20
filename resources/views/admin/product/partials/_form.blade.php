@@ -122,20 +122,26 @@
 
     <h3 class="form-section-title">Precios y Moneda</h3>
 
-    {{-- Moneda (Currency - Select se mantiene) --}}
-    <div class="row">
-        <div class="col-md-4">
+    {{-- Precios y Monedas --}}
+    <div class="row g-3">
+        <div class="col-md-3">
             <x-currency-price-input name="purchase_price" label="Precio de Compra (Costo)" :amount-value="old('purchase_price_amount', $formData->price(PriceType::PURCHASE->value))"
                 :currency-value="old('purchase_price_currency', $formData->currency(PriceType::PURCHASE->value))" :currency-options="$formData->currencyOptions" />
         </div>
-        <div class="col-md-4">
+
+        <div class="col-md-3">
             <x-currency-price-input name="sale_price" label="Precio de Venta (Minorista)" :amount-value="old('sale_price.amount', $formData->price(PriceType::SALE->value))"
                 :currency-value="old('sale_price.currency', $formData->currency(PriceType::SALE->value))" :currency-options="$formData->currencyOptions" />
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
             <x-currency-price-input name="wholesale_price" label="Precio Mayorista" :amount-value="old('wholesale_price.amount', $formData->price(PriceType::WHOLESALE->value))" :currency-value="old('wholesale_price.currency', $formData->currency(PriceType::WHOLESALE->value))"
                 :currency-options="$formData->currencyOptions" :required="false" />
+        </div>
+
+        <div class="col-md-3">
+            <x-currency-price-input name="repair_price" label="Precio de Reparación" :amount-value="old('repair_price.amount', $formData->price(PriceType::REPAIR->value))"
+                :currency-value="old('repair_price.currency', $formData->currency(PriceType::REPAIR->value))" :currency-options="$formData->currencyOptions" :required="false" />
         </div>
     </div>
 </div>

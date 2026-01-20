@@ -23,7 +23,7 @@
     @endif
 
     <div class="row justify-content-center">
-        <div class="col-12" style="max-width: 80%;">
+        <div class="col-12" style="max-width: 100%;">
             <x-adminlte.alert-manager />
 
             <x-adminlte.form id="saleForm" action="{{ route('web.sales.store') }}" title="Nueva Venta">

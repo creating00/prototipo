@@ -98,24 +98,29 @@ class Product extends Model
     |--------------------------------------------------------------------------
     */
 
-    public function price(?int $branchId, PriceType $type, CurrencyType $currency): ?float
+    public function price(?int $branchId, PriceType $type, ?CurrencyType $currency = null): ?float
     {
         return $this->priceModel($branchId, $type, $currency)?->amount;
     }
 
-    public function purchasePrice(?int $branchId = null, CurrencyType $currency = CurrencyType::ARS): ?float
+    public function purchasePrice(?int $branchId = null, ?CurrencyType $currency = null): ?float
     {
         return $this->price($branchId, PriceType::PURCHASE, $currency);
     }
 
-    public function salePrice(?int $branchId = null, CurrencyType $currency = CurrencyType::ARS): ?float
+    public function salePrice(?int $branchId = null, ?CurrencyType $currency = null): ?float
     {
         return $this->price($branchId, PriceType::SALE, $currency);
     }
 
-    public function wholesalePrice(?int $branchId = null, CurrencyType $currency = CurrencyType::ARS): ?float
+    public function wholesalePrice(?int $branchId = null, ?CurrencyType $currency = null): ?float
     {
         return $this->price($branchId, PriceType::WHOLESALE, $currency);
+    }
+
+    public function repairPrice(?int $branchId = null, ?CurrencyType $currency = null): ?float
+    {
+        return $this->price($branchId, PriceType::REPAIR, $currency);
     }
 
     /*
@@ -127,11 +132,11 @@ class Product extends Model
     public function priceModel(?int $branchId, PriceType $type, ?CurrencyType $currency = null): ?ProductBranchPrice
     {
         $branchModel = $this->branchContext($branchId);
-        if (!$branchModel) {
-            return null;
-        }
+        if (!$branchModel) return null;
 
         $query = $branchModel->prices()->where('type', $type->value);
+
+        // Si pasamos moneda, filtramos. Si no, traerá el primero que encuentre (sea ARS o USD)
         if ($currency) {
             $query->where('currency', $currency->value);
         }
@@ -147,6 +152,16 @@ class Product extends Model
     public function salePriceModel(?int $branchId = null, ?CurrencyType $currency = null): ?ProductBranchPrice
     {
         return $this->priceModel($branchId, PriceType::SALE, $currency);
+    }
+
+    public function wholesalePriceModel(?int $branchId = null, ?CurrencyType $currency = null): ?ProductBranchPrice
+    {
+        return $this->priceModel($branchId, PriceType::WHOLESALE, $currency);
+    }
+
+    public function repairPriceModel(?int $branchId = null, ?CurrencyType $currency = null): ?ProductBranchPrice
+    {
+        return $this->priceModel($branchId, PriceType::REPAIR, $currency);
     }
 
     /*

@@ -4,8 +4,7 @@
         <!--begin::Brand Link-->
         <a href="{{ route('dashboard') }}" class="brand-link">
             <!--begin::Brand Image-->
-            <img src="{{ asset('assets/img/logo.webp') }}" alt="AdminLTE Logo"
-                class="brand-image opacity-75 shadow" />
+            <img src="{{ asset('assets/img/logo.webp') }}" alt="AdminLTE Logo" class="brand-image opacity-75 shadow" />
             <!--end::Brand Image-->
             <!--begin::Brand Text-->
             <span class="brand-text fw-light">TecnoNauta</span>
@@ -19,9 +18,7 @@
         <nav class="mt-2">
             <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="navigation"
                 aria-label="Main navigation" data-accordion="false" id="navigation">
-
                 <x-adminlte.menu-builder />
-
             </ul>
         </nav>
     </div>

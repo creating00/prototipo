@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\CurrencyType;
 use App\Http\Controllers\BaseProductController;
 use App\Models\Product;
 use Illuminate\Http\Request;
@@ -25,6 +24,17 @@ class ProductController extends BaseProductController
         );
     }
 
+    private function resolvePriceModel(Product $product, string $branchId, string $context, bool $isRepair)
+    {
+        return match ($context) {
+            'sale' => $isRepair
+                ? ($product->repairPriceModel($branchId) ?? $product->salePriceModel($branchId))
+                : $product->salePriceModel($branchId),
+            'order' => $product->purchasePriceModel($branchId),
+            default => $product->salePriceModel($branchId),
+        };
+    }
+
     /**
      * Buscar producto por código y branch (API para órdenes)
      */
@@ -32,28 +42,29 @@ class ProductController extends BaseProductController
     {
         $branchId   = $request->get('branch_id');
         $categoryId = $request->get('category_id');
-        $allowEditPrice = $request->get('context') === 'sale';
+        $isRepair   = $request->boolean('is_repair');
+        $context    = $request->get('context', 'order');
 
         if (!$branchId) {
             return response()->json(['error' => 'Branch ID is required'], 400);
         }
 
-        $productQuery = Product::where('code', $code);
+        $product = Product::where('code', $code)
+            ->when($categoryId, fn($q) => $q->where('category_id', $categoryId))
+            ->first();
 
-        if ($categoryId) {
-            $productQuery->where('category_id', $categoryId);
-        }
-
-        $product = $productQuery->first();
-
-        if (!$product) {
+        if (!$product || !$product->branchContext($branchId)) {
             return response()->json(['error' => 'Product not found'], 404);
         }
 
-        // Verifica contexto de sucursal
-        if (!$product->branchContext($branchId)) {
-            return response()->json(['error' => 'Product not found in this branch'], 404);
-        }
+        // Buscamos el modelo de precio según contexto
+        $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair);
+
+        // Si no existe precio, devolvemos 0 y moneda por defecto (ARS)
+        $finalPrice = $priceEntry?->amount ?? 0;
+
+
+        $currency = $priceEntry?->currency ?? \App\Enums\CurrencyType::ARS;
 
         return response()->json([
             'product' => [
@@ -61,14 +72,19 @@ class ProductController extends BaseProductController
                 'code'       => $product->code,
                 'name'       => $product->name,
                 'stock'      => $product->getStock($branchId),
-                'sale_price' => $product->salePrice($branchId),
+                'sale_price' => $finalPrice,
+                'currency'   => [
+                    'code'   => $currency->code(),
+                    'symbol' => $currency->symbol(),
+                ],
             ],
             'html' => view('admin.order.partials._item_row', [
-                'product'    => $product,
-                'stock'      => $product->getStock($branchId),
-                'salePrice'  => $product->salePrice($branchId),
-                'item'       => null,
-                'allowEditPrice' => $allowEditPrice,
+                'product'        => $product,
+                'stock'          => $product->getStock($branchId),
+                'salePrice'      => $finalPrice,
+                'currency'       => $currency,
+                'item'           => null,
+                'allowEditPrice' => ($context === 'sale'),
             ])->render(),
         ]);
     }
@@ -78,9 +94,11 @@ class ProductController extends BaseProductController
      */
     public function list(Request $request)
     {
-        $branchId = $request->get('branch_id');
+        $branchId   = $request->get('branch_id');
         $categoryId = $request->get('category_id');
-        $search = $request->get('q'); // Término de búsqueda
+        $search     = $request->get('q');
+        $isRepair   = $request->boolean('is_repair');
+        $context    = $request->get('context', 'sale');
 
         if (!$branchId) {
             return response()->json(['error' => 'Branch ID is required'], 400);
@@ -88,7 +106,6 @@ class ProductController extends BaseProductController
 
         $query = Product::query();
 
-        // Filtro por búsqueda (Nombre o Código)
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -100,30 +117,28 @@ class ProductController extends BaseProductController
             $query->where('category_id', $categoryId);
         }
 
-        // Limitamos a 15 resultados para eficiencia del dropdown
-        $products = $query->with(['productBranches' => function ($q) use ($branchId) {
-            $q->where('branch_id', $branchId)->with('prices');
-        }])->limit(15)->get();
+        $products = $query
+            ->whereHas('productBranches', function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId)->available();
+            })
+            ->limit(15)
+            ->get();
 
-        $response = $products->map(function ($product) use ($branchId) {
-            $branch = $product->productBranches->first();
-            if (!$branch) return null;
-
-            $price = $branch->prices
-                ->where('type', \App\Enums\PriceType::SALE)
-                ->first();
+        $response = $products->map(function ($product) use ($branchId, $context, $isRepair) {
+            // Usamos la lógica centralizada
+            $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair);
 
             return [
                 'id'            => $product->id,
                 'code'          => $product->code,
                 'name'          => $product->name,
-                'stock'         => $branch->stock,
-                'price'         => $price?->amount ?? 0,
-                'price_display' => $price?->getFormattedAmount() ?? '$ 0,00',
+                'stock'         => $product->getStock($branchId),
+                'price'         => $priceEntry?->amount ?? 0,
+                'price_display' => $priceEntry?->getFormattedAmount() ?? '$ 0,00',
             ];
-        })->filter()->values();
+        });
 
-        return response()->json($response);
+        return response()->json($response->values());
     }
 
     /**

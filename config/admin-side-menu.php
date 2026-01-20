@@ -10,6 +10,7 @@ return [
         [
             'type' => 'submenu',
             'icon' => 'bi bi-person-badge',
+            'color' => 'text-neon-cyan',
             'label' => 'Usuarios',
             'subitems' => [
                 ['href' => 'web.users.index', 'label' => 'Listar Usuarios'],
@@ -22,6 +23,7 @@ return [
         [
             'type' => 'single',
             'icon' => 'bi bi-cart-fill',
+            'color' => 'text-neon-green',
             'label' => 'Ventas',
             'href'  => 'web.sales.create-client',
         ],
