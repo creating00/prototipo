@@ -21,19 +21,15 @@ class ExpenseWebController extends BaseExpenseController
         $this->authorize('viewAny', Expense::class);
         $rowData = $dataTableService->getAllExpensesForDataTable();
 
-        // Encabezados en español, alineados con las claves del map
         $headers = [
             '#',
-            'Usuario',
             'Sucursal',
-            'Tipo de gasto',
+            'Fecha',
             'Monto',
             'Forma de pago',
-            'Referencia',
-            'Fecha de registro'
+            'Motivo'
         ];
 
-        // Campos ocultos que no se muestran en la tabla pero pueden ser útiles
         $hiddenFields = ['id'];
 
         return view('admin.expense.index', compact('headers', 'rowData', 'hiddenFields'));
@@ -60,13 +56,18 @@ class ExpenseWebController extends BaseExpenseController
     public function store(ExpenseWebRequest $request)
     {
         $this->authorize('create', Expense::class);
+
         $data = $request->validated();
-        $data['user_id'] = $this->userId();
-        $data['amount'] = $data['amount_amount'];
+
+        // Mapeo de campos del componente y auditoría
+        $data['user_id']   = $this->userId();
+        $data['branch_id'] = $this->currentBranchId();
+        $data['amount']   = $data['amount_amount'];
         $data['currency'] = $data['amount_currency'];
 
         $this->expenseService->createExpense($data);
-        return redirect()->route('admin.expense.index')
+
+        return redirect()->route('web.expenses.index')
             ->with('success', 'Gasto registrado correctamente');
     }
 
@@ -74,6 +75,8 @@ class ExpenseWebController extends BaseExpenseController
     {
         $expense = $this->expenseService->getExpenseById($id);
         $this->authorize('update', $expense);
+
+        //dd($expense);
 
         $branchUserId = $this->currentBranchId();
         $formData = new \App\ViewModels\ExpenseFormData(
@@ -92,17 +95,18 @@ class ExpenseWebController extends BaseExpenseController
     public function update(ExpenseWebRequest $request, $id)
     {
         $expense = $this->expenseService->getExpenseById($id);
-
         $this->authorize('update', $expense);
 
         $data = $request->validated();
-        $data['user_id'] = $this->userId();
-        $data['amount'] = $data['amount_amount'];
+
+        // Mapeo consistente con store
+        $data['user_id']  = $this->userId();
+        $data['amount']   = $data['amount_amount'];
         $data['currency'] = $data['amount_currency'];
 
         $this->expenseService->updateExpense($id, $data);
 
-        return redirect()->route('admin.expense.index')
+        return redirect()->route('web.expenses.index')
             ->with('success', 'Gasto actualizado correctamente');
     }
 

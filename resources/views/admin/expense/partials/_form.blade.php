@@ -2,29 +2,19 @@
 
 @php
     use App\Enums\PaymentType;
-    use App\Enums\PriceType;
 @endphp
 
+@push('styles')
+    @vite('resources/css/modules/products/products-styles.css')
+@endpush
+
 <h3>Información del Gasto</h3>
-<div class="row g-3">
-    <div class="col-md-6">
-        {{-- Sucursal --}}
-        <x-adminlte.select-with-action name="branch_id" label="Sucursal" :options="$formData->branches->pluck('name', 'id')->toArray()" :value="old('branch_id', $formData->expense?->branch_id ?? $formData->branchUserId)" required
-            buttonId="btn-new-branch" />
-    </div>
 
+<div class="row g-3 align-items-start">
+    {{-- Fila 1: Fecha + Forma de Pago --}}
     <div class="col-md-6">
-        {{-- Tipo de Gasto --}}
-        <x-adminlte.select-with-action name="expense_type_id" label="Tipo de Gasto" :options="$formData->expenseTypes->pluck('display_name', 'id')->toArray()" :value="old('expense_type_id', $formData->expense?->expense_type_id)"
-            required buttonId="btn-new-expense-type" />
-    </div>
-</div>
-
-<div class="row g-3">
-    <div class="col-md-6">
-        {{-- Este componente ya trae su lógica interna --}}
-        <x-currency-price-input name="amount" label="Monto del Gasto" :amount-value="old('amount.amount', $formData->expense?->amount)" :currency-value="old('amount.currency', $formData->currency())"
-            :currency-options="$formData->currencyOptions" :required="true" />
+        <x-bootstrap.compact-input id="date" name="date" type="date" label="Fecha del Gasto" :value="old('date', $formData->expense?->date?->format('Y-m-d') ?? now()->format('Y-m-d'))"
+            required />
     </div>
 
     <div class="col-md-6">
@@ -35,13 +25,18 @@
     </div>
 </div>
 
-<hr class="my-3">
-
-<h3>Referencia</h3>
 <div class="row g-3">
-    <div class="col-md-12">
-        {{-- Referencia (ej: número de factura) --}}
-        <x-adminlte.input-group id="reference" name="reference" label="Referencia / Factura"
-            placeholder="Ej: Factura #123" :value="old('reference', $formData->expense?->reference)" />
+    {{-- Fila 2: Monto + Observación --}}
+    <div class="col-md-6">
+        <x-currency-price-input name="amount" label="Monto del Gasto" :amount-value="old('amount_amount', $formData->expense?->amount)" :currency-value="old('amount_currency', $formData->currency())"
+            :currency-options="$formData->currencyOptions" :required="true" />
+    </div>
+
+    <div class="col-md-6">
+        <x-adminlte.textarea id="observation" name="observation" label="Motivo del Gasto" rows="2"
+            placeholder="Escriba el motivo del gasto..." :value="old('observation', $formData->expense?->observation)" required />
     </div>
 </div>
+
+{{-- Campo oculto --}}
+<input type="hidden" name="expense_type_id" value="{{ old('expense_type_id', $formData->expense?->expense_type_id) }}">

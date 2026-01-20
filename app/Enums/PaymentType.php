@@ -22,9 +22,9 @@ enum PaymentType: int
     public function badgeClass(): string
     {
         return match ($this) {
-            self::Cash => 'badge-custom badge-custom-green',
+            self::Cash => 'badge-custom badge-custom-mint',
             self::Card => 'badge-custom badge-custom-ocean', // puedes usar sky/ocean/cyan 
-            self::Transfer => 'badge-custom badge-custom-emerald',
+            self::Transfer => 'badge-custom badge-custom-gradient-blue',
             self::Check => 'badge-custom badge-custom-yellow',
         };
     }

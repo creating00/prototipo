@@ -16,21 +16,20 @@ class ExpenseDataTableService
      */
     public function getAllExpensesForDataTable(): array
     {
-        $expenses = Expense::with(['user', 'branch', 'expenseType'])
-            ->orderByDesc('created_at')
+        // Cambiamos el orden de la consulta por la fecha del gasto real
+        $expenses = Expense::with(['branch'])
+            ->orderByDesc('date')
             ->get();
 
         return $expenses->map(function ($expense, $index) {
             return [
-                'id' => $expense->id,                               // Oculto pero usable en data-id
-                'number' => $index + 1,                             // Columna visible #
-                'user' => $expense->user->name ?? '-',              // Usuario que registró el gasto
-                'branch' => $expense->branch->name ?? '-',          // Nombre de la sucursal
-                'expense_type' => $expense->expenseType->name ?? '-', // Tipo de gasto (ej: Luz, Agua)
-                'amount' => $this->formatExpenseAmount($expense),
+                'id'           => $expense->id,
+                'number'       => $index + 1,
+                'branch'       => $expense->branch->name ?? '-',
+                'date'         => $expense->date ? $expense->date->format('d/m/Y') : '-',
+                'amount'       => $this->formatExpenseAmount($expense),
                 'payment_type' => $this->formatStatusBadge($expense->payment_type->label(), PaymentType::class),
-                'reference' => $expense->reference ?? '-',          // Factura o referencia
-                'created_at' => $expense->created_at->format('d/m/Y H:i'), // Fecha de registro
+                'observation'  => $expense->observation ?? '-',
             ];
         })->toArray();
     }

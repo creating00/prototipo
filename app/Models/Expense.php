@@ -7,6 +7,7 @@ use App\Enums\PaymentType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Expense extends Model
 {
@@ -20,14 +21,15 @@ class Expense extends Model
         'currency',
         'payment_type',
         'reference',
+        'date',
+        'observation',
     ];
 
-    /** 
-     *  Casts: convierte currency y payment_type en enums. 
-     */
     protected $casts = [
         'currency' => CurrencyType::class,
         'payment_type' => PaymentType::class,
+        'date' => 'date',
+        'amount' => 'decimal:2',
     ];
 
     protected $appends = ['currency_code', 'currency_symbol'];
@@ -36,35 +38,28 @@ class Expense extends Model
     {
         return $this->currency?->code();
     }
+
     public function getCurrencySymbolAttribute(): ?string
     {
         return $this->currency?->symbol();
     }
 
-    /**
-     * Relación: el gasto pertenece a un usuario.
-     */
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Relación: el gasto pertenece a una sucursal.
-     */
-    public function branch()
+    public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
     }
 
-    /**
-     * Relación: el gasto pertenece a un tipo de gasto.
-     */
-    public function expenseType()
+    public function expenseType(): BelongsTo
     {
         return $this->belongsTo(ExpenseType::class);
     }
 
+    // Scopes de filtrado
     public function scopeForBranch($query, int $branchId)
     {
         return $query->where('branch_id', $branchId);
@@ -72,13 +67,14 @@ class Expense extends Model
 
     public function scopeToday($query)
     {
-        return $query->whereDate('created_at', Carbon::today());
+        // Se usa el campo 'date' para reflejar el día del gasto real
+        return $query->whereDate('date', Carbon::today());
     }
 
     public function scopeThisMonth($query)
     {
         return $query
-            ->whereYear('created_at', Carbon::now()->year)
-            ->whereMonth('created_at', Carbon::now()->month);
+            ->whereYear('date', Carbon::now()->year)
+            ->whereMonth('date', Carbon::now()->month);
     }
 }
