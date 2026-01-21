@@ -118,7 +118,7 @@ class Order extends Model
 
     public function generateWhatsAppMessage(): string
     {
-        $customerName = $this->customer_name; // Usando el accesor que ya tienes
+        $customerName = $this->customer_name;
 
         $itemsDetail = $this->items->take(5)->map(function ($item) {
             return "• {$item->quantity}x " . ($item->product->name ?? 'Producto');

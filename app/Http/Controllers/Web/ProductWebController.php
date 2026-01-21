@@ -13,6 +13,7 @@ use App\Services\CategoryService;
 use App\Traits\AuthTrait;
 use App\ViewModels\ProductFormData;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ProductWebController extends BaseProductController
 {
@@ -69,9 +70,16 @@ class ProductWebController extends BaseProductController
     public function store(Request $request)
     {
         $this->authorize('create', Product::class);
+
         try {
+            $data = $request->except(['removeImage']);
+
+            if ($request->hasFile('imageFile')) {
+                $data['imageFile'] = $request->file('imageFile');
+            }
+
             $product = $this->productService->create(
-                data: $request->except(['imageFile', 'imageUrl', 'removeImage']),
+                data: $data,
                 imageFile: $request->file('imageFile'),
                 imageUrl: $request->input('imageUrl')
             );
@@ -141,9 +149,17 @@ class ProductWebController extends BaseProductController
         $this->authorize('update', $product);
 
         try {
+            // NO excluir imageFile e imageUrl, solo removeImage
+            $data = $request->except(['removeImage']);
+
+            // Asegurar que los archivos estén en el array si existen
+            if ($request->hasFile('imageFile')) {
+                $data['imageFile'] = $request->file('imageFile');
+            }
+
             $this->productService->update(
                 product: $product,
-                data: $request->except(['imageFile', 'imageUrl', 'removeImage']),
+                data: $data, // Ahora incluye imageFile e imageUrl
                 imageFile: $request->file('imageFile'),
                 imageUrl: $request->input('imageUrl'),
                 removeImage: $request->boolean('removeImage')

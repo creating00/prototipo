@@ -27,7 +27,8 @@ class Form extends Component
         ?string $submitText = null,
         public string $submittingText = 'Guardando...',
         ?string $id = null,
-        public ?bool $showFooter = null
+        public ?bool $showFooter = null,
+        public ?string $enctype = null
     ) {
         $this->formId = $id ?? 'form_' . bin2hex(random_bytes(4));
         $this->submitText = $submitText ?? $this->getDefaultSubmitText();

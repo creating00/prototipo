@@ -87,7 +87,7 @@ class ProductPresenterService
                 'code' => $product->code,
                 'name' => $product->name,
                 'description' => $product->description,
-                'image' => $product->image,
+                'image' => $product->full_image_url,
                 'category_id' => $product->category_id,
                 'category' => $product->category?->name,
                 'average_rating' => $product->average_rating,

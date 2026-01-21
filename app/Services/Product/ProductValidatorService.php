@@ -14,6 +14,8 @@ class ProductValidatorService
             'name' => 'required|string',
             'description' => 'nullable|string',
             'category_id' => 'nullable|exists:categories,id',
+            'imageFile' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'imageUrl' => 'nullable|url',
             'branch_id' => 'required|exists:branches,id',
             'stock' => 'required|integer|min:0',
             'low_stock_threshold' => 'nullable|integer|min:0',

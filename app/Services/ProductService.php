@@ -23,45 +23,29 @@ class ProductService
 
     public function create(array $data, ?UploadedFile $imageFile = null, ?string $imageUrl = null): Product
     {
-        $validated = $this->validatorService->validateProductData($data);
-        $validated['image'] = $this->handleImageUpload($imageFile, $imageUrl, $validated['code']);
+        $dataForValidation = $data;
+
+        if ($imageFile) {
+            $dataForValidation['imageFile'] = $imageFile;
+        }
+
+        if ($imageUrl) {
+            $dataForValidation['imageUrl'] = $imageUrl;
+        }
+
+        $validated = $this->validatorService->validateProductData($dataForValidation);
+
+        $imagePath = $this->handleImageUpload($imageFile, $imageUrl, $validated['code']);
 
         $product = Product::create([
             'code' => $validated['code'],
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
-            'image' => $validated['image'],
+            'image' => $imagePath,
             'category_id' => $validated['category_id'] ?? null,
         ]);
 
         $this->branchService->createBranchDataForProduct($product, $validated);
-
-        $this->syncProviders($product, $validated['providers'] ?? []);
-
-        return $product->fresh();
-    }
-
-    public function update(
-        Product $product,
-        array $data,
-        ?UploadedFile $imageFile = null,
-        ?string $imageUrl = null,
-        bool $removeImage = false
-    ): Product {
-        $validated = $this->validatorService->validateProductData($data, $product->id);
-        $newImage = $this->handleImageUpdate($product, $validated, $imageFile, $imageUrl, $removeImage);
-
-        $product->update([
-            'code' => $validated['code'] ?? $product->code,
-            'name' => $validated['name'] ?? $product->name,
-            'description' => $validated['description'] ?? $product->description,
-            'image' => $newImage,
-            'category_id' => $validated['category_id'] ?? $product->category_id,
-        ]);
-
-        if (isset($validated['branch_id'])) {
-            $this->branchService->updateBranchDataForProduct($product, $validated);
-        }
 
         $this->syncProviders($product, $validated['providers'] ?? []);
 
@@ -93,6 +77,45 @@ class ProductService
                 'branch_id'   => null // Relación global explícita
             ]);
         }
+    }
+
+    public function update(
+        Product $product,
+        array $data,
+        ?UploadedFile $imageFile = null,
+        ?string $imageUrl = null,
+        bool $removeImage = false
+    ): Product {
+        $dataForValidation = $data;
+
+        if ($imageFile) {
+            $dataForValidation['imageFile'] = $imageFile;
+        }
+
+        if ($imageUrl) {
+            $dataForValidation['imageUrl'] = $imageUrl;
+        }
+
+        $validated = $this->validatorService->validateProductData($dataForValidation, $product->id);
+
+        $newImage = $this->handleImageUpdate($product, $validated, $imageFile, $imageUrl, $removeImage);
+
+        $product->update([
+            'code' => $validated['code'] ?? $product->code,
+            'name' => $validated['name'] ?? $product->name,
+            'description' => $validated['description'] ?? $product->description,
+            'image' => $newImage,
+            'category_id' => $validated['category_id'] ?? $product->category_id,
+        ]);
+
+        if (isset($validated['branch_id'])) {
+            $this->branchService->updateBranchDataForProduct($product, $validated);
+        }
+
+        // Sincronizar proveedores
+        $this->syncProviders($product, $validated['providers'] ?? []);
+
+        return $product->fresh();
     }
 
     public function delete(Product $product): void

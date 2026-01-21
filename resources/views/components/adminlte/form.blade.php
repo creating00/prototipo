@@ -21,7 +21,8 @@
     @endif
 
     <form id="{{ $formId }}" action="{{ $action }}"
-        method="{{ strtoupper($method) === 'GET' ? 'GET' : 'POST' }}" novalidate x-on:submit="submitting = true"
+        method="{{ strtoupper($method) === 'GET' ? 'GET' : 'POST' }}"
+        @if ($enctype) enctype="{{ $enctype }}" @endif  novalidate x-on:submit="submitting = true"
         x-bind:class="{ 'opacity-50 pointer-events-none': submitting }">
 
         @if (strtoupper($method) !== 'GET')

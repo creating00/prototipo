@@ -190,4 +190,28 @@ class Product extends Model
     {
         return $this->ratings()->avg('rate') ?? 0;
     }
+
+    public function getFullImageUrlAttribute(): ?string
+    {
+        if (!$this->image) {
+            return null;
+        }
+
+        // Si ya es una URL completa (http:// o https://)
+        if (filter_var($this->image, FILTER_VALIDATE_URL)) {
+            return $this->image;
+        }
+
+        // Si es una ruta local (/storage/)
+        if (str_starts_with($this->image, '/storage/')) {
+            return config('app.url') . $this->image;
+        }
+
+        // Si es una ruta relativa sin /storage/
+        if (str_starts_with($this->image, 'storage/')) {
+            return config('app.url') . '/' . $this->image;
+        }
+
+        return $this->image;
+    }
 }
