@@ -3,50 +3,78 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use App\Models\Province;
 use App\Models\Branch;
 use App\Models\User;
-use App\Models\Province;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
-
 
 class BranchAndUserSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Buscar la provincia de Jujuy (según el nombre devuelto por la API)
-        // La API de Georef devuelve "Jujuy" exactamente así
-        $province = Province::where('name', 'Jujuy')->first();
+        // Configuración de provincias y sus datos
+        $locations = [
+            'Jujuy' => [
+                'branch_name' => 'Sucursal Jujuy',
+                'address' => 'Av. Libertador San Martín 123, San Salvador de Jujuy',
+                'email' => 'admin@admin.com',
+                'admin_name' => 'Administrador Jujuy'
+            ],
+            'Salta' => [
+                'branch_name' => 'Sucursal Salta',
+                'address' => 'Av. Belgrano 456, Salta Capital',
+                'email' => 'admin_salta@admin.com',
+                'admin_name' => 'Administrador Salta'
+            ],
+            'Córdoba' => [
+                'branch_name' => 'Sucursal Córdoba',
+                'address' => 'Colón 789, Córdoba Capital',
+                'email' => 'admin_cordoba@admin.com',
+                'admin_name' => 'Administrador Córdoba'
+            ],
+        ];
+
+        foreach ($locations as $provinceName => $data) {
+            $this->createBranchAndAdmin($provinceName, $data);
+        }
+    }
+
+    /**
+     * Procesa la creación de sucursal y usuario por provincia.
+     */
+    private function createBranchAndAdmin(string $provinceName, array $data): void
+    {
+        $province = Province::where('name', $provinceName)->first();
 
         if (!$province) {
-            $this->command->error('La provincia de Jujuy no existe en la base de datos. Asegúrate de haber ejecutado ProvincesSeeder.');
+            $this->command->error("La provincia {$provinceName} no existe en la base de datos.");
             return;
         }
 
-        // Crear una sucursal en Jujuy
+        // Crear o recuperar sucursal
         $branch = Branch::firstOrCreate(
-            ['name' => 'Sucursal Jujuy'],
+            ['name' => $data['branch_name']],
             [
                 'province_id' => $province->id,
-                'address' => 'Av. Libertador San Martín 123, San Salvador de Jujuy',
+                'address' => $data['address'],
             ]
         );
 
-        // Crear un usuario asociado a esa sucursal
+        // Crear o recuperar usuario
         $user = User::firstOrCreate(
-            ['email' => 'admin@admin.com'],
+            ['email' => $data['email']],
             [
-                'name' => 'Administrador Jujuy',
+                'name' => $data['admin_name'],
                 'password' => Hash::make('12345678'),
                 'branch_id' => $branch->id,
             ]
         );
 
-        $user->assignRole('admin');
+        // Asignar rol si no lo tiene
+        if (!$user->hasRole('admin')) {
+            $user->assignRole('admin');
+        }
 
-        $this->command->info('Sucursal en Jujuy y usuario administrador creados.');
+        $this->command->info("Sucursal y administrador creados para: {$provinceName}");
     }
 }
