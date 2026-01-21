@@ -28,12 +28,17 @@ trait DataTableFormatter
         };
     }
 
-    protected function formatCurrency(float $amount, ?CurrencyType $currency = null, string $class = 'fw-bold text-success'): string
+    protected function formatCurrency(float $amount, ?CurrencyType $currency = null, string $class = 'fw-bold'): string
     {
         $currency = $currency ?? CurrencyType::ARS;
+
+        // Usamos el color definido en el Enum: text-success o text-primary
+        $colorClass = "text-" . $currency->color();
+
         return sprintf(
-            '<span class="%s">%s %s</span>',
+            '<span class="%s %s">%s %s</span>',
             $class,
+            $colorClass,
             $currency->symbol(),
             number_format($amount, 2, ',', '.')
         );
@@ -86,13 +91,13 @@ trait DataTableFormatter
     protected function formatForDataTable($model, int $index, array $options = []): array
     {
         $phone = $this->cleanPhoneNumber($model->customer?->phone);
+        $customerName = $this->resolveCustomerName($model);
 
-        $total = 0;
-
-        if (!empty($model->totals)) {
-            // Tomamos el primer total (ARS por defecto)
-            $total = collect($model->totals)->first();
-        }
+        // Formateamos todos los totales existentes
+        $formattedTotals = collect($model->totals)->map(function ($amount, $currencyId) {
+            $currency = CurrencyType::tryFrom((int) $currencyId);
+            return $this->formatCurrency((float) $amount, $currency);
+        })->implode('<br>'); // Los separamos con un salto de línea para la tabla
 
         return [
             'id'            => $model->id,
@@ -100,12 +105,14 @@ trait DataTableFormatter
             'branch'        => $model->branch->name ?? '',
             'customer'      => $this->resolveCustomerName($model),
             'customer_type' => $model->customer_type,
-            'total'         => $this->formatCurrency((float) $total),
+            'total'         => $formattedTotals ?: $this->formatCurrency(0), // Fallback a 0 ARS si está vacío
             'status'        => $this->resolveStatus($model, $options),
             'status_raw'    => is_object($model->status) ? $model->status->value : $model->status,
             'created_at'    => $model->created_at->format('Y-m-d'),
             'phone'         => $phone,
             'whatsapp-url'  => $phone ? $this->getWhatsAppLink($model, $phone) : null,
+            'totals_json'       => json_encode($model->totals),
+            'customer_name_raw' => $customerName,
         ];
     }
 

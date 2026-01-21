@@ -62,22 +62,49 @@
 
             <div class="card-footer">
                 <div class="row align-items-center">
-                    <div class="col-md-6">
-                        @if ($sale->hasDiscount())
-                            <span class="text-danger fw-bold">
-                                <i class="fas fa-arrow-down me-1"></i> Descuento:
-                                -${{ number_format($sale->discount_amount, 2, ',', '.') }}
-                            </span>
-                        @endif
-                    </div>
-                    <div class="col-md-6 d-flex justify-content-end">
-                        <div class="bg-light p-3 rounded border" style="min-width: 250px;">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="text-muted me-3">Total a Pagar:</span>
-                                <h4 class="mb-0 text-navy">
-                                    <strong>${{ number_format($sale->total_amount, 2, ',', '.') }}</strong>
-                                </h4>
+                    <div class="col-md-5">
+                        <div class="d-flex flex-column gap-1">
+                            @if ($sale->hasDiscount())
+                                <span class="text-danger fw-bold small">
+                                    <i class="fas fa-arrow-down me-1"></i> Descuento aplicado:
+                                    -${{ number_format($sale->discount_amount, 2, ',', '.') }}
+                                </span>
+                            @endif
+
+                            <div class="d-flex gap-3 text-muted small">
+                                @foreach ($sale->formatted_totals as $formatted)
+                                    <span>{{ $formatted }}</span>
+                                @endforeach
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-7 text-end">
+                        <div class="bg-light p-3 rounded border d-inline-block" style="min-width: 300px;">
+                            {{-- Desglose por moneda --}}
+                            @foreach ($sale->formatted_totals as $currencyId => $formatted)
+                                @php
+                                    $enum = \App\Enums\CurrencyType::tryFrom($currencyId);
+                                    $colorClass = $enum ? 'text-' . $enum->color() : 'text-navy';
+                                @endphp
+                                <div class="d-flex justify-content-between align-items-center gap-4 mb-1">
+                                    <span class="text-muted small">Subtotal {{ $enum ? $enum->code() : '' }}:</span>
+                                    <span class="{{ $colorClass }} fw-bold">{{ $formatted }}</span>
+                                </div>
+                            @endforeach
+
+                            <hr class="my-2">
+
+                            {{-- Total General Consolidado (Ejemplo en ARS) --}}
+                            <div class="d-flex justify-content-between align-items-center gap-4">
+                                <span class="fw-bold text-dark">TOTAL GENERAL (ARS):</span>
+                                <h3 class="mb-0 text-success">
+                                    <strong>${{ number_format($sale->total_general_ars, 2, ',', '.') }}</strong>
+                                </h3>
+                            </div>
+                            <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">
+                                * Valores convertidos a tasa de referencia.
+                            </small>
                         </div>
                     </div>
                 </div>

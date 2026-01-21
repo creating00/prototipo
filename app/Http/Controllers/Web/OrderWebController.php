@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Services\BranchService;
 use App\Services\CategoryService;
 use App\Services\ClientService;
+use App\Services\CurrencyExchangeService;
 use App\Traits\AuthTrait;
 use Illuminate\Http\Request;
 
@@ -16,7 +17,7 @@ class OrderWebController extends BaseOrderController
 {
     use AuthTrait;
 
-    public function index()
+    public function index(CurrencyExchangeService $exchangeService)
     {
         if ($redirect = $this->redirectIfNotAdmin('web.orders.create-branch')) {
             return $redirect;
@@ -27,10 +28,20 @@ class OrderWebController extends BaseOrderController
         $rowData = $this->orderService->getAllOrdersForDataTable();
         $orders = $this->orderService->getAllOrders();
 
-        $headers = ['#', 'Sucursal', 'Cliente', 'Total', 'Estado', 'Creado en:'];
-        $hiddenFields = ['id', 'status_raw', 'phone', 'whatsapp-url', 'customer_type'];
+        $currentRate = $exchangeService->getCurrentDollarRate();
 
-        return view('admin.order.index', compact('orders', 'rowData', 'headers', 'hiddenFields'));
+        $headers = ['#', 'Sucursal', 'Cliente', 'Total', 'Estado', 'Creado en:'];
+        $hiddenFields = [
+            'id',
+            'status_raw',
+            'phone',
+            'whatsapp-url',
+            'customer_type',
+            'totals_json',
+            'customer_name_raw'
+        ];
+
+        return view('admin.order.index', compact('orders', 'rowData', 'headers', 'hiddenFields', 'currentRate'));
     }
 
     public function purchaseDetails($id)

@@ -35,23 +35,20 @@ const TABLE_CONFIG = {
         },
         convert: {
             selector: ".btn-convert",
+            // Dentro de TABLE_CONFIG.rowActions.convert
             handler: (row) => {
-                const { id, total, customer_type } = row.dataset;
+                // Extraemos los nuevos datos del dataset de la fila
+                const { id, totals_json, customer_name, customer_type } =
+                    row.dataset;
+                const totals = JSON.parse(totals_json || "{}");
 
                 const modalElement =
                     document.getElementById("convertOrderModal");
                 const btnSave = document.getElementById("btnConfirmConvert");
 
-                // 1. Ruta API
                 if (btnSave) {
                     btnSave.dataset.route = `${apiUrl}/${id}/convert`;
                 }
-
-                // 2. Normalizar total
-                const cleanTotal = total
-                    ?.replace(/<[^>]*>/g, "")
-                    .replace(/[^\d,.-]/g, "")
-                    .replace(",", ".");
 
                 const modalInstance =
                     bootstrap.Modal.getOrCreateInstance(modalElement);
@@ -61,11 +58,12 @@ const TABLE_CONFIG = {
                     () => {
                         setupConvertModal({
                             orderId: id,
-                            total: cleanTotal,
+                            totals: totals, // Pasamos el objeto de totales
+                            customerName: customer_name,
                             customerType: customer_type,
                         });
                     },
-                    { once: true }
+                    { once: true },
                 );
 
                 modalInstance.show();
@@ -120,26 +118,61 @@ const TABLE_CONFIG = {
     },
 };
 
-function setupConvertModal({ orderId, total, customerType }) {
+function setupConvertModal({ orderId, totals, customerName, customerType }) {
+    const rate = window.currentExchangeRate || 1000;
+
+    // 1. Referencias UI
     const displayId = document.getElementById("display_order_id");
+    const displayCustomer = document.getElementById("display_customer_name");
+    const displayArs = document.getElementById("display_total_ars");
+    const displayUsd = document.getElementById("display_total_usd");
+    const pureArsLabel = document.getElementById("subtotal_ars_pure");
+    const pureUsdLabel = document.getElementById("subtotal_usd_pure");
+
     const inputAmount = document.getElementById("convert_amount_received");
     const selectPayment = document.getElementById("convert_payment_type");
+    const hiddenTotalArs = document.getElementById("total_amount");
 
+    // Validación de elementos críticos
     if (!inputAmount || !selectPayment || !selectPayment._choices) return;
 
-    // Mostrar ID de orden
-    if (displayId) {
-        displayId.textContent = orderId;
+    // 2. Cálculos de Totales
+    const arsPure = parseFloat(totals[1] || 0);
+    const usdPure = parseFloat(totals[2] || 0);
+
+    const totalConsolidadoArs = arsPure + usdPure * rate;
+    const totalConsolidadoUsd = usdPure + arsPure / rate;
+
+    // 3. Actualizar UI Visual (Textos)
+    if (displayId) displayId.textContent = orderId;
+    if (displayCustomer) displayCustomer.textContent = customerName;
+
+    if (displayArs) {
+        displayArs.textContent = totalConsolidadoArs.toLocaleString("es-AR", {
+            minimumFractionDigits: 2,
+        });
+    }
+    if (displayUsd) {
+        displayUsd.textContent = totalConsolidadoUsd.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+        });
     }
 
-    const isBranch = customerType?.includes("Branch");
-    const paymentValue = isBranch ? "3" : "1";
+    if (pureArsLabel) pureArsLabel.textContent = `$ ${arsPure.toFixed(2)}`;
+    if (pureUsdLabel) pureUsdLabel.textContent = `U$D ${usdPure.toFixed(2)}`;
 
-    // ----- Monto recibido -----
-    inputAmount.value = total;
+    // 4. Lógica de Negocio (Sucursales vs Clientes)
+    const isBranch = customerType?.includes("Branch");
+    const paymentValue = isBranch ? "3" : "1"; // 3: Transferencia (asumido), 1: Efectivo
+
+    // Guardar total base para el backend
+    if (hiddenTotalArs) hiddenTotalArs.value = totalConsolidadoArs.toFixed(2);
+
+    // Configurar Monto Recibido
+    inputAmount.value = totalConsolidadoArs.toFixed(2);
     inputAmount.readOnly = isBranch;
 
-    // ----- Método de pago -----
+    // 5. Gestión de Choices.js (Método de Pago)
     selectPayment._choices.removeActiveItems();
     selectPayment._choices.setChoiceByValue(paymentValue);
 
@@ -151,10 +184,8 @@ function setupConvertModal({ orderId, total, customerType }) {
         selectPayment.closest(".choices")?.classList.remove("is-disabled");
     }
 
-    // ----- Inicializar cálculos -----
-    bindConvertAmountListener(total);
-
-    // Forzar cálculo inicial (cambio, saldo, estado)
+    // 6. Inicializar cálculos y disparar eventos
+    bindConvertAmountListener(totalConsolidadoArs);
     inputAmount.dispatchEvent(new Event("input"));
 }
 

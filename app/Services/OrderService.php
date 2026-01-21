@@ -160,6 +160,19 @@ class OrderService
                 throw new \Exception("Esta orden ya fue convertida a venta.");
             }
 
+            // 1. Obtener cotización actual
+            $exchangeService = app(CurrencyExchangeService::class);
+            $rate = $exchangeService->getCurrentDollarRate();
+
+            // 2. Preparar claves de moneda
+            $arsKey = \App\Enums\CurrencyType::ARS->value;
+            $usdKey = \App\Enums\CurrencyType::USD->value;
+
+            // 3. Calcular total consolidado para el monto recibido
+            $totals = $order->totals ?? [];
+            $totalArsConsolidado = (float)($totals[$arsKey] ?? 0) +
+                ((float)($totals[$usdKey] ?? 0) * $rate);
+
             $defaultPaymentType = ($order->customer_type === Branch::class)
                 ? \App\Enums\PaymentType::Transfer->value
                 : \App\Enums\PaymentType::Cash->value;
@@ -167,39 +180,50 @@ class OrderService
             $userId = $options['user_id'] ?? $this->userId();
 
             if (!$userId) {
-                throw new \Exception('No se pudo determinar el usuario que convierte la orden en venta.');
+                throw new \Exception('No se pudo determinar el usuario.');
             }
 
-            $data = [
-                'source_order_id' => $order->id,
-                'branch_id'       => $order->branch_id,
-                'user_id'         => $userId,
-                'customer_type'   => $order->customer_type,
-                'sale_type'       => \App\Enums\SaleType::Sale->value,
-                'sale_date'       => now()->format('Y-m-d'),
-                'status'          => \App\Enums\SaleStatus::Paid->value,
-                'items'           => $order->items->map(fn($i) => [
+            // 4. Mapear ítems convirtiendo precios USD a ARS
+            $items = $order->items->map(function ($i) use ($rate, $usdKey, $arsKey) {
+                $currencyValue = is_object($i->currency) ? $i->currency->value : $i->currency;
+                $isUsd = (int)$currencyValue === (int)$usdKey;
+                $unitPrice = (float)$i->unit_price;
+
+                return [
                     'product_id' => $i->product_id,
                     'quantity'   => $i->quantity,
-                    'unit_price' => $i->unit_price,
-                ])->toArray(),
-                'payment_type'    => $options['payment_type'] ?? $defaultPaymentType,
-                'amount_received' => $options['amount_received']
-                    ?? array_sum($order->totals ?? []),
+                    'unit_price' => $isUsd ? ($unitPrice * $rate) : $unitPrice,
+                    'currency'   => $arsKey, // Forzamos ARS para la venta
+                ];
+            })->toArray();
+
+            // 5. Estructurar data para SaleService
+            $data = [
+                'source_order_id'     => $order->id,
+                'branch_id'           => $order->branch_id,
+                'user_id'             => $userId,
+                'customer_type'       => $order->customer_type,
+                'sale_type'           => \App\Enums\SaleType::Sale->value,
+                'sale_date'           => now()->format('Y-m-d'),
+                'status'              => \App\Enums\SaleStatus::Paid->value,
+                'items'               => $items,
+                'payment_type'        => $options['payment_type'] ?? $defaultPaymentType,
+                'amount_received'     => $options['amount_received'] ?? $totalArsConsolidado,
                 'skip_stock_movement' => true,
             ];
 
-            // Mapeo dinámico según el tipo de cliente para satisfacer la validación de SaleService
+            // Mapeo de cliente/sucursal destino
             if ($order->customer_type === Client::class) {
                 $data['client_id'] = $order->customer_id;
             } else {
                 $data['branch_recipient_id'] = $order->customer_id;
             }
 
+            // 6. Crear Venta y actualizar Orden
             $sale = app(SaleService::class)->createSale($data);
 
             $order->update([
-                'status' => OrderStatus::ConvertedToSale->value,
+                'status'  => OrderStatus::ConvertedToSale->value,
                 'sale_id' => $sale->id
             ]);
 
@@ -415,8 +439,14 @@ class OrderService
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                // Usamos el servicio de stock que ajustamos antes
                 $this->stockService->addStock($product, $item->quantity, $order->customer_id);
+
+                $this->stockService->updatePurchasePrice(
+                    $product,
+                    $order->customer_id,
+                    (float)$item->unit_price,
+                    is_object($item->currency) ? $item->currency->value : $item->currency
+                );
             }
 
             // 6. Opcional: Actualizar el estado del Pedido a 'Completado'

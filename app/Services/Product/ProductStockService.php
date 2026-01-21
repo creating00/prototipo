@@ -91,4 +91,26 @@ class ProductStockService
             $branch->status = ProductStatus::Available;
         }
     }
+
+    /**
+     * Actualiza el precio de compra para un producto en una sucursal específica.
+     */
+    public function updatePurchasePrice(Product $product, int $branchId, float $amount, int $currency): void
+    {
+        // 1. Obtenemos el ProductBranch (el pivote entre producto y sucursal)
+        $productBranch = $product->productBranches()->where('branch_id', $branchId)->first();
+
+        if (!$productBranch) {
+            return; // Opcional: podrías lanzas una excepción si prefieres
+        }
+
+        // 2. Actualizamos o creamos el precio de tipo PURCHASE
+        $productBranch->prices()->updateOrCreate(
+            ['type' => \App\Enums\PriceType::PURCHASE],
+            [
+                'amount'   => $amount,
+                'currency' => $currency
+            ]
+        );
+    }
 }

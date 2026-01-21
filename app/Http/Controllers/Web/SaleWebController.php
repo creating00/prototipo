@@ -31,7 +31,9 @@ class SaleWebController extends BaseSaleController
             'status_raw',
             'phone',
             'whatsapp-url',
-            'customer_type'
+            'customer_type',
+            'totals_json',
+            'customer_name_raw'
         ];
 
         return view('admin.sales.index', compact('sales', 'rowData', 'headers', 'hiddenFields'));

@@ -83,7 +83,7 @@
                     </x-adminlte.button>
                     @endcanResource
 
-                    {{-- Pedidos Sucursal → Sucursal --}} 
+                    {{-- Pedidos Sucursal → Sucursal --}}
                     @canResource('orders.create_branch')
                     {{-- custom-graphite --}}
                     <x-adminlte.button color="primary" icon="fas fa-building" class="me-1 btn-header-new-branch">
@@ -105,5 +105,9 @@
 @endsection
 
 @push('scripts')
+    <script>
+        // Definimos la tasa globalmente para los módulos JS
+        window.currentExchangeRate = {{ $currentRate }};
+    </script>
     @vite('resources/js/modules/orders/index.js')
 @endpush

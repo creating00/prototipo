@@ -1,7 +1,6 @@
 const orderCurrency = {
     dollarPrice: 0,
 
-    // Selectores centralizados para fácil mantenimiento
     selectors: {
         dollarInput: "current_dollar_price",
         totalUsd: "total_amount_usd",
@@ -33,28 +32,9 @@ const orderCurrency = {
         );
     },
 
-    async syncRateWithBackend() {
-        try {
-            const response = await fetch("/api/currency/rate");
-            const data = await response.json();
-
-            if (data?.rate) {
-                this.dollarPrice = data.rate;
-                this.elements.dollarInput.value = this.formatCurrency(
-                    data.rate,
-                    "es-AR",
-                );
-                this.calculateTotal();
-                return data.rate;
-            }
-        } catch (error) {
-            console.log("Using frontend API rate");
-            return null;
-        }
-    },
-
     async fetchDollarPrice() {
-        // Estrategia: 1. Backend (cacheado), 2. API directa, 3. Fallback
+        // Prioridad 1: Backend (mantiene consistencia con la base de datos)
+        // Prioridad 2: API Directa (emergencia)
         const strategies = [
             { name: "backend", fn: () => this.syncRateWithBackend() },
             { name: "api", fn: () => this.fetchFromDolarApi() },
@@ -64,16 +44,29 @@ const orderCurrency = {
             try {
                 const rate = await strategy.fn();
                 if (rate && rate > 0) {
-                    //console.log(`Rate obtained from ${strategy.name}: ${rate}`);
-                    return; // Salir si obtuvimos una tasa válida
+                    console.log(`Cotización obtenida vía: ${strategy.name}`);
+                    return;
                 }
             } catch (error) {
-                console.warn(`Strategy ${strategy.name} failed:`, error);
+                console.warn(`Estrategia ${strategy.name} falló:`, error);
             }
         }
 
-        // Si todo falla, usar fallback
         this.useFallbackRate();
+    },
+
+    async syncRateWithBackend() {
+        try {
+            const response = await fetch("/api/currency/rate");
+            const data = await response.json();
+
+            if (data?.rate) {
+                this.updateDollarUI(data.rate);
+                return data.rate;
+            }
+        } catch (error) {
+            return null;
+        }
     },
 
     async fetchFromDolarApi() {
@@ -84,26 +77,23 @@ const orderCurrency = {
             const data = await response.json();
 
             if (data?.venta) {
-                this.dollarPrice = data.venta;
-                this.elements.dollarInput.value = this.formatCurrency(
-                    this.dollarPrice,
-                    "es-AR",
-                );
-                this.calculateTotal();
+                this.updateDollarUI(data.venta);
+                return data.venta;
             }
         } catch (error) {
             console.error("DolarApi Error:", error);
-            this.elements.dollarInput.value = "Error";
+            return null;
         }
     },
 
-    useFallbackRate() {
-        this.dollarPrice = 1000; // Fallback
-        this.elements.dollarInput.value = this.formatCurrency(
-            this.dollarPrice,
-            "es-AR",
-        );
+    updateDollarUI(rate) {
+        this.dollarPrice = rate;
+        this.elements.dollarInput.value = this.formatCurrency(rate, "es-AR");
         this.calculateTotal();
+    },
+
+    useFallbackRate() {
+        this.updateDollarUI(1000);
         console.warn("Using fallback exchange rate: 1000");
     },
 
@@ -114,11 +104,16 @@ const orderCurrency = {
         document.querySelectorAll(this.selectors.rows).forEach((row) => {
             const subtotal =
                 parseFloat(row.querySelector(".subtotal")?.value) || 0;
-            const currency = row.querySelector(
+            const currencyValue = row.querySelector(
                 'input[name*="[currency]"]',
             )?.value;
 
-            currency === "USD" ? (sumUsd += subtotal) : (sumArs += subtotal);
+            // Ajuste: El Enum de PHP envía "2" para USD y "1" para ARS
+            if (currencyValue === "2") {
+                sumUsd += subtotal;
+            } else {
+                sumArs += subtotal;
+            }
         });
 
         this.updateLabels(sumArs, sumUsd);
@@ -135,14 +130,11 @@ const orderCurrency = {
     renderTotals(sumArs, sumUsd) {
         const cotizacion = this.dollarPrice || 0;
 
-        // Totales cruzados
         const totalArs = sumArs + sumUsd * cotizacion;
         const totalUsd = cotizacion > 0 ? sumUsd + sumArs / cotizacion : sumUsd;
 
-        // Update UI
         if (this.elements.totalArs) {
             this.elements.totalArs.value = totalArs.toFixed(2);
-            // Notificar a otros scripts (ej. sale-payment.js)
             this.elements.totalArs.dispatchEvent(new Event("input"));
         }
 

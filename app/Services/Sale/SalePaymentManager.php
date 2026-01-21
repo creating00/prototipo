@@ -34,10 +34,10 @@ class SalePaymentManager
         }
 
         $payment = Payment::create([
-            'branch_id' => $sale->branch_id,
+            'branch_id'        => $sale->branch_id,
             'payment_type'     => $paymentData['payment_type'],
             'amount'           => $paymentData['amount'],
-            'currency' => CurrencyType::ARS,
+            'currency'         => $paymentData['currency'] ?? \App\Enums\CurrencyType::ARS,
             'user_id'          => $paymentData['user_id'] ?? $sale->user_id,
             'paymentable_id'   => $sale->id,
             'paymentable_type' => get_class($sale),

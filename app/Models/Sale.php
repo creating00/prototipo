@@ -10,6 +10,7 @@ use Illuminate\Support\Carbon;
 use App\Enums\SaleStatus;
 use App\Enums\SaleType;
 use App\Models\Concerns\HasCurrency;
+use App\Services\CurrencyExchangeService;
 
 class Sale extends Model
 {
@@ -109,6 +110,44 @@ class Sale extends Model
                 number_format($amount, 2, ',', '.')
             );
         })->toArray();
+    }
+
+    /**
+     * Accessor para obtener el total consolidado en pesos automáticamente
+     */
+    public function getTotalGeneralArsAttribute(): float
+    {
+        return $this->getTotalInCurrency(\App\Enums\CurrencyType::ARS);
+    }
+
+    /**
+     * Calcula el total consolidado en una moneda específica
+     */
+    public function getTotalInCurrency(CurrencyType $target = CurrencyType::ARS, ?float $rate = null): float
+    {
+        $totals = $this->totals ?? [];
+        $sum = 0;
+
+        // Si no pasan un rate, lo obtenemos del servicio
+        if ($rate === null) {
+            $exchangeService = app(CurrencyExchangeService::class);
+            $rate = $exchangeService->getCurrentDollarRate();
+        }
+
+        foreach ($totals as $currencyId => $amount) {
+            $currentCurrency = CurrencyType::tryFrom((int)$currencyId);
+            if (!$currentCurrency) continue;
+
+            if ($currentCurrency === $target) {
+                $sum += $amount;
+            } elseif ($target === CurrencyType::ARS && $currentCurrency === CurrencyType::USD) {
+                $sum += $amount * $rate;
+            } elseif ($target === CurrencyType::USD && $currentCurrency === CurrencyType::ARS) {
+                $sum += ($rate > 0) ? ($amount / $rate) : 0;
+            }
+        }
+
+        return $sum;
     }
 
     /**

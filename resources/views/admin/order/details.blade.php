@@ -61,8 +61,25 @@
             </div>
 
             <div class="card-footer">
-                <div class="float-right">
-                    <h4 class="mb-0">Total: <strong>${{ number_format($order->total_amount, 2, ',', '.') }}</strong></h4>
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        {{-- Desglose rápido --}}
+                        <div class="d-flex gap-3 text-muted small">
+                            @foreach ($order->formatted_totals as $formatted)
+                                <span>{{ $formatted }}</span>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        {{-- Totales principales --}}
+                        <div class="d-inline-block">
+                            @foreach ($order->formatted_totals as $currency => $formatted)
+                                <h4 class="mb-1">
+                                    Total {{ $currency }}: <strong>{{ $formatted }}</strong>
+                                </h4>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
