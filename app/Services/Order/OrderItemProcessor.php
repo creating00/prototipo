@@ -17,13 +17,15 @@ class OrderItemProcessor extends BaseItemProcessor
         Product $product,
         int $quantity,
         float $unitPrice,
-        float $subtotal
+        float $subtotal,
+        array $rawItem
     ): void {
         $model->items()->create([
             'product_id' => $product->id,
-            'quantity' => $quantity,
+            'quantity'   => $quantity,
             'unit_price' => $unitPrice,
-            'subtotal' => $subtotal,
+            'subtotal'   => $subtotal,
+            'currency'   => $rawItem['currency'],
         ]);
     }
 

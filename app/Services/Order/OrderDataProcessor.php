@@ -2,6 +2,7 @@
 
 namespace App\Services\Order;
 
+use App\Enums\CurrencyType;
 use App\Enums\OrderSource;
 use App\Models\Client;
 use App\Models\ClientAccount;
@@ -40,6 +41,13 @@ class OrderDataProcessor
         } else {
             $this->handleInternalOrder($data);
         }
+
+        foreach ($data['items'] as &$item) {
+            if (!isset($item['currency']) || !$item['currency']) {
+                $item['currency'] = CurrencyType::ARS->value;
+            }
+        }
+        unset($item);
 
         return $data;
     }

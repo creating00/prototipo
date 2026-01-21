@@ -2,19 +2,28 @@
 
 namespace App\Models;
 
+use App\Enums\CurrencyType;
 use App\Enums\RepairType;
 use App\Enums\SaleType;
+use App\Models\Concerns\HasCurrency;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SaleItem extends Model
 {
+    use HasCurrency;
+
     protected $fillable = [
         'sale_id',
         'product_id',
         'quantity',
+        'currency',
         'unit_price',
         'subtotal',
+    ];
+
+    protected $casts = [
+        'currency' => CurrencyType::class,
     ];
 
     public function sale()

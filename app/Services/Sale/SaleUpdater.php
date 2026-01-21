@@ -26,14 +26,30 @@ class SaleUpdater
         $prepared = $this->dataProcessor->prepare($data);
 
         return DB::transaction(function () use ($sale, $prepared, $addPaymentCallback) {
-            // 1. Resetear stock e items
+
+            /*
+            |--------------------------------------------------------------------------
+            | 1. Resetear items y stock
+            |--------------------------------------------------------------------------
+            */
             $this->itemProcessor->releaseStock($sale);
             $sale->items()->delete();
 
-            // 2. Sincronizar nuevos items (esto actualiza subtotal y total en DB)
-            $this->itemProcessor->sync($sale, $prepared['items']);
+            /*
+            |--------------------------------------------------------------------------
+            | 2. Re-sincronizar items y obtener totales por moneda
+            |--------------------------------------------------------------------------
+            */
+            $totals = $this->itemProcessor->sync(
+                $sale,
+                $prepared['items']
+            );
 
-            // 3. Actualizar datos de cabecera (incluye notas)
+            /*
+            |--------------------------------------------------------------------------
+            | 3. Actualizar cabecera de la venta
+            |--------------------------------------------------------------------------
+            */
             $sale->update([
                 'branch_id'       => $prepared['branch_id'],
                 'customer_id'     => $prepared['customer_id'],
@@ -45,9 +61,14 @@ class SaleUpdater
                 'discount_amount' => $prepared['discount_amount'] ?? 0,
                 'subtotal_amount' => $prepared['subtotal'],
                 'total_amount'    => $prepared['total'],
+                'totals'          => $totals,
             ]);
 
-            // 4. Gestionar pagos
+            /*
+            |--------------------------------------------------------------------------
+            | 4. Pagos
+            |--------------------------------------------------------------------------
+            */
             if (!empty($prepared['payment'])) {
                 $existingPayment = $sale->payments()->first();
 
@@ -63,8 +84,11 @@ class SaleUpdater
                 }
             }
 
-            // 5. Recalcular saldo y estado final
-            // Este paso es el que manda sobre el estado (Paid/Pending)
+            /*
+            |--------------------------------------------------------------------------
+            | 5. Recalcular estado final (paid / pending)
+            |--------------------------------------------------------------------------
+            */
             $this->paymentManager->recalculateSalePayments($sale);
 
             return $sale->fresh(['items', 'branch', 'customer', 'payments']);

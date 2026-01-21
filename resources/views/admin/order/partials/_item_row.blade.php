@@ -3,7 +3,7 @@
     $unitPrice = $item?->unit_price ?? ($salePrice ?? 0);
     $subtotal = $item?->subtotal ?? $quantity * $unitPrice;
     $allowEditPrice = $allowEditPrice ?? false;
-    $currentCurrency = $currency ?? ($item?->product?->currency ?? \App\Enums\CurrencyType::ARS);
+    $currentCurrency = $currency ?? ($item?->currency ?? \App\Enums\CurrencyType::ARS);
     $colorClass = "bg-{$currentCurrency->color()} text-white";
 @endphp
 
@@ -13,7 +13,8 @@
             {{ $product->name }}
         </span>
         <input type="hidden" name="items[INDEX][product_id]" value="{{ $product->id }}">
-        <input type="hidden" name="items[INDEX][currency]" value="{{ $currentCurrency->code() }}">
+        <input type="hidden" name="items[INDEX][currency]" value="{{ $currentCurrency->value }}">
+
     </td>
 
     <td>

@@ -2,13 +2,17 @@
 const TableUiManager = {
     updateIndices: (tableBody) => {
         if (!tableBody) return;
-        tableBody.querySelectorAll("tr").forEach((row, index) => {
+
+        const rows = tableBody.querySelectorAll("tr");
+        rows.forEach((row, index) => {
             row.dataset.index = index;
-            row.querySelectorAll("input, select").forEach((input) => {
+
+            // Buscamos todos los inputs, selects y textareas
+            row.querySelectorAll("input, select, textarea").forEach((input) => {
                 if (input.name) {
                     input.name = input.name.replace(
-                        /items\[(\d+|INDEX)\]/,
-                        `items[${index}]`
+                        /items\[.*?\]/,
+                        `items[${index}]`,
                     );
                 }
             });
@@ -31,7 +35,7 @@ const TableUiManager = {
                 "bg-white",
                 "is-invalid",
                 "border-danger",
-                "border-warning"
+                "border-warning",
             );
             btn.classList.replace("btn-warning", "btn-outline-warning");
             icon.classList.replace("fa-lock-open", "fa-lock");

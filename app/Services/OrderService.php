@@ -7,12 +7,9 @@ use App\Enums\OrderSource;
 use App\Enums\OrderStatus;
 use App\Models\Branch;
 use App\Models\Client;
-use App\Models\ClientAccount;
 use App\Models\Order;
 use App\Models\OrderReception;
-use App\Models\Product;
 use App\Models\Sale;
-use App\Models\User;
 use App\Services\Order\OrderDataProcessor;
 use App\Services\Order\OrderItemProcessor;
 use App\Services\Product\ProductStockService;
@@ -22,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use App\Services\Traits\DataTableFormatter;
 use App\Traits\AuthTrait;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class OrderService
 {
@@ -93,9 +91,12 @@ class OrderService
         return DB::transaction(function () use ($validated) {
             $orderData = $this->dataProcessor->prepare($validated);
             $order = $this->createOrderRecord($orderData);
-            $total = $this->itemProcessor->sync($order, $orderData['items']);
+            $totals = $this->itemProcessor->sync($order, $orderData['items']);
 
-            $order->update(['total_amount' => $total]);
+            $order->update([
+                'totals' => $totals
+            ]);
+
             return $order->fresh();
         });
     }
@@ -106,24 +107,23 @@ class OrderService
         $validated = $this->validateOrderData($data, $order->id);
 
         return DB::transaction(function () use ($order, $validated) {
-            // 1. Liberar stock de la sucursal proveedora actual (antes de borrar/cambiar)
-            $this->itemProcessor->releaseStock($order);
-
-            // 2. Limpiar items antiguos
-            $order->items()->delete();
-
-            // 3. Procesar datos nuevos (aquí handleInternalOrder decide los IDs)
             $orderData = $this->dataProcessor->prepare($validated, $order);
 
-            // 4. Actualizar el registro de la orden (por si cambió el proveedor)
+            // 1. Liberar stock actual antes de procesar cambios
+            $this->itemProcessor->releaseStock($order);
+
+            // 2. Sincronizar (el sync ya maneja crear, editar y eliminar)
+            // Pasamos los items y el sync se encarga de borrar los que no vienen en $orderData['items']
+            $totals = $this->itemProcessor->sync($order, $orderData['items']);
+
+            // 3. Actualizar datos de la orden
             $this->updateOrderRecord($order, $orderData);
 
-            // 5. Sincronizar nuevos items (usará el branch_id actualizado del paso 4)
-            $total = $this->itemProcessor->sync($order, $orderData['items']);
+            $order->update([
+                'totals' => $totals
+            ]);
 
-            $order->update(['total_amount' => $total]);
-
-            return $order->fresh();
+            return $order->fresh(['items']);
         });
     }
 
@@ -184,7 +184,8 @@ class OrderService
                     'unit_price' => $i->unit_price,
                 ])->toArray(),
                 'payment_type'    => $options['payment_type'] ?? $defaultPaymentType,
-                'amount_received' => $options['amount_received'] ?? $order->total_amount,
+                'amount_received' => $options['amount_received']
+                    ?? array_sum($order->totals ?? []),
                 'skip_stock_movement' => true,
             ];
 
@@ -237,8 +238,16 @@ class OrderService
                 'number'     => $index + 1,
                 'product'    => $item->product->name,
                 'quantity'   => $item->quantity,
-                'unit_price' => $this->formatCurrency($item->unit_price, CurrencyType::ARS, 'text-dark'),
-                'subtotal'   => $this->formatCurrency($item->subtotal, CurrencyType::ARS, 'fw-bold text-dark'),
+                'unit_price' => $this->formatCurrency(
+                    $item->unit_price,
+                    $item->currency,
+                    'text-dark'
+                ),
+                'subtotal'   => $this->formatCurrency(
+                    $item->subtotal,
+                    $item->currency,
+                    'fw-bold text-dark'
+                ),
             ];
         })->toArray();
 
@@ -282,7 +291,9 @@ class OrderService
                 'observation'   => $reception ? ($reception->observation ?? 'Sin notas') : '---',
                 'number'        => $index + 1,                                  // #
                 'branch'        => $order->branch->name ?? 'N/A',               // Proveedor
-                'total'         => $this->formatCurrency($order->total_amount), // Total
+                'total' => collect($order->totals)
+                    ->map(fn($v, $k) => $this->formatCurrency($v, CurrencyType::from($k)))
+                    ->implode(' / '),
                 'status'        => $this->resolveStatus($statusSource, ['currencyClass' => 'fw-bold text-info']), // Estado
                 'created_at'    => $order->created_at->format('d-m-Y'),         // Fecha Solicitud
                 'received_at'   => $reception ? $reception->received_at->format('d-m-Y H:i') : '---', // Fecha Recepción
@@ -305,6 +316,7 @@ class OrderService
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|numeric|min:1',
+            'items.*.currency' => ['required', Rule::enum(CurrencyType::class)],
             'items.*.unit_price' => 'nullable|numeric|min:0',
             'customer_type' => 'required|in:App\Models\Client,App\Models\Branch',
         ];
@@ -344,7 +356,7 @@ class OrderService
             'source' => $orderData['source'],
             'sale_id' => $orderData['sale_id'] ?? null,
             'notes' => $orderData['notes'] ?? null,
-            'total_amount' => 0,
+            'totals' => [],
             'customer_id' => $orderData['customer_id'],
             'customer_type' => $orderData['customer_type'],
         ]);

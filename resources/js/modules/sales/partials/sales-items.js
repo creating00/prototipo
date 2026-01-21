@@ -13,6 +13,17 @@ export default {
     table: null,
     context: "sale",
 
+    preload(items) {
+        if (!items || !items.length) return;
+
+        items.forEach((item) => {
+            // Insertamos el HTML (que viene con "INDEX")
+            this.addRow(item.html || item);
+        });
+
+        // Una vez cargados todos, transformamos los "INDEX" en [0], [1], [2]...
+        this.refreshTableState();
+    },
     init() {
         this.table = document.querySelector("#order-items-table tbody");
         if (!this.table) return;

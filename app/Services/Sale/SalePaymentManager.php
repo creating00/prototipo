@@ -2,6 +2,7 @@
 
 namespace App\Services\Sale;
 
+use App\Enums\CurrencyType;
 use App\Models\Payment;
 use App\Models\Sale;
 use App\Traits\AuthTrait;
@@ -36,6 +37,7 @@ class SalePaymentManager
             'branch_id' => $sale->branch_id,
             'payment_type'     => $paymentData['payment_type'],
             'amount'           => $paymentData['amount'],
+            'currency' => CurrencyType::ARS,
             'user_id'          => $paymentData['user_id'] ?? $sale->user_id,
             'paymentable_id'   => $sale->id,
             'paymentable_type' => get_class($sale),

@@ -21,10 +21,20 @@ export function updateSubtotal(row) {
 }
 
 export function addRow(table, html, updateCallbacks) {
-    table.insertAdjacentHTML("beforeend", html);
+    // Generar un índice único (timestamp + random para evitar colisiones)
+    const uniqueIndex = Date.now() + Math.floor(Math.random() * 1000);
+
+    // Reemplazar todas las ocurrencias de INDEX por el índice real
+    const finalizedHtml = html.replace(/INDEX/g, uniqueIndex);
+
+    // Insertar el HTML ya procesado
+    table.insertAdjacentHTML("beforeend", finalizedHtml);
+
     const newRow = table.lastElementChild;
     bindQuantityChange(newRow, updateCallbacks);
     updateSubtotal(newRow);
+
     if (updateCallbacks?.updateTotal) updateCallbacks.updateTotal();
+
     return newRow;
 }

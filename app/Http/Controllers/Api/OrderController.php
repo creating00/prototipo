@@ -55,6 +55,12 @@ class OrderController extends BaseOrderController
             $data = $request->all();
             $data['source'] = OrderSource::Ecommerce->value;
 
+            $data['items'] = array_map(function ($item) {
+                return array_merge([
+                    'currency' => \App\Enums\CurrencyType::ARS->value,
+                ], $item);
+            }, $data['items']);
+
             if (!isset($data['customer_type'])) {
                 return response()->json(['error' => 'customer_type is required'], 422);
             }
@@ -88,7 +94,8 @@ class OrderController extends BaseOrderController
 
             return response()->json([
                 'id' => $order->id,
-                'total_amount' => $order->total_amount,
+                'totals' => $order->totals,
+                'formatted_totals' => $order->formatted_totals,
                 'status' => $order->status,
                 'created_at' => $order->created_at,
             ], 201);

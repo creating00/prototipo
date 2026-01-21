@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CurrencyType;
 use App\Enums\OrderSource;
 use App\Enums\OrderStatus;
 use Illuminate\Database\Eloquent\Model;
@@ -20,7 +21,7 @@ class Order extends Model
         'status',
         'source',
         'sale_id',
-        'total_amount',
+        'totals',
         'notes',
         'customer_id',
         'customer_type',
@@ -29,6 +30,7 @@ class Order extends Model
     protected $casts = [
         'status' => OrderStatus::class,
         'source' => OrderSource::class,
+        'totals' => 'array',
     ];
 
     public function branch()
@@ -68,14 +70,20 @@ class Order extends Model
         return $this->hasOne(OrderReception::class);
     }
 
+    public function getFormattedTotalsAttribute(): array
+    {
+        return collect($this->totals ?? [])->map(function ($amount, $currency) {
+            return sprintf(
+                '%s %s',
+                CurrencyType::from($currency)->symbol(),
+                number_format($amount, 2, ',', '.')
+            );
+        })->toArray();
+    }
+
     public function customer(): MorphTo
     {
         return $this->morphTo();
-    }
-
-    public function getAmountToChargeAttribute(): float
-    {
-        return $this->total_amount;
     }
 
     public function isInterBranch(): bool
@@ -120,10 +128,12 @@ class Order extends Model
             $itemsDetail .= "\n... y otros productos.";
         }
 
-        $totalFormatted = "ARS " . number_format($this->total_amount, 2, ',', '.');
+        $totals = collect($this->formatted_totals)
+            ->map(fn($value) => "• {$value}")
+            ->implode("\n");
 
         return "Hola *{$customerName}*, te contacto desde la sucursal por tu pedido *#{$this->id}*:\n\n"
             . "Detalle:\n{$itemsDetail}\n\n"
-            . "*Total: {$totalFormatted}*";
+            . "*Total: {$totals}*";
     }
 }

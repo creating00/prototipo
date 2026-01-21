@@ -2,16 +2,18 @@
 
 namespace App\Models;
 
+use App\Enums\CurrencyType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use App\Enums\SaleStatus;
 use App\Enums\SaleType;
+use App\Models\Concerns\HasCurrency;
 
 class Sale extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasCurrency;
 
     /**
      * Los atributos que son asignables masivamente.
@@ -27,10 +29,9 @@ class Sale extends Model
         'amount_received',
         'change_returned',
         'remaining_balance',
-        'subtotal_amount',
         'discount_id',
         'discount_amount',
-        'total_amount',
+        'totals',
         'customer_id',
         'customer_type',
         'notes',
@@ -45,6 +46,7 @@ class Sale extends Model
     protected $casts = [
         'status'    => SaleStatus::class,
         'sale_type' => SaleType::class,
+        'totals'    => 'array',
     ];
 
     // ===== RELACIONES =====
@@ -98,6 +100,17 @@ class Sale extends Model
 
     // ===== HELPERS & ACCESSORS =====
 
+    public function getFormattedTotalsAttribute(): array
+    {
+        return collect($this->totals ?? [])->map(function ($amount, $currency) {
+            return sprintf(
+                '%s %s',
+                CurrencyType::from($currency)->symbol(),
+                number_format($amount, 2, ',', '.')
+            );
+        })->toArray();
+    }
+
     /**
      * Determina si el cliente es otra sucursal.
      *
@@ -150,7 +163,7 @@ class Sale extends Model
             $itemsDetail .= "\n... y otros productos.";
         }
 
-        $totalFormatted = "ARS " . number_format($this->total_amount, 2, ',', '.');
+        $totalFormatted = $this->formatted_total;
 
         return "Hola *{$customerName}*, te contacto desde la sucursal por tu pedido *#{$this->id}*:\n\n"
             . "Detalle:\n{$itemsDetail}\n\n"

@@ -26,7 +26,7 @@ const OrderForm = {
         orderCurrency.init();
         orderModal.init();
         if (branchFilter) branchFilter.init();
-        if (productAutocomplete) productAutocomplete.init({ context: 'order' });
+        if (productAutocomplete) productAutocomplete.init({ context: "order" });
     },
 
     initShortcuts() {
@@ -36,7 +36,7 @@ const OrderForm = {
                 allowInInputs: true,
                 action: () => {
                     const searchInput = document.getElementById(
-                        "product_search_input"
+                        "product_search_input",
                     );
                     if (searchInput) {
                         searchInput.focus();
@@ -69,7 +69,7 @@ const OrderForm = {
                 action: () => {
                     // Busca el formulario principal de órdenes (asegúrate de que este ID exista en tu Blade)
                     const form = document.querySelector(
-                        'form[action*="orders"]'
+                        'form[action*="orders"]',
                     );
                     if (form) form.requestSubmit();
                 },
@@ -83,13 +83,13 @@ const OrderForm = {
         // Mantiene la tarjeta de origen visible mientras haces scroll en la lista de productos
         ViewManager.initSmartScroll(
             ".card-primary.card-outline",
-            "#product_search_input"
+            "#product_search_input",
         );
     },
 
     loadExistingItems() {
         const existingItemsInput = document.querySelector(
-            "#existing_order_items"
+            "#existing_order_items",
         );
         if (!existingItemsInput) return;
 
@@ -100,6 +100,8 @@ const OrderForm = {
                 existingItems.forEach((item) => {
                     orderItems.addRow(item.html || item);
                 });
+
+                orderItems.refreshTableState();
             }
         } catch (error) {
             console.error("Error al parsear productos existentes:", error);

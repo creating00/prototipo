@@ -57,6 +57,7 @@ class SaleDataProcessor
                 'product_id' => $item['product_id'],
                 'quantity'   => $item['quantity'],
                 'unit_price' => $item['unit_price'],
+                'currency'   => $item['currency'],
                 'subtotal'   => $item['quantity'] * $item['unit_price'],
             ];
         }, $items);

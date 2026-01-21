@@ -42,11 +42,15 @@ class SaleCreator
             ]));
 
             // Sincronizar items y stock
-            $this->itemProcessor->sync(
+            $totals = $this->itemProcessor->sync(
                 $sale,
                 $prepared['items'],
                 $prepared['skip_stock_movement'] ?? false
             );
+
+            $sale->update([
+                'totals' => $totals,
+            ]);
 
             // Procesar pago inicial
             if (!empty($prepared['payment'])) {

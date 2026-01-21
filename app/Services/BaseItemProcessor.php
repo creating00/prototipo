@@ -22,32 +22,52 @@ abstract class BaseItemProcessor
      * @param array $items Array de items a procesar
      * @return float Total calculado
      */
-    final public function sync(Model $model, array $items, bool $skipStockMovement = false): float
+    final public function sync(Model $model, array $items, bool $skipStockMovement = false): array
     {
-        $total = 0;
+        $totals = [];
         $branchId = $model->branch_id;
 
+        // Obtenemos ítems actuales indexados por product_id
+        $existingItems = $model->items()->get()->keyBy('product_id');
+
+        // Extraemos IDs de productos que vienen en el nuevo request
+        $incomingProductIds = collect($items)->pluck('product_id')->toArray();
+
         foreach ($items as $item) {
-            $product = $this->getLockedProduct($item['product_id']);
+            $productId = $item['product_id'];
+            $quantity = $item['quantity'];
+            $currency = $item['currency'] ?? \App\Enums\CurrencyType::ARS->value;
+
+            $product = $this->getLockedProduct($productId);
 
             if (!$skipStockMovement) {
-                $this->validateStock($product, $branchId, $item['quantity']);
-                $this->stockService->reserve($product, $item['quantity'], $branchId);
+                $this->validateStock($product, $branchId, $quantity);
+                $this->stockService->reserve($product, $quantity, $branchId);
             }
 
-            // Priorizar el precio que viene del item (frontend/processor)
-            // Si no existe, recurrir al precio original de la DB
-            $unitPrice = isset($item['unit_price'])
-                ? (float) $item['unit_price']
-                : $this->getProductPrice($product, $branchId);
+            $unitPrice = $item['unit_price'] ?? $this->getProductPrice($product, $branchId);
+            $subtotal = $unitPrice * $quantity;
 
-            $subtotal = $unitPrice * $item['quantity'];
-            $total += $subtotal;
+            $totals[$currency] = ($totals[$currency] ?? 0) + $subtotal;
 
-            $this->createItem($model, $product, $item['quantity'], $unitPrice, $subtotal);
+            if ($existingItems->has($productId)) {
+                // Actualización de ítem existente
+                $existingItems[$productId]->update([
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'subtotal' => $subtotal,
+                    'currency' => $currency,
+                ]);
+            } else {
+                // Creación de nuevo ítem
+                $this->createItem($model, $product, $quantity, $unitPrice, $subtotal, $item);
+            }
         }
 
-        return $total;
+        // ELIMINACIÓN: Solo borrar los que NO están en el request actual
+        $model->items()->whereNotIn('product_id', $incomingProductIds)->delete();
+
+        return $totals;
     }
 
     /**
@@ -79,7 +99,8 @@ abstract class BaseItemProcessor
         Product $product,
         int $quantity,
         float $unitPrice,
-        float $subtotal
+        float $subtotal,
+        array $rawItem
     ): void;
 
     /**

@@ -87,18 +87,25 @@ trait DataTableFormatter
     {
         $phone = $this->cleanPhoneNumber($model->customer?->phone);
 
+        $total = 0;
+
+        if (!empty($model->totals)) {
+            // Tomamos el primer total (ARS por defecto)
+            $total = collect($model->totals)->first();
+        }
+
         return [
-            'id'           => $model->id,
-            'number'       => $index + 1,
-            'branch'       => $model->branch->name ?? '',
-            'customer'     => $this->resolveCustomerName($model),
+            'id'            => $model->id,
+            'number'        => $index + 1,
+            'branch'        => $model->branch->name ?? '',
+            'customer'      => $this->resolveCustomerName($model),
             'customer_type' => $model->customer_type,
-            'total'        => $this->formatCurrency($model->total_amount),
-            'status'       => $this->resolveStatus($model, $options),
-            'status_raw'   => is_object($model->status) ? $model->status->value : $model->status,
-            'created_at'   => $model->created_at->format('Y-m-d'),
-            'phone'        => $phone,
-            'whatsapp-url' => $phone ? $this->getWhatsAppLink($model, $phone) : null,
+            'total'         => $this->formatCurrency((float) $total),
+            'status'        => $this->resolveStatus($model, $options),
+            'status_raw'    => is_object($model->status) ? $model->status->value : $model->status,
+            'created_at'    => $model->created_at->format('Y-m-d'),
+            'phone'         => $phone,
+            'whatsapp-url'  => $phone ? $this->getWhatsAppLink($model, $phone) : null,
         ];
     }
 

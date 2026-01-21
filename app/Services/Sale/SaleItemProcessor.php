@@ -30,7 +30,8 @@ class SaleItemProcessor extends BaseItemProcessor
         Product $product,
         int $quantity,
         float $unitPrice,
-        float $subtotal
+        float $subtotal,
+        array $rawItem
     ): void {
 
         $originalPrice = $this->getProductPrice($product, $model->branch_id);
@@ -47,9 +48,10 @@ class SaleItemProcessor extends BaseItemProcessor
 
         $model->items()->create([
             'product_id' => $product->id,
-            'quantity' => $quantity,
+            'quantity'   => $quantity,
             'unit_price' => $unitPrice,
-            'subtotal' => $subtotal,
+            'subtotal'   => $subtotal,
+            'currency'   => $rawItem['currency'],
         ]);
     }
 
