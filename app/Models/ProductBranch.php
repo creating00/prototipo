@@ -54,4 +54,14 @@ class ProductBranch extends Model
     {
         return $query->where('status', ProductStatus::Available);
     }
+
+    public function scopeSellable($query)
+    {
+        return $query->whereIn(
+            'status',
+            collect(ProductStatus::cases())
+                ->filter(fn($s) => $s->isSellable())
+                ->toArray()
+        );
+    }
 }

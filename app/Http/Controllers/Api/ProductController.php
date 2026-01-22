@@ -119,7 +119,7 @@ class ProductController extends BaseProductController
 
         $products = $query
             ->whereHas('productBranches', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId)->available();
+                $q->where('branch_id', $branchId)->sellable();
             })
             ->limit(15)
             ->get();

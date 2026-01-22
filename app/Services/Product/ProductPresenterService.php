@@ -2,6 +2,7 @@
 
 namespace App\Services\Product;
 
+use App\Enums\ProductStatus;
 use App\Models\Product;
 use App\Models\ProductBranchPrice;
 use Illuminate\Support\Collection;
@@ -154,18 +155,16 @@ class ProductPresenterService
         );
     }
 
-    private function resolveProductStatusBadge(?\App\Enums\ProductStatus $status): string
+    private function resolveProductStatusBadge(?ProductStatus $status): string
     {
         if (!$status) {
             return '<span class="badge-custom badge-custom-gray">N/A</span>';
         }
 
-        $badgeClass = match ($status) {
-            \App\Enums\ProductStatus::Available => 'badge-custom badge-custom-green',
-            \App\Enums\ProductStatus::OutOfStock => 'badge-custom badge-custom-red',
-            \App\Enums\ProductStatus::Discontinued => 'badge-custom badge-custom-gray',
-        };
-
-        return "<span class=\"{$badgeClass}\">{$status->label()}</span>";
+        return sprintf(
+            '<span class="%s">%s</span>',
+            $status->badgeClass(),
+            $status->label()
+        );
     }
 }
