@@ -99,13 +99,19 @@ trait DataTableFormatter
             return $this->formatCurrency((float) $amount, $currency);
         })->implode('<br>'); // Los separamos con un salto de línea para la tabla
 
+        $requiresInvoiceHtml = $model->requires_invoice ? '<span class="badge bg-success">Sí</span>' : '<span class="badge bg-secondary">No</span>';
+        $payment = $model->payments->first();
+        $paymentTypeHtml = $payment ? sprintf('<span class="%s">%s</span>', $payment->payment_type->badgeClass(), $payment->payment_type->label()) : '-';
+
         return [
             'id'            => $model->id,
             'number'        => $index + 1,
             'branch'        => $model->branch->name ?? '',
             'customer'      => $this->resolveCustomerName($model),
             'customer_type' => $model->customer_type,
+            'payment_type' => $paymentTypeHtml,
             'total'         => $formattedTotals ?: $this->formatCurrency(0), // Fallback a 0 ARS si está vacío
+            'requires_invoice' => $requiresInvoiceHtml,
             'status'        => $this->resolveStatus($model, $options),
             'status_raw'    => is_object($model->status) ? $model->status->value : $model->status,
             'created_at'    => $model->created_at->format('Y-m-d'),
@@ -113,6 +119,7 @@ trait DataTableFormatter
             'whatsapp-url'  => $phone ? $this->getWhatsAppLink($model, $phone) : null,
             'totals_json'       => json_encode($model->totals),
             'customer_name_raw' => $customerName,
+
         ];
     }
 

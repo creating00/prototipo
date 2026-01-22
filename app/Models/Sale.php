@@ -34,6 +34,7 @@ class Sale extends Model
         'discount_amount',
         'totals',
         'customer_id',
+        'requires_invoice',
         'customer_type',
         'notes',
         'sale_date'
@@ -48,6 +49,7 @@ class Sale extends Model
         'status'    => SaleStatus::class,
         'sale_type' => SaleType::class,
         'totals'    => 'array',
+        'requires_invoice' => 'boolean',
     ];
 
     // ===== RELACIONES =====

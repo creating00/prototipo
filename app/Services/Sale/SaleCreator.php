@@ -39,6 +39,7 @@ class SaleCreator
                 'total_amount'    => $prepared['total'],
                 'user_id'         => $prepared['user_id'] ?? $this->userId(),
                 'notes'           => $prepared['notes'] ?? null,
+                'requires_invoice' => $prepared['requires_invoice'] ?? false
             ]));
 
             // Sincronizar items y stock

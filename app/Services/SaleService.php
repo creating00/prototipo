@@ -58,7 +58,7 @@ class SaleService
     {
         $branchId = $this->currentBranchId();
 
-        return Sale::with(['branch', 'customer'])
+        return Sale::with(['branch', 'customer', 'payments'])
             ->forBranch($branchId)
             ->orderBy('created_at', 'desc')
             ->get()

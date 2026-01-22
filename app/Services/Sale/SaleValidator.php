@@ -81,6 +81,7 @@ class SaleValidator
             'source_order_id' => 'nullable|exists:orders,id',
             'discount_id' => 'nullable|exists:discounts,id',
             'skip_stock_movement' => 'sometimes|boolean',
+            'requires_invoice' => 'sometimes|boolean',
         ];
     }
 

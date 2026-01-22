@@ -38,7 +38,9 @@ class OrderWebController extends BaseOrderController
             'whatsapp-url',
             'customer_type',
             'totals_json',
-            'customer_name_raw'
+            'customer_name_raw',
+            'requires_invoice',
+            'payment_type',
         ];
 
         return view('admin.order.index', compact('orders', 'rowData', 'headers', 'hiddenFields', 'currentRate'));
