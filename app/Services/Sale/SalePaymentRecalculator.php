@@ -12,21 +12,27 @@ class SalePaymentRecalculator
      */
     public function recalculate(Sale $sale): void
     {
-        $totalPaid   = $sale->payments()->sum('amount');
-        $totalAmount = $sale->total_amount;
+        $totalPaid = (float) $sale->payments()->sum('amount');
+        $totalAmount = (float) $sale->items()->sum('subtotal');
 
-        $updateData = [
-            'amount_received' => $totalPaid,
-        ];
+        if ($totalPaid >= $totalAmount && $totalAmount > 0) {
+            // PAGO TOTAL: Respetamos el efectivo entregado para calcular el vuelto
+            $amountReceived = max((float)$sale->amount_received, $totalPaid);
 
-        if ($totalPaid >= $totalAmount) {
-            $updateData['change_returned']   = $totalPaid - $totalAmount;
-            $updateData['remaining_balance'] = 0;
-            $updateData['status']            = SaleStatus::Paid->value;
+            $updateData = [
+                'amount_received'   => $amountReceived,
+                'change_returned'   => round($amountReceived - $totalAmount, 2),
+                'remaining_balance' => 0,
+                'status'            => SaleStatus::Paid->value,
+            ];
         } else {
-            $updateData['change_returned']   = 0;
-            $updateData['remaining_balance'] = $totalAmount - $totalPaid;
-            $updateData['status']            = SaleStatus::Pending->value;
+            // PAGO PARCIAL: El recibido es simplemente lo que pagó (no hay vuelto)
+            $updateData = [
+                'amount_received'   => $totalPaid,
+                'change_returned'   => 0,
+                'remaining_balance' => round($totalAmount - $totalPaid, 2),
+                'status'            => SaleStatus::Pending->value,
+            ];
         }
 
         $sale->update($updateData);

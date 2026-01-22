@@ -11,18 +11,24 @@ class SaleTotalResolver
 
     public function resolve(array $data): float
     {
-        // 1. Prioridad: Si es una reparación, el total es el monto de reparación
-        if (
-            isset($data['sale_type']) &&
-            (int) $data['sale_type'] === SaleType::Repair->value
-        ) {
+        // 1. Reparaciones
+        $saleType = isset($data['sale_type']) ? (int) $data['sale_type'] : 0;
+        if ($saleType === SaleType::Repair->value) {
             return round((float) ($data['repair_amount'] ?? 0), 2);
         }
 
-        // 2. Calcular Subtotal base
-        $subtotal = $this->calculateSubtotalFromItems($data['items'] ?? []);
+        // 2. Calcular Subtotal
+        $items = $data['items'] ?? [];
+        $subtotal = 0;
 
-        // 3. Calcular Descuento (si existe)
+        foreach ($items as $item) {
+            // Buscamos unit_price o price para ser compatibles
+            $price = $item['unit_price'] ?? $item['price'] ?? 0;
+            $qty = $item['quantity'] ?? $item['qty'] ?? 0;
+            $subtotal += ($price * $qty);
+        }
+
+        // 3. Descuento
         $discountAmount = 0;
         if (!empty($data['discount_id'])) {
             $discount = \App\Models\Discount::active()->find($data['discount_id']);
@@ -31,9 +37,6 @@ class SaleTotalResolver
             }
         }
 
-        // 4. Calcular Total Final
-        $finalTotal = max(0, $subtotal - $discountAmount);
-
-        return round($finalTotal, 2);
+        return round(max(0, $subtotal - $discountAmount), 2);
     }
 }

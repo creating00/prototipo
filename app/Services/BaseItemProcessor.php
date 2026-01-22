@@ -17,10 +17,10 @@ abstract class BaseItemProcessor
 
     /**
      * Procesa y sincroniza los items del modelo
-     * 
-     * @param Model $model Modelo que contiene los items (Order o Sale)
+     * * @param Model $model Modelo que contiene los items (Order o Sale)
      * @param array $items Array de items a procesar
-     * @return float Total calculado
+     * @param bool $skipStockMovement
+     * @return array Totales calculados por moneda
      */
     final public function sync(Model $model, array $items, bool $skipStockMovement = false): array
     {

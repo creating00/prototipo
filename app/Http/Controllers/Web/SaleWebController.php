@@ -168,6 +168,8 @@ class SaleWebController extends BaseSaleController
             $this->authorize('createClient', Sale::class);
         }
 
+        //dd($request->request);
+
         try {
             $sale = $this->saleService->createSale($request->all());
 

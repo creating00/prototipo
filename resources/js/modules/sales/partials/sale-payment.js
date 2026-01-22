@@ -32,7 +32,7 @@ const salePayment = {
         remaining_balance: "hidden_remaining_balance",
         repair_amount: "hidden_repair_amount",
         discount_id: "hidden_discount_id",
-        payment_type_modal: "hidden_payment_type",
+        payment_type_visible: "hidden_payment_type",
     },
 
     init: function () {

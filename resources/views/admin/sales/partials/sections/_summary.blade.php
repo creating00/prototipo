@@ -1,41 +1,77 @@
-{{-- Subtotal / Descuento --}}
-<div class="row g-2 mb-2">
-    <div class="col-6">
-        <small class="text-muted">Subtotal</small>
-        <div class="fw-bold">
-            $ <span id="summary_subtotal">0.00</span>
+{{-- RESUMEN DE VENTA --}}
+<div class="row g-3 align-items-start">
+
+    {{-- COLUMNA IZQUIERDA --}}
+    <div class="col-md-6">
+
+        <div class="mb-1">
+            <x-bootstrap.compact-input id="sale_date" name="sale_date_visible" type="date" label="Fecha"
+                value="{{ $saleDate }}" />
         </div>
+
+        <div class="mb-1">
+            <div class="compact-select-wrapper">
+                <label class="compact-select-label">
+                    Tipo de Pago
+                </label>
+                <x-adminlte.select name="payment_type_visible" label="" :options="$paymentOptions" :value="old('payment_type', $sale->payment_type ?? 1)"
+                    :showPlaceholder="false" />
+            </div>
+        </div>
+
+        <div>
+            <x-bootstrap.compact-input id="amount_received" name="amount_received_visible" type="number"
+                label="Monto Recibido" step="0.01" prefix="$"
+                value="{{ old('amount_received', $sale->amount_received ?? '') }}" />
+        </div>
+
     </div>
 
-    <div class="col-6 text-end">
-        <small class="text-muted">Descuento</small>
-        <div class="fw-bold text-danger">
-            - $ <span id="summary_discount">0.00</span>
+    {{-- COLUMNA DERECHA --}}
+    <div class="col-md-6">
+
+        <div class="d-flex justify-content-between mb-1">
+            <small class="text-muted">Subtotal</small>
+            <span class="fw-semibold">$ <span id="summary_subtotal">0.00</span></span>
         </div>
+
+        <div class="d-flex justify-content-between mb-1">
+            <small class="text-muted">Descuento</small>
+            <span class="fw-semibold text-danger">
+                - $ <span id="summary_discount">0.00</span>
+            </span>
+        </div>
+
+        <hr class="my-2">
+
+        <div class="d-flex justify-content-between mb-1">
+            <small class="text-muted">Total</small>
+            <span class="fw-bold text-success fs-6">
+                $ <span id="summary_total">0.00</span>
+            </span>
+        </div>
+
+        <div class="d-flex justify-content-between mb-1">
+            <small class="text-muted">Saldo Pendiente</small>
+            <span class="fw-semibold text-warning">
+                $ <span id="summary_remaining">0.00</span>
+            </span>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <small class="text-muted">Cambio</small>
+            <span class="fw-semibold text-info">
+                $ <span id="summary_change">0.00</span>
+            </span>
+        </div>
+
     </div>
 </div>
 
-<hr class="my-2">
+<hr class="my-3">
 
-{{-- Total + Estado + Notas (una línea) --}}
-<div class="row g-2 align-items-center">
-    {{-- Total --}}
-    <div class="col-auto d-flex flex-column me-4">
-        <small class="text-muted">Total</small>
-        <div class="fs-5 fw-bold text-success lh-1">
-            $ <span id="summary_total">0.00</span>
-        </div>
-    </div>
-
-    {{-- Estado del Pago --}}
-    <div class="col-auto me-4">
-        <small class="text-muted d-block">Estado del Pago</small>
-        <div id="summary_payment_status">
-            <span class="badge bg-secondary">Pendiente</span>
-        </div>
-    </div>
-
-    {{-- Notas (ocupa el resto del espacio) --}}
+{{-- Notas --}}
+<div class="row">
     <div class="col">
         <x-bootstrap.compact-text-area id="notes" name="notes" label="Notas" rows="2"
             placeholder="Observaciones..." value="{{ old('notes', $sale->notes ?? '') }}" />

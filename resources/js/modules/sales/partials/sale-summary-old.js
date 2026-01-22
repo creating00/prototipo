@@ -23,7 +23,6 @@ const saleSummary = {
         // Pago
         document.addEventListener("sale:paymentUpdated", (e) => {
             this.updatePaymentStatus(e.detail);
-            this.updatePaymentValues(e.detail);
         });
     },
 
@@ -86,16 +85,6 @@ const saleSummary = {
         }
 
         container.innerHTML = `<span class="badge bg-${cls}">${text}</span>`;
-    },
-    updatePaymentValues({ remainingBalance, changeReturned, amountReceived }) {
-        const remainingEl = document.getElementById("summary_remaining");
-        const changeEl = document.getElementById("summary_change");
-
-        if (remainingEl)
-            remainingEl.textContent = parseFloat(remainingBalance).toFixed(2);
-
-        if (changeEl)
-            changeEl.textContent = parseFloat(changeReturned).toFixed(2);
     },
 };
 

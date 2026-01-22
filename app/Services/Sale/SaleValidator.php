@@ -82,6 +82,9 @@ class SaleValidator
             'discount_id' => 'nullable|exists:discounts,id',
             'skip_stock_movement' => 'sometimes|boolean',
             'requires_invoice' => 'sometimes|boolean',
+            'amount_received'     => 'nullable|numeric|min:0',
+            'change_returned'     => 'nullable|numeric|min:0',
+            'remaining_balance'   => 'nullable|numeric|min:0',
         ];
     }
 
@@ -131,9 +134,6 @@ class SaleValidator
     protected function getNewPaymentFieldsRules(): array
     {
         return [
-            'amount_received'   => 'nullable|numeric|min:0',
-            'change_returned'   => 'nullable|numeric|min:0',
-            'remaining_balance' => 'nullable|numeric|min:0',
             'repair_amount' => 'exclude_unless:sale_type,' . SaleType::Repair->value . '|numeric|min:0.01',
         ];
     }
@@ -170,7 +170,7 @@ class SaleValidator
      */
     protected function addCustomValidations($validator, array $data): void
     {
-        $this->validatePaymentAmounts($validator, $data);
+        //$this->validatePaymentAmounts($validator, $data);
         $this->validateInterBranchSale($validator, $data);
         $this->validateDiscount($validator, $data);
     }
