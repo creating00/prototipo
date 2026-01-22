@@ -62,6 +62,7 @@ class SaleUpdater
                 'subtotal_amount' => $prepared['subtotal'],
                 'total_amount'    => $prepared['total'],
                 'totals'          => $totals,
+                'requires_invoice' => $prepared['requires_invoice'] ?? false
             ]);
 
             /*
