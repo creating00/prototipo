@@ -86,6 +86,7 @@ const salePayment = {
                 repairInput.dispatchEvent(new Event("input"));
             }
         }
+        this.updateTotalsHiddenFields(this.saleTotal);
         this.calculate();
     },
 
@@ -164,10 +165,34 @@ const salePayment = {
                     changeReturned: change,
                     remainingBalance: balance,
                     saleTotal: this.saleTotal,
-                    status: status, 
+                    status: status,
                 },
             }),
         );
+    },
+    updateTotalsHiddenFields(total) {
+        const totals = {};
+
+        document.querySelectorAll("tr").forEach((row) => {
+            const currency = row.querySelector('[name*="[currency]"]')?.value;
+            const subtotal = parseFloat(
+                row.querySelector(".subtotal")?.value || 0,
+            );
+
+            if (!currency) return;
+
+            if (!totals[currency]) {
+                totals[currency] = 0;
+            }
+
+            totals[currency] += subtotal;
+        });
+
+        const source = document.getElementById("totals_source");
+        const hidden = document.getElementById("hidden_totals");
+
+        if (source) source.value = JSON.stringify(totals);
+        if (hidden) hidden.value = JSON.stringify(totals);
     },
 };
 

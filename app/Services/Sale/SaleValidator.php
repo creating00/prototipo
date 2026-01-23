@@ -135,6 +135,7 @@ class SaleValidator
     {
         return [
             'repair_amount' => 'exclude_unless:sale_type,' . SaleType::Repair->value . '|numeric|min:0.01',
+            'totals' => 'nullable|json',
         ];
     }
 
@@ -170,7 +171,7 @@ class SaleValidator
      */
     protected function addCustomValidations($validator, array $data): void
     {
-        //$this->validatePaymentAmounts($validator, $data);
+        $this->validateTotals($validator, $data);
         $this->validateInterBranchSale($validator, $data);
         $this->validateDiscount($validator, $data);
     }
@@ -260,6 +261,41 @@ class SaleValidator
             $data['branch_id'] == $data['branch_recipient_id']
         ) {
             $validator->errors()->add('branch_recipient_id', 'No puede realizar una venta a la misma sucursal');
+        }
+    }
+
+    protected function validateTotals($validator, array $data): void
+    {
+        if (!isset($data['totals'])) {
+            return;
+        }
+
+        $totals = json_decode($data['totals'], true);
+
+        if (!is_array($totals) || empty($totals)) {
+            $validator->errors()->add(
+                'totals',
+                'El formato de totales es inválido.'
+            );
+            return;
+        }
+
+        foreach ($totals as $currencyId => $amount) {
+            if (!is_numeric($currencyId) || !is_numeric($amount)) {
+                $validator->errors()->add(
+                    'totals',
+                    'El formato de totales es inválido.'
+                );
+                return;
+            }
+
+            if ($amount < 0) {
+                $validator->errors()->add(
+                    'totals',
+                    'Los totales no pueden ser negativos.'
+                );
+                return;
+            }
         }
     }
 }

@@ -57,6 +57,8 @@ export async function fetchProduct(
 
         const data = await response.json();
 
+        //console.log("HTML recibido del backend:", data.html);
+
         Toast.fire({
             icon: "success",
             title: "Producto encontrado",

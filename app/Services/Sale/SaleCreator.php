@@ -56,13 +56,15 @@ class SaleCreator
             //     'was_recently_created' => $sale->wasRecentlyCreated,
             // ]);
 
+            $totals = json_decode($data['totals'], true);
+            
             // 2. Sincronizar items
-            $totals = $this->itemProcessor->sync(
+            $this->itemProcessor->sync(
                 $sale,
                 $prepared['items'],
                 $prepared['skip_stock_movement'] ?? false
             );
-
+            
             // 3. Guardado final de totales (usamos update para no disparar eventos innecesarios)
             $sale->updateQuietly([
                 'totals' => $totals

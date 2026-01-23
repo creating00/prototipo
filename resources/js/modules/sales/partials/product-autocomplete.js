@@ -255,7 +255,7 @@ export default {
             is_repair: isRepair,
         };
 
-        console.log("Despachando producto:", eventDetail);
+        //console.log("Despachando producto:", eventDetail);
 
         document.dispatchEvent(
             new CustomEvent("product:searchByCode", {

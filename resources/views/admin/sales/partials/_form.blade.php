@@ -31,6 +31,8 @@
     <input type="hidden" name="remaining_balance" id="hidden_remaining_balance" value="0">
     <input type="hidden" name="repair_amount" id="hidden_repair_amount" value="">
     <input type="hidden" name="discount_id" id="hidden_discount_id" value="{{ old('discount_id', '') }}">
+    <input type="hidden" id="totals_source" value='{}'>
+    <input type="" name="totals" id="hidden_totals" value="{{ old('totals', json_encode([])) }}">
 </div>
 
 <div class="row">

@@ -31,14 +31,14 @@ class SaleUpdater
             $this->itemProcessor->releaseStock($sale);
             $sale->items()->delete();
 
+            $totals = json_decode($data['totals'], true);
+            $totalAmount = array_sum(array_map('floatval', $totals));
+
             // 2. Re-sincronizar items y obtener totales reales
-            $totals = $this->itemProcessor->sync(
+            $this->itemProcessor->sync(
                 $sale,
                 $prepared['items']
             );
-
-            // Calculamos el total numérico para la cabecera sumando los subtotales por moneda
-            $totalCalculado = array_sum(array_map('floatval', $totals));
 
             // 3. Actualizar cabecera de la venta
             $sale->update([
@@ -50,9 +50,6 @@ class SaleUpdater
                 'sale_type'         => $prepared['sale_type'],
                 'discount_id'       => $prepared['discount_id'] ?? null,
                 'discount_amount'   => $prepared['discount_amount'] ?? 0,
-                // Usamos el total calculado del sync para asegurar precisión
-                'subtotal_amount'   => $totalCalculado,
-                'total_amount'      => $totalCalculado,
                 'totals'            => $totals,
                 'requires_invoice'  => $prepared['requires_invoice'] ?? false,
                 'amount_received'   => (float) ($data['amount_received'] ?? 0),
@@ -66,8 +63,10 @@ class SaleUpdater
 
                 $paymentPayload = [
                     'payment_type'    => $data['payment_type'],
-                    // El pago no puede ser mayor al nuevo total de la venta
-                    'amount'          => min((float)$data['amount_received'], $totalCalculado),
+                    'amount'          => min(
+                        (float)$data['amount_received'],
+                        $totalAmount
+                    ),
                     'notes'           => $data['payment_notes'] ?? null,
                     'amount_received' => (float)$data['amount_received'],
                     'change_returned' => (float)$data['change_returned'],
