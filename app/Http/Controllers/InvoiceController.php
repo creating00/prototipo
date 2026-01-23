@@ -58,10 +58,10 @@ class InvoiceController extends Controller
 
 
         $totals = [
-            'subtotal' => $sale->total_amount,
+            'subtotal' => $sale->getTotalGeneralArs(),
             'tax_rate' => 0,
             'tax'      => 0,
-            'total'    => $sale->total_amount,
+            'total'    => $sale->getTotalGeneralArs(),
         ];
 
         return Pdf::loadView('invoices.invoice', [

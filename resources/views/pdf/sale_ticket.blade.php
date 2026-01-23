@@ -148,7 +148,7 @@
                             <td class="text-right">
                                 @if ($sale->sale_type === \App\Enums\SaleType::Repair)
                                     @if ($loop->first)
-                                        ${{ number_format($sale->total_amount, 2, ',', '.') }}
+                                        ${{ number_format($sale->total_general_ars, 2, ',', '.') }}
                                     @endif
                                 @else
                                     ${{ number_format($item->subtotal, 2, ',', '.') }}
@@ -161,7 +161,7 @@
                         <td>SUBTOTAL</td>
                         <td class="text-right">
                             ${{ number_format(
-                                $sale->sale_type === \App\Enums\SaleType::Repair ? $sale->total_amount : $subtotal,
+                                $sale->sale_type === \App\Enums\SaleType::Repair ? $sale->total_general_ars : $subtotal,
                                 2,
                                 ',',
                                 '.',
