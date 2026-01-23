@@ -125,17 +125,35 @@ trait DataTableFormatter
 
     protected function formatSaleForDataTable(Sale $sale, int $index): array
     {
+        // Obtenemos el formateo base (esto llama a formatForDataTable)
         $row = $this->formatForDataTable($sale, $index);
 
+        // Formateamos el "Tipo" con el atributo data-search para el JS
         $saleTypeHtml = $sale->sale_type
             ? sprintf(
-                '<span class="%s">%s</span>',
+                '<span class="%s" data-search="%s">%s</span>',
                 $sale->sale_type->badgeClass(),
+                $sale->sale_type->value, // Usamos el ID (1, 2...)
                 $sale->sale_type->label()
             )
             : '';
 
-        // Insertar "Tipo" después de "customer"
+        // Formateamos el "Pago" también con data-search para mayor precisión
+        $payment = $sale->payments->first();
+        $paymentTypeHtml = $payment
+            ? sprintf(
+                '<span class="%s" data-search="%s">%s</span>',
+                $payment->payment_type->badgeClass(),
+                $payment->payment_type->value, // Usamos el ID (1, 2, 3...)
+                $payment->payment_type->label()
+            )
+            : '-';
+
+        // Actualizamos los valores en el array
+        $row['sale_type'] = $saleTypeHtml;
+        $row['payment_type'] = $paymentTypeHtml;
+
+        // Insertar "sale_type" después de "customer" (índice 4)
         return array_merge(
             array_slice($row, 0, 4, true),
             ['sale_type' => $saleTypeHtml],

@@ -1,4 +1,4 @@
-<div class="mb-3">
+<div class="{{ $containerClass }}">
     @if ($label)
         <label for="{{ $name }}" class="form-label">
             {{ $label }}
@@ -16,7 +16,10 @@
     <select @if (!$isReadonly) name="{{ $name }}" @endif id="{{ $attributes->get('id', $name) }}"
         {{ $attributes->merge(['class' => $classes]) }} {{ $required ? 'required' : '' }}>
         @if ($placeholder)
-            <option value="" selected disabled>{{ $placeholder }}</option>
+            <option value="" {{ is_null($selected) || $selected === '' ? 'selected' : '' }}
+                {{ $disablePlaceholder ? 'disabled' : '' }}>
+                {{ $placeholder }}
+            </option>
         @endif
 
         @foreach ($options as $value => $text)

@@ -14,15 +14,27 @@ class Select extends Component
     public $selected;
     public $required;
     public $placeholder;
+    public bool $disablePlaceholder;
+    public string $containerClass;
 
-    public function __construct($name, $options = [], $label = null, $selected = null, $required = false, $placeholder = 'Seleccione una opción')
-    {
+    public function __construct(
+        $name,
+        $options = [],
+        $label = null,
+        $selected = null,
+        $required = false,
+        $placeholder = 'Seleccione una opción',
+        bool $disablePlaceholder = true,
+        string $containerClass = 'mb-3'
+    ) {
         $this->name = $name;
         $this->options = $options;
         $this->label = $label;
         $this->selected = $selected;
         $this->required = $required;
         $this->placeholder = $placeholder;
+        $this->disablePlaceholder = $disablePlaceholder;
+        $this->containerClass = $containerClass;
     }
 
     /**

@@ -40,7 +40,7 @@ class DataTable extends Component
 
         $this->rows = $this->generateRowsFromRowData();
 
-        if (!in_array($this->size, ['main', 'sm'])) {
+        if (!in_array($this->size, ['main', 'sm', 'sm-sales'])) {
             $this->size = 'main';
         }
     }

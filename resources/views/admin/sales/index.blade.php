@@ -21,8 +21,8 @@
         @endisset
 
         {{-- DataTable de Ventas --}}
-        <x-adminlte.data-table tableId="sales-table" title="Gestión de Ventas" :headers="$headers" :rowData="$rowData"
-            :hiddenFields="$hiddenFields" withActions="true">
+        <x-adminlte.data-table tableId="sales-table" title="Gestión de Ventas" size="sm-sales" :headers="$headers"
+            :rowData="$rowData" :hiddenFields="$hiddenFields" withActions="true">
             {{-- Botones en cada fila --}}
 
             <x-slot name="actions">
@@ -47,24 +47,36 @@
 
             {{-- Botones superiores --}}
             <x-slot name="headerButtons">
-                @canResource('repair_amounts.viewAny')
-                <a href="{{ route('web.repair-amounts.index') }}" class="btn btn-outline-info me-1">
-                    <i class="fas fa-tools me-1"></i> Configurar Montos
-                </a>
-                @endcanResource
-                {{-- Ventas Sucursal → Cliente --}}
-                @canResource('sales.create_client')
-                <x-adminlte.button color="primary" icon="fas fa-user" class="me-1 btn-header-new-client">
-                    Nueva Venta a Cliente
-                </x-adminlte.button>
-                @endcanResource
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <div class="d-inline-flex align-items-center gap-2 me-2">
+                        <x-bootstrap.select name="filter_type" id="filter-type" :options="\App\Enums\SaleType::forSelect()"
+                            placeholder="Todos los Tipos" :disable-placeholder="false" class="form-select"
+                            container-class="mb-0 d-inline-block" />
 
-                {{-- Ventas Sucursal → Sucursal --}}
-                @canResource('sales.create_branch')
-                <x-adminlte.button color="custom-emerald" icon="fas fa-building" class="me-1 btn-header-new-branch">
-                    Nueva Venta entre Sucursales
-                </x-adminlte.button>
-                @endcanResource
+                        <x-bootstrap.select name="filter_payment" id="filter-payment" :options="\App\Enums\PaymentType::forSelect()"
+                            placeholder="Todos los Pagos" :disable-placeholder="false" class="form-select"
+                            container-class="mb-0 d-inline-block" />
+                    </div>
+
+                    {{-- @canResource('repair_amounts.viewAny')
+                    <a href="{{ route('web.repair-amounts.index') }}" class="btn btn-outline-info me-1">
+                        <i class="fas fa-tools me-1"></i> Configurar Montos
+                    </a>
+                    @endcanResource --}}
+                    {{-- Ventas Sucursal → Cliente --}}
+                    @canResource('sales.create_client')
+                    <x-adminlte.button color="primary" icon="fas fa-user" class="me-1 btn-header-new-client">
+                        Nueva Venta a Cliente
+                    </x-adminlte.button>
+                    @endcanResource
+
+                    {{-- Ventas Sucursal → Sucursal --}}
+                    @canResource('sales.create_branch')
+                    <x-adminlte.button color="custom-emerald" icon="fas fa-building" class="me-1 btn-header-new-branch">
+                        Nueva Venta entre Sucursales
+                    </x-adminlte.button>
+                    @endcanResource
+                </div>
 
                 {{-- @canResource('repair_amounts.create')
                 <x-adminlte.button color="info" icon="fas fa-tools" class="me-1 btn-header-new-repair"
