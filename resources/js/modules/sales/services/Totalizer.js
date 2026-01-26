@@ -6,18 +6,17 @@ const Totalizer = {
         ProductCalculator.calculateRowSubtotal(price, qty),
 
     updateSubtotal: function (rows, isRepair) {
-        // El subtotal SIEMPRE viene de la suma de las filas de la tabla
         const subtotal = ProductCalculator.calculateTableTotal(rows);
         const formatted = subtotal.toFixed(2);
 
         const subtotalInput = document.getElementById("subtotal_amount");
         const subtotalDisplay = document.getElementById(
-            "subtotal_amount_display"
+            "subtotal_amount_display",
         );
 
         if (subtotalInput) {
             subtotalInput.value = formatted;
-            subtotalInput.dispatchEvent(new Event("input"));
+            //subtotalInput.dispatchEvent(new Event("input"));
         }
 
         if (subtotalDisplay) {
@@ -28,10 +27,10 @@ const Totalizer = {
         document.dispatchEvent(
             new CustomEvent("sale:subtotalUpdated", {
                 detail: { subtotal, isRepair },
-            })
+            }),
         );
 
-        this.notifyTotalUpdate(subtotal, isRepair);
+        //this.notifyTotalUpdate(subtotal, isRepair);
 
         return subtotal;
     },
@@ -40,7 +39,7 @@ const Totalizer = {
         document.dispatchEvent(
             new CustomEvent("sale:totalUpdated", {
                 detail: { total: total, isRepair: isRepair },
-            })
+            }),
         );
     },
 };

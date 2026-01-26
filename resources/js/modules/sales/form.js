@@ -35,7 +35,7 @@ export function initSaleForm({ existingItems = [] } = {}) {
     // 1. Inicialización de componentes
     productAutocomplete.init({ context: 'sale' });
     customerType.init();
-    saleDiscount.init();
+    //saleDiscount.init();
     salePayment.init();
     saleSummary.init();
     salesItems.init();

@@ -152,6 +152,11 @@ class Sale extends Model
         return $sum;
     }
 
+    public function getNetTotalAttribute()
+    {
+        return $this->items()->sum('subtotal') - $this->discount_amount;
+    }
+
     /**
      * Determina si el cliente es otra sucursal.
      *

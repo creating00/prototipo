@@ -29,7 +29,7 @@ const saleSummary = {
 
     readInitialValues() {
         const subtotalInput = document.getElementById("subtotal_amount");
-        const discountInput = document.getElementById("discount_amount");
+        const discountInput = document.getElementById("discount_amount_input");
         const totalInput = document.getElementById("total_amount");
 
         if (subtotalInput) {

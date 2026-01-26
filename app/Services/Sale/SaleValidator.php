@@ -80,6 +80,7 @@ class SaleValidator
             'notes'         => 'nullable|string|max:500',
             'source_order_id' => 'nullable|exists:orders,id',
             'discount_id' => 'nullable|exists:discounts,id',
+            'discount_amount'   => 'nullable|numeric|min:0',
             'skip_stock_movement' => 'sometimes|boolean',
             'requires_invoice' => 'sometimes|boolean',
             'amount_received'     => 'nullable|numeric|min:0',
@@ -173,7 +174,7 @@ class SaleValidator
     {
         $this->validateTotals($validator, $data);
         $this->validateInterBranchSale($validator, $data);
-        $this->validateDiscount($validator, $data);
+        //$this->validateDiscount($validator, $data);
     }
 
     /**

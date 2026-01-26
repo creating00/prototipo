@@ -1,65 +1,42 @@
-<div id="sale-total-wrapper" class="mb-3">
+<div class="row g-2">
 
-    <div class="row g-2">
-
-        {{-- Subtotal --}}
-        <div class="col-6">
-            <small class="text-muted">Subtotal</small>
-            <div class="fw-semibold fs-6">
-                $ <span id="subtotal_amount_display">
-                    {{ number_format(old('subtotal_amount', $sale->subtotal_amount ?? 0), 2) }}
-                </span>
-            </div>
-            <input type="hidden" name="subtotal_amount" id="subtotal_amount"
-                value="{{ old('subtotal_amount', $sale->subtotal_amount ?? 0) }}">
+    {{-- Subtotal --}}
+    <div class="col-6">
+        <small class="text-muted">Subtotal</small>
+        <div class="fw-semibold fs-6">
+            $ <span id="subtotal_amount_display">
+                {{ number_format(old('subtotal_amount', $sale->subtotal_amount ?? 0), 2) }}
+            </span>
         </div>
 
-        {{-- Descuento --}}
-        <div class="col-6 d-none">
-            <label for="discount_id" class="form-label small mb-1">
-                Descuento
-            </label>
-            <select name="discount_id_modal" id="discount_id" class="form-control form-control-sm">
-                <option value="">Sin descuento</option>
-                @foreach ($discountOptions as $id => $displayName)
-                    <option value="{{ $id }}"
-                        {{ isset($sale) && $sale->discount_id == $id ? 'selected' : '' }}>
-                        {{ $displayName }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
+        <input type="hidden" name="subtotal_amount" id="subtotal_amount"
+            value="{{ old('subtotal_amount', $sale->subtotal_amount ?? 0) }}">
+    </div>
 
-        {{-- Descuento aplicado --}}
-        <div class="col-6 d-none">
-            <small class="text-muted">Descuento aplicado</small>
-            <div class="fw-semibold text-danger">
-                - $ <span id="discount_amount_display">
-                    {{ number_format(old('discount_amount', $sale->discount_amount ?? 0), 2) }}
-                </span>
-            </div>
-            <input type="hidden" name="discount_amount" id="discount_amount"
+    {{-- Descuento --}}
+    <div class="col-6">
+        <small class="text-muted">Descuento</small>
+
+        <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" class="form-control" id="discount_amount_input" step="0.01" min="0"
                 value="{{ old('discount_amount', $sale->discount_amount ?? 0) }}">
         </div>
+    </div>
 
-        {{-- Total --}}
-        <div class="col-6">
-            <small class="text-muted">Total del Pedido</small>
-            <div class="fw-bold fs-5 text-success">
-                $ <span id="total_amount_display">
-                    {{ number_format(old('total_amount', $sale->total_amount ?? 0), 2) }}
-                </span>
-            </div>
-            <input type="hidden" name="total_amount" id="total_amount"
-                value="{{ old('total_amount', $sale->total_amount ?? 0) }}">
+    {{-- Total --}}
+    <div class="col-6">
+        <small class="text-muted">Total del Pedido</small>
+        <div class="fw-bold fs-5 text-success">
+            $ <span id="total_amount_display">
+                {{ number_format(old('total_amount', $sale->total_amount ?? 0), 2) }}
+            </span>
         </div>
 
+        <input type="hidden" name="total_amount" id="total_amount"
+            value="{{ old('total_amount', $sale->total_amount ?? 0) }}">
     </div>
-</div>
 
-<div id="repair-amount-wrapper" class="d-none">
-    <x-bootstrap.compact-input id="repair_amount" name="repair_amount" type="number" label="Costo de la Reparación"
-        step="0.01" prefix="$" value="{{ old('repair_amount', $sale->repair_amount ?? '') }}" required />
 </div>
 
 <hr class="my-3">

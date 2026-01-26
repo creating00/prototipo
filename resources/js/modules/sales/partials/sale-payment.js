@@ -23,6 +23,9 @@ const salePayment = {
         statusIndicator: () =>
             document.getElementById("payment_status_indicator"),
         summaryStatus: () => document.getElementById("summary_payment_status"),
+        discountInput: () => document.getElementById("discount_amount_input"),
+        subtotalHidden: () => document.getElementById("subtotal_amount"),
+        discountHidden: () => document.getElementById("hidden_discount_amount"),
     },
 
     fieldsToSync: {
@@ -33,6 +36,7 @@ const salePayment = {
         repair_amount: "hidden_repair_amount",
         discount_id: "hidden_discount_id",
         payment_type_visible: "hidden_payment_type",
+        discount_amount_input: "hidden_discount_amount",
     },
 
     init: function () {
@@ -51,8 +55,22 @@ const salePayment = {
     },
 
     initialLoad: function () {
-        const totalField = this.elements.totalAmount();
-        if (totalField) this.setTotal(totalField.value);
+        // 1. Obtener valores de Blade
+        const subtotal = parseFloat(this.elements.subtotalHidden()?.value) || 0;
+
+        // 2. Notificar subtotal inicial
+        document.dispatchEvent(
+            new CustomEvent("sale:subtotalUpdated", {
+                detail: { subtotal: subtotal },
+            }),
+        );
+
+        // 3. Resetear saleTotal para que applyManualDiscount no se bloquee por el IF
+        this.saleTotal = -1;
+
+        // 4. Ejecutar el cálculo completo
+        // Esto disparará discountUpdated, totalUpdated y actualizará la UI
+        this.applyManualDiscount();
     },
 
     bindEvents: function () {
@@ -69,6 +87,14 @@ const salePayment = {
         this.elements
             .amountReceived()
             ?.addEventListener("input", () => this.calculate());
+
+        this.elements.discountInput()?.addEventListener("input", () => {
+            this.applyManualDiscount();
+        });
+
+        document.addEventListener("sale:subtotalUpdated", (e) => {
+            this.applyManualDiscount();
+        });
 
         document.addEventListener("sale:totalUpdated", (e) =>
             this.setTotal(e.detail.total),
@@ -88,6 +114,12 @@ const salePayment = {
         }
         this.updateTotalsHiddenFields(this.saleTotal);
         this.calculate();
+
+        document.dispatchEvent(
+            new CustomEvent("sale:totalUpdated", {
+                detail: { total: this.saleTotal },
+            }),
+        );
     },
 
     handleSaleTypeChange: function (value) {
@@ -99,6 +131,50 @@ const salePayment = {
         );
         RepairUiManager.toggleFields(value === SALE_TYPE.REPAIR);
         this.refreshTotalFromSource();
+    },
+
+    applyManualDiscount: function () {
+        const subtotalEl = this.elements.subtotalHidden();
+        const discountEl = this.elements.discountInput();
+
+        if (!subtotalEl) return;
+
+        const subtotal = parseFloat(subtotalEl.value) || 0;
+        const discount = parseFloat(discountEl?.value) || 0;
+        const newTotal = Math.max(0, subtotal - discount);
+
+        // 1. NOTIFICAR SIEMPRE EL DESCUENTO (para que el Summary lo pinte)
+        document.dispatchEvent(
+            new CustomEvent("sale:discountUpdated", {
+                detail: { discount: discount },
+            }),
+        );
+
+        // 2. Si el total no cambió, igual terminamos pero después de haber notificado el descuento
+        if (this.saleTotal === newTotal && newTotal !== 0) {
+            // Solo retornamos si ya tenemos un total calculado y es igual
+            // Pero llamamos a calculate para asegurar que cambio/saldo estén al día
+            this.calculate();
+            return;
+        }
+
+        this.saleTotal = newTotal;
+
+        // Actualizar UI
+        const totalDisplay = document.getElementById("total_amount_display");
+        const totalHidden = document.getElementById("total_amount");
+
+        if (totalDisplay) totalDisplay.textContent = newTotal.toFixed(2);
+        if (totalHidden) totalHidden.value = newTotal.toFixed(2);
+
+        this.updateTotalsHiddenFields(this.saleTotal);
+        this.calculate();
+
+        document.dispatchEvent(
+            new CustomEvent("sale:totalUpdated", {
+                detail: { total: newTotal },
+            }),
+        );
     },
 
     handleRepairTypeChange: function (typeId) {
@@ -172,27 +248,27 @@ const salePayment = {
     },
     updateTotalsHiddenFields(total) {
         const totals = {};
+        const rows = document.querySelectorAll("#order-items-table tbody tr");
 
-        document.querySelectorAll("tr").forEach((row) => {
-            const currency = row.querySelector('[name*="[currency]"]')?.value;
-            const subtotal = parseFloat(
-                row.querySelector(".subtotal")?.value || 0,
-            );
+        if (rows.length > 0) {
+            // Obtenemos la moneda de la primera fila (asumiendo moneda única por ahora)
+            const firstRow = rows[0];
+            const currency =
+                firstRow.querySelector('[name*="[currency]"]')?.value || "1";
 
-            if (!currency) return;
-
-            if (!totals[currency]) {
-                totals[currency] = 0;
-            }
-
-            totals[currency] += subtotal;
-        });
+            // El valor en el JSON debe ser el total final (ya restado el descuento)
+            totals[currency] = parseFloat(total) || 0;
+        } else {
+            // Si no hay filas (ej. una reparación pura sin productos)
+            totals["1"] = parseFloat(total) || 0;
+        }
 
         const source = document.getElementById("totals_source");
         const hidden = document.getElementById("hidden_totals");
 
-        if (source) source.value = JSON.stringify(totals);
-        if (hidden) hidden.value = JSON.stringify(totals);
+        const jsonString = JSON.stringify(totals);
+        if (source) source.value = jsonString;
+        if (hidden) hidden.value = jsonString;
     },
 };
 

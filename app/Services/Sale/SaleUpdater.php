@@ -31,16 +31,20 @@ class SaleUpdater
             $this->itemProcessor->releaseStock($sale);
             $sale->items()->delete();
 
+            // 2. Definir totales
             $totals = json_decode($data['totals'], true);
-            $totalAmount = array_sum(array_map('floatval', $totals));
 
-            // 2. Re-sincronizar items y obtener totales reales
+            // Si el frontend ya manda el neto en 'totals', NO restamos discountAmount de nuevo
+            $netTotal = array_sum(array_map('floatval', $totals));
+            $discountAmount = (float)($prepared['discount_amount'] ?? 0);
+
+            // 3. Re-sincronizar items
             $this->itemProcessor->sync(
                 $sale,
                 $prepared['items']
             );
 
-            // 3. Actualizar cabecera de la venta
+            // 4. Actualizar cabecera de la venta
             $sale->update([
                 'branch_id'         => $prepared['branch_id'],
                 'customer_id'       => $prepared['customer_id'],
@@ -49,24 +53,21 @@ class SaleUpdater
                 'notes'             => $prepared['notes'] ?? null,
                 'sale_type'         => $prepared['sale_type'],
                 'discount_id'       => $prepared['discount_id'] ?? null,
-                'discount_amount'   => $prepared['discount_amount'] ?? 0,
+                'discount_amount'   => $discountAmount,
                 'totals'            => $totals,
                 'requires_invoice'  => $prepared['requires_invoice'] ?? false,
-                'amount_received'   => (float) ($data['amount_received'] ?? 0),
-                'change_returned'   => (float) ($data['change_returned'] ?? 0),
-                'remaining_balance' => (float) ($data['remaining_balance'] ?? 0),
+                'amount_received'   => (float)$data['amount_received'],
+                'change_returned'   => (float)$data['change_returned'],
+                'remaining_balance' => (float)$data['remaining_balance'],
             ]);
 
-            // 4. Gestión de Pagos
+            // 5. Gestión de Pagos
             if (!empty($data['payment_type'])) {
                 $existingPayment = $sale->payments()->first();
 
                 $paymentPayload = [
                     'payment_type'    => $data['payment_type'],
-                    'amount'          => min(
-                        (float)$data['amount_received'],
-                        $totalAmount
-                    ),
+                    'amount'          => $netTotal, // Usamos el neto directo del totals
                     'notes'           => $data['payment_notes'] ?? null,
                     'amount_received' => (float)$data['amount_received'],
                     'change_returned' => (float)$data['change_returned'],
@@ -80,7 +81,7 @@ class SaleUpdater
                 }
             }
 
-            // 5. Recalcular estado final (Paid/Pending)
+            // 6. Recalcular estado final
             $this->paymentManager->recalculateSalePayments($sale->fresh());
 
             return $sale->fresh(['items', 'branch', 'customer', 'payments']);
