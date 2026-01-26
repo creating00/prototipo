@@ -368,6 +368,15 @@ class OrderService
             $rules['user_id'] = 'required|exists:users,id';
         }
 
+        // Exchange rate: obligatorio solo al crear
+        if (!isset($data['id'])) {
+            $rules['exchange_rate'] = [
+                'required',
+                'numeric',
+                'min:1',
+            ];
+        }
+
         return $rules;
     }
 
@@ -380,6 +389,7 @@ class OrderService
             'source' => $orderData['source'],
             'sale_id' => $orderData['sale_id'] ?? null,
             'notes' => $orderData['notes'] ?? null,
+            'exchange_rate' => $orderData['exchange_rate'],
             'totals' => [],
             'customer_id' => $orderData['customer_id'],
             'customer_type' => $orderData['customer_type'],

@@ -170,6 +170,209 @@
     border: none !important;
 }
 
+/* === GRADIENTES GALAXY === */
+.badge-custom-gradient-galaxy {
+    --badge-bg: linear-gradient(135deg, #7303c0, #ec38bc);
+    --badge-bg-hover: linear-gradient(135deg, #5a0296, #d01a9f);
+    --badge-shadow: rgba(115, 3, 192, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-nebula {
+    --badge-bg: linear-gradient(135deg, #4e54c8, #8f94fb);
+    --badge-bg-hover: linear-gradient(135deg, #3c42a8, #7176dc);
+    --badge-shadow: rgba(78, 84, 200, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-aurora {
+    --badge-bg: linear-gradient(135deg, #00c9ff, #92fe9d);
+    --badge-bg-hover: linear-gradient(135deg, #00a8d9, #76e081);
+    --badge-shadow: rgba(0, 201, 255, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+/* === GRADIENTES SUNSET === */
+.badge-custom-gradient-miami {
+    --badge-bg: linear-gradient(135deg, #4facfe, #00f2fe);
+    --badge-bg-hover: linear-gradient(135deg, #3990df, #00d3e0);
+    --badge-shadow: rgba(79, 172, 254, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-malibu {
+    --badge-bg: linear-gradient(135deg, #4bc0c8, #c779d0);
+    --badge-bg-hover: linear-gradient(135deg, #3ca1a9, #a85fb1);
+    --badge-shadow: rgba(75, 192, 200, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-phoenix {
+    --badge-bg: linear-gradient(135deg, #f83600, #f9d423);
+    --badge-bg-hover: linear-gradient(135deg, #d92e00, #dab81c);
+    --badge-shadow: rgba(248, 54, 0, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+/* === GRADIENTES EARTH === */
+.badge-custom-gradient-moss {
+    --badge-bg: linear-gradient(135deg, #134e5e, #71b280);
+    --badge-bg-hover: linear-gradient(135deg, #0e3a47, #5a9366);
+    --badge-shadow: rgba(19, 78, 94, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-jungle {
+    --badge-bg: linear-gradient(135deg, #0f9b0f, #000000);
+    --badge-bg-hover: linear-gradient(135deg, #0c7c0c, #1a1a1a);
+    --badge-shadow: rgba(15, 155, 15, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-savanna {
+    --badge-bg: linear-gradient(135deg, #dce35b, #45b649);
+    --badge-bg-hover: linear-gradient(135deg, #c4ca47, #379a3b);
+    --badge-shadow: rgba(220, 227, 91, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+/* === GRADIENTES CANDY === */
+.badge-custom-gradient-bubblegum {
+    --badge-bg: linear-gradient(135deg, #ff9a9e, #fecfef);
+    --badge-bg-hover: linear-gradient(135deg, #e67e82, #dfb0d0);
+    --badge-shadow: rgba(255, 154, 158, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-lollipop {
+    --badge-bg: linear-gradient(135deg, #a8edea, #fed6e3);
+    --badge-bg-hover: linear-gradient(135deg, #8dcecb, #dfb7c4);
+    --badge-shadow: rgba(168, 237, 234, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-sherbet {
+    --badge-bg: linear-gradient(135deg, #ffecd2, #fcb69f);
+    --badge-bg-hover: linear-gradient(135deg, #e6d3b9, #dd9b86);
+    --badge-shadow: rgba(255, 236, 210, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+    color: #8b4513 !important;
+}
+
+/* === GRADIENTES ELECTRIC === */
+.badge-custom-gradient-thunder {
+    --badge-bg: linear-gradient(135deg, #fdc830, #f37335);
+    --badge-bg-hover: linear-gradient(135deg, #e4b329, #da5e2e);
+    --badge-shadow: rgba(253, 200, 48, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-plasma {
+    --badge-bg: linear-gradient(135deg, #8e2de2, #4a00e0);
+    --badge-bg-hover: linear-gradient(135deg, #7523c3, #3a00b3);
+    --badge-shadow: rgba(142, 45, 226, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-voltage {
+    --badge-bg: linear-gradient(135deg, #00d2ff, #928dab);
+    --badge-bg-hover: linear-gradient(135deg, #00b3d9, #766f8c);
+    --badge-shadow: rgba(0, 210, 255, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+/* === GRADIENTES RETRO === */
+.badge-custom-gradient-synthwave {
+    --badge-bg: linear-gradient(135deg, #ff006e, #8338ec);
+    --badge-bg-hover: linear-gradient(135deg, #d90059, #6a2cbd);
+    --badge-shadow: rgba(255, 0, 110, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-vaporwave {
+    --badge-bg: linear-gradient(135deg, #ff71ce, #01cdfe);
+    --badge-bg-hover: linear-gradient(135deg, #e653b5, #01aed9);
+    --badge-shadow: rgba(255, 113, 206, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-arcade {
+    --badge-bg: linear-gradient(135deg, #fa7268, #c471f5);
+    --badge-bg-hover: linear-gradient(135deg, #e15b51, #a559d6);
+    --badge-shadow: rgba(250, 114, 104, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+/* === GRADIENTES LUXURY === */
+.badge-custom-gradient-champagne {
+    --badge-bg: linear-gradient(135deg, #f4c430, #edc967);
+    --badge-bg-hover: linear-gradient(135deg, #dbb028, #d4b455);
+    --badge-shadow: rgba(244, 196, 48, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+    color: #5c4a1f !important;
+}
+
+.badge-custom-gradient-velvet {
+    --badge-bg: linear-gradient(135deg, #8b0000, #dc143c);
+    --badge-bg-hover: linear-gradient(135deg, #6d0000, #b31030);
+    --badge-shadow: rgba(139, 0, 0, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-royal {
+    --badge-bg: linear-gradient(135deg, #4b0082, #9370db);
+    --badge-bg-hover: linear-gradient(135deg, #3a0066, #7456bc);
+    --badge-shadow: rgba(75, 0, 130, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+/* === GRADIENTES ICE === */
+.badge-custom-gradient-frost {
+    --badge-bg: linear-gradient(135deg, #74ebd5, #acb6e5);
+    --badge-bg-hover: linear-gradient(135deg, #5dd2bf, #8d97c6);
+    --badge-shadow: rgba(116, 235, 213, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
+.badge-custom-gradient-arctic {
+    --badge-bg: linear-gradient(135deg, #e0f7fa, #80deea);
+    --badge-bg-hover: linear-gradient(135deg, #c7dde1, #67c5d1);
+    --badge-shadow: rgba(224, 247, 250, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+    color: #006064 !important;
+}
+
+.badge-custom-gradient-glacier {
+    --badge-bg: linear-gradient(135deg, #667eea, #764ba2);
+    --badge-bg-hover: linear-gradient(135deg, #5165cb, #5e3c83);
+    --badge-shadow: rgba(102, 126, 234, 0.5);
+    background: var(--badge-bg) !important;
+    border: none !important;
+}
+
 .badge-custom-pastel-blue {
     --badge-bg: #cfe8ff;
     --badge-bg-hover: #b3d9ff;

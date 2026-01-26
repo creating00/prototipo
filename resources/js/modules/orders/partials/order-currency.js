@@ -12,12 +12,22 @@ const orderCurrency = {
 
     init() {
         this.cacheElements();
-        if (!this.elements.dollarInput) return;
 
-        this.fetchDollarPrice();
+        const isEdit = document.getElementById("is_edit")?.value === "1";
+        const storedRate = document.getElementById("exchange_rate")?.value;
+
+        // Si es edición → usar valor guardado
+        if (isEdit && storedRate) {
+            this.updateDollarUI(parseFloat(storedRate));
+        }
+        // Si no es edición → buscar cotización
+        else if (this.elements.dollarInput) {
+            this.fetchDollarPrice();
+        }
+
         this.bindEvents();
+        this.calculateTotal();
     },
-
     cacheElements() {
         this.elements = {};
         Object.entries(this.selectors).forEach(([key, id]) => {
@@ -88,10 +98,21 @@ const orderCurrency = {
 
     updateDollarUI(rate) {
         this.dollarPrice = rate;
-        this.elements.dollarInput.value = this.formatCurrency(rate, "es-AR");
+
+        if (this.elements.dollarInput) {
+            this.elements.dollarInput.value = this.formatCurrency(
+                rate,
+                "es-AR",
+            );
+        }
+
+        const hidden = document.getElementById("exchange_rate");
+        if (hidden) {
+            hidden.value = rate;
+        }
+
         this.calculateTotal();
     },
-
     useFallbackRate() {
         this.updateDollarUI(1000);
         console.warn("Using fallback exchange rate: 1000");

@@ -31,6 +31,7 @@
 <input type="hidden" name="user_id" value="{{ auth()->id() }}">
 <input type="hidden" name="source" value="1">
 <input type="hidden" name="customer_type" value="{{ $customerType }}">
+<input type="hidden" id="is_edit" value="{{ isset($order) ? '1' : '0' }}">
 
 <div class="row g-4">
     {{-- COLUMNA IZQUIERDA --}}
@@ -105,6 +106,8 @@
                                     class="fas fa-dollar-sign"></i></span>
                             <input type="text" id="current_dollar_price" class="form-control text-center fw-bold"
                                 readonly value="Cargando...">
+                            <input type="hidden" name="exchange_rate" id="exchange_rate"
+                                value="{{ $order->exchange_rate ?? '' }}">
                         </div>
                     </div>
 

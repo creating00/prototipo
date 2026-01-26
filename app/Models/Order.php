@@ -21,6 +21,7 @@ class Order extends Model
         'status',
         'source',
         'sale_id',
+        'exchange_rate',
         'totals',
         'notes',
         'customer_id',
@@ -31,6 +32,7 @@ class Order extends Model
         'status' => OrderStatus::class,
         'source' => OrderSource::class,
         'totals' => 'array',
+        'exchange_rate' => 'decimal:4',
     ];
 
     public function branch()
@@ -70,7 +72,7 @@ class Order extends Model
         return $this->hasOne(OrderReception::class);
     }
 
-    public function getFormattedTotalsAttribute(): array
+    public function getSubtotalsAttribute(): array
     {
         return collect($this->totals ?? [])->map(function ($amount, $currency) {
             return sprintf(
@@ -79,6 +81,24 @@ class Order extends Model
                 number_format($amount, 2, ',', '.')
             );
         })->toArray();
+    }
+
+    public function getFormattedTotalsAttribute(): array
+    {
+        if (!$this->totals || !$this->exchange_rate) {
+            return [];
+        }
+
+        $ars = $this->totals[CurrencyType::ARS->value] ?? 0;
+        $usd = $this->totals[CurrencyType::USD->value] ?? 0;
+
+        $totalArs = $ars + ($usd * $this->exchange_rate);
+        $totalUsd = $usd + ($ars / $this->exchange_rate);
+
+        return [
+            'ARS' => '$ ' . number_format($totalArs, 2, ',', '.'),
+            'USD' => 'U$D ' . number_format($totalUsd, 2, ',', '.'),
+        ];
     }
 
     public function customer(): MorphTo

@@ -62,26 +62,37 @@
 
             <div class="card-footer">
                 <div class="row align-items-center">
+
+                    {{-- Subtotales --}}
                     <div class="col-md-6">
-                        {{-- Desglose rápido --}}
                         <div class="d-flex gap-3 text-muted small">
-                            @foreach ($order->formatted_totals as $formatted)
+                            @foreach ($order->subtotals as $formatted)
                                 <span>{{ $formatted }}</span>
                             @endforeach
                         </div>
+
+                        @if ($order->exchange_rate)
+                            <span class="badge badge-custom badge-custom-gradient-arctic">
+                                Cotización: $ {{ number_format($order->exchange_rate, 2, ',', '.') }}
+                            </span>
+                        @endif
                     </div>
+
+                    {{-- Totales finales --}}
                     <div class="col-md-6 text-end">
-                        {{-- Totales principales --}}
                         <div class="d-inline-block">
                             @foreach ($order->formatted_totals as $currency => $formatted)
                                 <h4 class="mb-1">
-                                    Total {{ $currency }}: <strong>{{ $formatted }}</strong>
+                                    Total {{ $currency }}:
+                                    <strong>{{ $formatted }}</strong>
                                 </h4>
                             @endforeach
                         </div>
                     </div>
+
                 </div>
             </div>
+
         </div>
 
         <x-adminlte.data-table tableId="order-items-table" title="Productos en el Pedido" :headers="$headers"
