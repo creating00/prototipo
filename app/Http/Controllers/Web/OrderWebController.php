@@ -41,6 +41,9 @@ class OrderWebController extends BaseOrderController
             'customer_name_raw',
             'requires_invoice',
             'payment_type',
+            'total_ars',
+            'total_usd',
+            'requires_invoice_raw',
         ];
 
         return view('admin.order.index', compact('orders', 'rowData', 'headers', 'hiddenFields', 'currentRate'));
@@ -110,6 +113,8 @@ class OrderWebController extends BaseOrderController
             'customer_type',
             'observation',
             'is_received',
+            'total_ars',
+            'total_usd',
         ];
 
         return view('admin.order.purchases', compact('rowData', 'headers', 'hiddenFields'));

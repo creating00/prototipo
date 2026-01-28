@@ -23,6 +23,15 @@ class SaleWebController extends BaseSaleController
         $this->authorize('viewAny', Sale::class);
 
         $rowData = $this->saleService->getAllSalesForDataTable();
+        // dd(
+        //     collect($this->saleService->getAllSalesForDataTable())
+        //         ->map(fn($row) => [
+        //             'id' => $row['id'] ?? null,
+        //             'total_ars' => $row['total_ars'] ?? null,
+        //             'total_usd' => $row['total_usd'] ?? null,
+        //         ])
+        // );
+
         $sales = $this->saleService->getAllSales();
 
         $headers = ['#', 'Sucursal', 'Cliente', 'Tipo', 'Pago', 'Total', 'Facturación', 'Estado', 'Creado en:'];
@@ -33,7 +42,10 @@ class SaleWebController extends BaseSaleController
             'whatsapp-url',
             'customer_type',
             'totals_json',
-            'customer_name_raw'
+            'customer_name_raw',
+            'total_ars',
+            'total_usd',
+            'requires_invoice_raw',
         ];
 
         return view('admin.sales.index', compact('sales', 'rowData', 'headers', 'hiddenFields'));

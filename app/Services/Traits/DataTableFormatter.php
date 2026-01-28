@@ -93,33 +93,57 @@ trait DataTableFormatter
         $phone = $this->cleanPhoneNumber($model->customer?->phone);
         $customerName = $this->resolveCustomerName($model);
 
-        // Formateamos todos los totales existentes
-        $formattedTotals = collect($model->totals)->map(function ($amount, $currencyId) {
-            $currency = CurrencyType::tryFrom((int) $currencyId);
-            return $this->formatCurrency((float) $amount, $currency);
-        })->implode('<br>'); // Los separamos con un salto de línea para la tabla
+        // Ya viene casteado como array gracias a $casts
+        $totals = $model->totals ?? [];
 
-        $requiresInvoiceHtml = $model->requires_invoice ? '<span class="badge bg-success">Sí</span>' : '<span class="badge bg-secondary">No</span>';
+        // Totales numéricos (para JS)
+        $totalArs = $totals[CurrencyType::ARS->value] ?? 0;
+        $totalUsd = $totals[CurrencyType::USD->value] ?? 0;
+
+        // Totales formateados (para mostrar)
+        $formattedTotals = collect($totals)
+            ->map(function ($amount, $currencyId) {
+                $currency = CurrencyType::tryFrom((int) $currencyId);
+                return $this->formatCurrency((float) $amount, $currency);
+            })
+            ->implode('<br>');
+
+        $requiresInvoiceHtml = $model->requires_invoice
+            ? '<span class="badge bg-success">Sí</span>'
+            : '<span class="badge bg-secondary">No</span>';
+
         $payment = $model->payments->first();
-        $paymentTypeHtml = $payment ? sprintf('<span class="%s">%s</span>', $payment->payment_type->badgeClass(), $payment->payment_type->label()) : '-';
+
+        $paymentTypeHtml = $payment
+            ? sprintf(
+                '<span class="%s">%s</span>',
+                $payment->payment_type->badgeClass(),
+                $payment->payment_type->label()
+            )
+            : '-';
 
         return [
             'id'            => $model->id,
             'number'        => $index + 1,
             'branch'        => $model->branch->name ?? '',
-            'customer'      => $this->resolveCustomerName($model),
+            'customer'      => $customerName,
             'customer_type' => $model->customer_type,
-            'payment_type' => $paymentTypeHtml,
-            'total'         => $formattedTotals ?: $this->formatCurrency(0), // Fallback a 0 ARS si está vacío
+            'payment_type'     => $paymentTypeHtml,
+            'total' => $formattedTotals ?: $this->formatCurrency(0),
             'requires_invoice' => $requiresInvoiceHtml,
-            'status'        => $this->resolveStatus($model, $options),
-            'status_raw'    => is_object($model->status) ? $model->status->value : $model->status,
-            'created_at'    => $model->created_at->format('Y-m-d'),
-            'phone'         => $phone,
-            'whatsapp-url'  => $phone ? $this->getWhatsAppLink($model, $phone) : null,
-            'totals_json'       => json_encode($model->totals),
-            'customer_name_raw' => $customerName,
+            'requires_invoice_raw' => $model->requires_invoice,
+            'status'           => $this->resolveStatus($model, $options),
+            'status_raw'       => is_object($model->status) ? $model->status->value : $model->status,
+            'created_at'       => $model->created_at->format('Y-m-d'),
+            'phone'            => $phone,
+            'whatsapp-url'     => $phone ? $this->getWhatsAppLink($model, $phone) : null,
 
+            // opcional (solo si lo usás en JS en otro lado)
+            'total_ars' => $totalArs,
+            'total_usd' => $totalUsd,
+            'totals_json' => json_encode($totals),
+
+            'customer_name_raw' => $customerName,
         ];
     }
 
