@@ -93,6 +93,7 @@ class SaleService
 
     public function createSale(array $data): Sale
     {
+        //dd($data);
         $validated = $this->validator->validate($data);
 
         return $this->creator->create($validated, function ($sale, $paymentData) {

@@ -1,21 +1,28 @@
 // resources/js/modules/sales/services/PaymentCalculator.js
 const PaymentCalculator = {
     calculate: (total, received) => {
-        const change = Math.max(0, received - total);
-        const balance = Math.max(0, total - received);
+        const t = parseFloat(total) || 0;
+        const r = parseFloat(received) || 0;
         return {
-            change: change.toFixed(2),
-            balance: balance.toFixed(2)
+            change: Math.max(0, r - t),
+            balance: Math.max(0, t - r),
         };
     },
 
     getStatus: (total, received, change, balance) => {
-        if (balance == 0 && change == 0 && received > 0) return { label: "Pagado exacto", class: "success" };
-        if (balance == 0 && change > 0) return { label: "Pagado con cambio", class: "info" };
-        if (balance > 0 && received > 0) return { label: "Pago parcial", class: "warning" };
-        if (balance > 0 && received == 0) return { label: "Pendiente de pago", class: "danger" };
+        const b = parseFloat(balance) || 0;
+        const c = parseFloat(change) || 0;
+        const r = parseFloat(received) || 0;
+
+        if (b === 0 && c === 0 && r > 0)
+            return { label: "Pagado exacto", class: "success" };
+        if (b === 0 && c > 0)
+            return { label: "Pagado con cambio", class: "info" };
+        if (b > 0 && r > 0) return { label: "Pago parcial", class: "warning" };
+        if (b > 0 && r === 0)
+            return { label: "Pendiente de pago", class: "danger" };
         return { label: "Sin pago registrado", class: "secondary" };
-    }
+    },
 };
 
 export default PaymentCalculator;

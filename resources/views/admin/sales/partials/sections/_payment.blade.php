@@ -41,44 +41,74 @@
 
 <hr class="my-3">
 
-{{-- Datos de pago --}}
-<div class="row g-3 equal-height-selects">
-    <div class="col-md-3">
-        <x-bootstrap.compact-input id="sale_date" name="sale_date_modal" type="date" label="Fecha de Venta"
-            value="{{ $saleDate }}" />
-    </div>
-
-    <div class="col-md-3">
-        <div class="compact-select-wrapper">
-            <x-adminlte.select name="payment_type_modal" label="" :options="$paymentOptions" :value="old('payment_type', $sale->payment_type ?? 1)"
-                :showPlaceholder="false" />
+{{-- Checkbox de control --}}
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="enable_dual_payment" {{ $isDual ? 'checked' : '' }}>
+            <label class="form-check-label fw-bold" for="enable_dual_payment">
+                Habilitar doble tipo de pago / Editar montos
+            </label>
         </div>
-
     </div>
+</div>
 
-    <div class="col-md-3">
-        <x-bootstrap.compact-input id="amount_received" name="amount_received_modal" type="number"
-            label="Monto Recibido" step="0.01" prefix="$"
-            value="{{ old('amount_received', $sale->amount_received ?? '') }}" />
-    </div>
-
-    <div class="col-md-3">
-        <x-bootstrap.compact-input id="change_returned" name="change_returned" type="number" label="Cambio Devuelto"
-            step="0.01" prefix="$" value="{{ old('change_returned', $sale->change_returned ?? 0) }}" readonly />
-    </div>
-
-    <div class="col-md-3">
-        <x-bootstrap.compact-input id="remaining_balance" name="remaining_balance" type="number"
-            label="Saldo Pendiente" step="0.01" prefix="$"
-            value="{{ old('remaining_balance', $sale->remaining_balance ?? 0) }}" readonly />
-    </div>
-
-    <div class="col-md-3">
-        <div class="form-group">
-            <label>Estado del Pago</label>
-            <div id="payment_status_indicator" class="mt-2">
-                <span class="badge bg-secondary">Esperando datos...</span>
+<div class="row g-3">
+    {{-- Bloque Pago 1 --}}
+    <div class="col-md-6">
+        <div class="card card-outline card-secondary shadow-none border bg-light" id="card_payment_1">
+            <div class="card-body p-3">
+                <label class="small text-muted mb-2 d-block text-uppercase">Método 1</label>
+                <div class="mb-2">
+                    <x-adminlte.select name="payment_type_1_modal" id="payment_type_1_modal" label=""
+                        :options="$paymentOptions" :value="old(
+                            'payment_type',
+                            $pago1->payment_type->value ?? \App\Enums\PaymentType::Cash->value,
+                        )" :showPlaceholder="false" disabled />
+                </div>
+                <x-bootstrap.compact-input id="amount_received_1_modal" name="amount_received_1_modal" type="number"
+                    label="Monto" step="0.01" prefix="$" :value="old('amount_received', $pago1->amount ?? ($sale->amount_received ?? '0.00'))" readonly />
             </div>
+        </div>
+    </div>
+
+    {{-- Bloque Pago 2 --}}
+    <div class="col-md-6">
+        <div class="card card-outline card-info shadow-none border bg-light" id="card_payment_2">
+            <div class="card-body p-3">
+                <label class="small text-muted mb-2 d-block text-uppercase">Método 2</label>
+                <div class="mb-2">
+                    <x-adminlte.select name="payment_type_2_modal" id="payment_type_2_modal" label=""
+                        :options="$paymentOptions" :value="old(
+                            'payment_type_2',
+                            $pago2->payment_type->value ?? \App\Enums\PaymentType::Card->value,
+                        )" :showPlaceholder="false" disabled />
+                </div>
+                <x-bootstrap.compact-input id="amount_received_2_modal" name="amount_received_2_modal" type="number"
+                    label="Monto" step="0.01" prefix="$" :value="old('amount_received_2', $pago2->amount ?? '0.00')" readonly />
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Resumen visual (Labels) --}}
+<div class="row g-3 mt-1 text-center">
+    <div class="col-md-4">
+        <div class="p-2 border rounded bg-white">
+            <small class="text-muted d-block text-uppercase" style="font-size: 0.7rem;">Total Recibido</small>
+            <span class="h6 mb-0 fw-bold text-dark">$ <span id="label_total_received">0.00</span></span>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="p-2 border rounded bg-white">
+            <small class="text-muted d-block text-uppercase" style="font-size: 0.7rem;">Cambio</small>
+            <span class="h6 mb-0 fw-bold text-info">$ <span id="label_change_returned">0.00</span></span>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="p-2 border rounded bg-white">
+            <small class="text-muted d-block text-uppercase" style="font-size: 0.7rem;">Saldo Pendiente</small>
+            <span class="h6 mb-0 fw-bold text-danger">$ <span id="label_remaining_balance">0.00</span></span>
         </div>
     </div>
 </div>

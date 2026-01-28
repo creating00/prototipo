@@ -6,4 +6,7 @@
         'saleDate' => $currentSaleDate,
         'customerType' => $customerType,
         'isBranchTransfer' => $isBranchTransfer ?? false,
+        'isDual' => $isDual ?? false,
+        'pago1' => $pago1,
+        'pago2' => $pago2,
     ]" />

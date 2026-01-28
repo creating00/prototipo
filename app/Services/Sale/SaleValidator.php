@@ -113,18 +113,22 @@ class SaleValidator
      */
     protected function getPaymentRules(array $data): array
     {
-        $rules = [
-            'payment_type'   => 'required|integer|in:' . implode(',', [PaymentType::Cash->value, PaymentType::Transfer->value]),
-            'payment_notes'  => 'nullable|string|max:500',
+        $allPaymentTypes = array_column(PaymentType::cases(), 'value');
+        $typesCsv = implode(',', $allPaymentTypes);
+
+        $isDual = isset($data['enable_dual_payment']) && $data['enable_dual_payment'] == '1';
+
+        return [
+            // Pago 1: Siempre requerido si no es una venta a crédito/sucursal diferida
+            'payment_type'    => "required|integer|in:$typesCsv",
+            'amount_received' => 'required|numeric|min:0',
+            'payment_notes'   => 'nullable|string|max:500',
+
+            // Pago 2: Estrictamente dependiente del flag
+            'enable_dual_payment' => 'sometimes|boolean',
+            'payment_type_2'      => "nullable|required_if:enable_dual_payment,1|integer|in:$typesCsv",
+            'amount_received_2'   => "nullable|required_if:enable_dual_payment,1|numeric|min:0",
         ];
-
-        // Para ventas entre sucursales, el pago podría ser diferido
-        if (isset($data['customer_type']) && $data['customer_type'] === Branch::class) {
-            $rules['payment_type'] = 'required|integer|in:' . PaymentType::Transfer->value;
-            $rules['amount_received'] = 'nullable|numeric|min:0';
-        }
-
-        return $rules;
     }
 
     /**

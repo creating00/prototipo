@@ -4,8 +4,14 @@
 
 @section('content')
     @php
-        $currentCustomerType = old('customer_type', $customer_type ?? 'App\Models\Client');
-        $currentSaleDate = old('sale_date', $saleDate ?? now()->format('Y-m-d'));
+        $customerType = old('customer_type', $customer_type ?? $sale?->customer_type);
+        $customerId = old('customer_id', $sale->customer_id ?? null);
+        $currentSaleDate = old('sale_date', $sale->sale_date ?? ($saleDate ?? now()->format('Y-m-d')));
+
+        $pago1 = null;
+        $pago2 = null;
+        $isDual = false;
+        $isRepair = false;
     @endphp
 
     @if (session('print_receipt'))
@@ -46,7 +52,7 @@
     @include('admin.client.partials._modal-create')
     @include('admin.sales.partials._modal-payment', [
         'saleDate' => $currentSaleDate,
-        'customerType' => $currentCustomerType,
+        'customerType' => $customerType,
     ])
 @endsection
 

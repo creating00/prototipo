@@ -3,28 +3,42 @@
 
     {{-- COLUMNA IZQUIERDA --}}
     <div class="col-md-6">
-
         <div class="mb-1">
             <x-bootstrap.compact-input id="sale_date" name="sale_date_visible" type="date" label="Fecha"
                 value="{{ $saleDate }}" />
         </div>
 
-        <div class="mb-1">
-            <div class="compact-select-wrapper">
-                <label class="compact-select-label">
-                    Tipo de Pago
-                </label>
-                <x-adminlte.select name="payment_type_visible" label="" :options="$paymentOptions" :value="old('payment_type', $sale->payment_type ?? 1)"
-                    :showPlaceholder="false" />
+        {{-- Contenedor para Pago Único --}}
+        <div id="wrapper_single_payment">
+            <div class="mb-1">
+                <div class="compact-select-wrapper">
+                    <label class="compact-select-label">Tipo de Pago</label>
+                    <x-adminlte.select name="payment_type_visible" label="" :options="$paymentOptions" :value="old('payment_type', $pago1->payment_type->value ?? 1)"
+                        :showPlaceholder="false" />
+                </div>
+            </div>
+            <div>
+                <x-bootstrap.compact-input id="amount_received" name="amount_received_visible" type="number"
+                    label="Monto Recibido" step="0.01" prefix="$"
+                    value="{{ old('amount_received', $pago1->amount ?? ($sale->amount_received ?? '')) }}" />
             </div>
         </div>
 
-        <div>
-            <x-bootstrap.compact-input id="amount_received" name="amount_received_visible" type="number"
-                label="Monto Recibido" step="0.01" prefix="$"
-                value="{{ old('amount_received', $sale->amount_received ?? '') }}" />
+        {{-- Contenedor para Vista Doble Pago (Oculto por defecto) --}}
+        <div id="wrapper_dual_payment_info" class="d-none border rounded p-2 bg-light">
+            <small class="text-muted d-block mb-1 text-uppercase" style="font-size: 0.65rem;">Desglose de Pago
+                Doble</small>
+            <div class="d-flex justify-content-between small">
+                <span id="summary_payment_type_1_label">Método 1</span>
+                <span class="fw-bold">$ <span
+                        id="summary_amount_1_label">{{ number_format($pago1->amount ?? 0, 2, '.', '') }}</span></span>
+            </div>
+            <div class="d-flex justify-content-between small">
+                <span id="summary_payment_type_2_label">Método 2</span>
+                <span class="fw-bold">$ <span
+                        id="summary_amount_2_label">{{ number_format($pago2->amount ?? 0, 2, '.', '') }}</span></span>
+            </div>
         </div>
-
     </div>
 
     {{-- COLUMNA DERECHA --}}

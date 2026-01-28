@@ -5,12 +5,15 @@
 @section('content')
     @php
         $customerType = old('customer_type', $customerType ?? $sale->customer_type);
-        $currentSaleDate = old(
-            'sale_date',
-            isset($sale) && $sale->sale_date
-                ? \Carbon\Carbon::parse($sale->sale_date)->format('Y-m-d')
-                : $saleDate ?? now()->format('Y-m-d'),
-        );
+        $currentSaleDate = old('sale_date', optional($sale->sale_date)->format('Y-m-d') ?? now()->format('Y-m-d'));
+
+        $pago1 =
+            $sale->payments->first() ??
+            (object) ['amount' => $sale->amount_received, 'payment_type' => \App\Enums\PaymentType::Cash];
+        $pago2 = $sale->payments->skip(1)->first();
+        $isDual = $sale->payments->count() > 1;
+
+        $isRepair = (old('sale_type') ?? $sale->sale_type->value) == \App\Enums\SaleType::Repair->value;
     @endphp
 
     <x-adminlte.alert-manager />
@@ -41,6 +44,9 @@
     @include('admin.sales.partials._modal-payment', [
         'saleDate' => $currentSaleDate,
         'customerType' => $customerType,
+        'pago1' => $pago1,
+        'pago2' => $pago2,
+        'isDual' => $isDual,
     ])
 
 @endsection

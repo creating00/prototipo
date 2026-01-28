@@ -57,14 +57,15 @@ class SaleCreator
             // ]);
 
             $totals = json_decode($data['totals'], true);
-            
+            $totalToPay = array_sum(array_map('floatval', $totals));
+
             // 2. Sincronizar items
             $this->itemProcessor->sync(
                 $sale,
                 $prepared['items'],
                 $prepared['skip_stock_movement'] ?? false
             );
-            
+
             // 3. Guardado final de totales (usamos update para no disparar eventos innecesarios)
             $sale->updateQuietly([
                 'totals' => $totals
@@ -75,15 +76,38 @@ class SaleCreator
             //     'change_returned' => $sale->fresh()->change_returned
             // ]);
 
+            $isDual = isset($data['enable_dual_payment']) && (int)$data['enable_dual_payment'] === 1;
+
             // Registro del pago
-            if (!empty($data['payment_type'])) {
-                $addPaymentCallback($sale, [
-                    'payment_type'    => $data['payment_type'],
-                    'amount'          => min((float)$data['amount_received'], array_sum(array_map('floatval', $totals))),
-                    'notes'           => $data['payment_notes'] ?? null,
-                    'amount_received' => (float)$data['amount_received'],
-                    'change_returned' => (float)$data['change_returned'],
-                ]);
+            if ($isDual) {
+                // Pago 1
+                if (!empty($data['amount_received'])) {
+                    $addPaymentCallback($sale, [
+                        'payment_type' => $data['payment_type'], // Viene del hidden_payment_type
+                        'amount'       => (float)$data['amount_received'],
+                        'notes'        => $data['payment_notes'] ?? null,
+                    ]);
+                }
+
+                // Pago 2
+                if (!empty($data['amount_received_2']) && (float)$data['amount_received_2'] > 0) {
+                    $addPaymentCallback($sale, [
+                        'payment_type' => $data['payment_type_2'], // Viene del hidden_payment_type_2
+                        'amount'       => (float)$data['amount_received_2'],
+                        'notes'        => $data['payment_notes'] ?? null,
+                    ]);
+                }
+            } else {
+                // Pago Único (Lógica original)
+                if (!empty($data['payment_type'])) {
+                    $addPaymentCallback($sale, [
+                        'payment_type'    => $data['payment_type'],
+                        'amount'          => min((float)$data['amount_received'], $totalToPay),
+                        'notes'           => $data['payment_notes'] ?? null,
+                        'amount_received' => (float)$data['amount_received'],
+                        'change_returned' => (float)$data['change_returned'],
+                    ]);
+                }
             }
 
             return $sale->fresh(['items', 'payments']);

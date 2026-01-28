@@ -4,8 +4,13 @@
 
 @section('content')
     @php
-        $currentCustomerType = 'App\Models\Branch'; // Forzamos Branch en esta vista
-        $currentSaleDate = old('sale_date', $saleDate ?? now()->format('Y-m-d'));
+        $customerType = old('customer_type', $customer_type ?? $sale?->customer_type);
+        $customerId = old('customer_id', $sale->customer_id ?? null);
+        $currentSaleDate = old('sale_date', $sale->sale_date ?? ($saleDate ?? now()->format('Y-m-d')));
+        $pago1 = null;
+        $pago2 = null;
+        $isDual = false;
+        $isRepair = false;
     @endphp
 
     @if (session('print_receipt'))
@@ -35,9 +40,6 @@
                     </button>
                 </x-slot:headerActions>
 
-                {{-- Campo oculto para definir el tipo de cliente como Sucursal --}}
-                <input type="hidden" name="customer_type" value="{{ $currentCustomerType }}">
-
                 @include('admin.sales.partials._form', [
                     'order' => null,
                     'branches' => $originBranch,
@@ -54,7 +56,7 @@
     {{-- Aquí es donde ocurre la magia: pasamos isBranchTransfer --}}
     @include('admin.sales.partials._modal-payment', [
         'saleDate' => $currentSaleDate,
-        'customerType' => $currentCustomerType,
+        'customerType' => $customerType,
         'isBranchTransfer' => true,
     ])
 @endsection

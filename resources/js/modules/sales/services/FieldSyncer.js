@@ -1,4 +1,5 @@
 // resources/js/modules/sales/services/FieldSyncer.js
+// resources/js/modules/sales/services/FieldSyncer.js
 const FieldSyncer = {
     sync: function (map) {
         Object.entries(map).forEach(([modalId, hiddenId]) => {
@@ -7,15 +8,13 @@ const FieldSyncer = {
 
             if (modalEl && hiddenEl) {
                 const update = () => {
-                    hiddenEl.value = modalEl.value;
+                    if (hiddenEl.value !== modalEl.value) {
+                        hiddenEl.value = modalEl.value;
+                    }
                 };
-
-                // Escuchamos eventos de usuario y manuales
                 ["input", "change"].forEach((ev) =>
-                    modalEl.addEventListener(ev, update)
+                    modalEl.addEventListener(ev, update),
                 );
-
-                // Ejecución inmediata inicial
                 update();
             }
         });
