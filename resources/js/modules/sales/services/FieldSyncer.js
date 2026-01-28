@@ -1,5 +1,5 @@
 // resources/js/modules/sales/services/FieldSyncer.js
-// resources/js/modules/sales/services/FieldSyncer.js
+
 const FieldSyncer = {
     sync: function (map) {
         Object.entries(map).forEach(([modalId, hiddenId]) => {
