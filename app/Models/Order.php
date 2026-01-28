@@ -85,9 +85,12 @@ class Order extends Model
 
     public function getFormattedTotalsAttribute(): array
     {
-        if (!$this->totals || !$this->exchange_rate) {
+        $rate = (float) $this->exchange_rate;
+
+        if (!$this->totals || $rate === 0.0) {
             return [];
         }
+
 
         $ars = $this->totals[CurrencyType::ARS->value] ?? 0;
         $usd = $this->totals[CurrencyType::USD->value] ?? 0;

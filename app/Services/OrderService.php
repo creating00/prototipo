@@ -169,9 +169,16 @@ class OrderService
             $usdKey = \App\Enums\CurrencyType::USD->value;
 
             // 3. Calcular total consolidado para el monto recibido
-            $totals = $order->totals ?? [];
-            $totalArsConsolidado = (float)($totals[$arsKey] ?? 0) +
-                ((float)($totals[$usdKey] ?? 0) * $rate);
+            $totals = $order->totals;
+            $arsTotal = isset($totals[$arsKey])
+                ? (float) $totals[$arsKey]
+                : 0;
+
+            $usdTotal = isset($totals[$usdKey])
+                ? (float) $totals[$usdKey]
+                : 0;
+
+            $totalArsConsolidado = $arsTotal + ($usdTotal * $rate);
 
             $defaultPaymentType = ($order->customer_type === Branch::class)
                 ? \App\Enums\PaymentType::Transfer->value
@@ -209,7 +216,12 @@ class OrderService
                 'items'               => $items,
                 'payment_type'        => $options['payment_type'] ?? $defaultPaymentType,
                 'amount_received'     => $options['amount_received'] ?? $totalArsConsolidado,
+                'change_returned'     => 0,
                 'skip_stock_movement' => true,
+                'totals' => json_encode([
+                    \App\Enums\CurrencyType::ARS->value => $totalArsConsolidado,
+                    // \App\Enums\CurrencyType::USD->value => 0,
+                ]),
             ];
 
             // Mapeo de cliente/sucursal destino
