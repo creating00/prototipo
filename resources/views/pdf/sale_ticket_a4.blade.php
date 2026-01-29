@@ -197,7 +197,7 @@
             @endif
 
             <p><strong>Total:</strong>
-                ${{ number_format($sale->total_amount, 2, ',', '.') }}
+                ${{ number_format($sale->total_general_ars, 2, ',', '.') }}
             </p>
 
             <p><strong>Saldo pendiente:</strong>

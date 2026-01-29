@@ -92,15 +92,11 @@ trait DataTableFormatter
     {
         $phone = $this->cleanPhoneNumber($model->customer?->phone);
         $customerName = $this->resolveCustomerName($model);
-
-        // Ya viene casteado como array gracias a $casts
         $totals = $model->totals ?? [];
 
-        // Totales numéricos (para JS)
         $totalArs = $totals[CurrencyType::ARS->value] ?? 0;
         $totalUsd = $totals[CurrencyType::USD->value] ?? 0;
 
-        // Totales formateados (para mostrar)
         $formattedTotals = collect($totals)
             ->map(function ($amount, $currencyId) {
                 $currency = CurrencyType::tryFrom((int) $currencyId);
@@ -112,72 +108,67 @@ trait DataTableFormatter
             ? '<span class="badge bg-success">Sí</span>'
             : '<span class="badge bg-secondary">No</span>';
 
-        $payment = $model->payments->first();
-
-        $paymentTypeHtml = $payment
-            ? sprintf(
-                '<span class="%s">%s</span>',
-                $payment->payment_type->badgeClass(),
-                $payment->payment_type->label()
-            )
+        // Procesar múltiples pagos
+        $paymentTypeHtml = $model->payments->isNotEmpty()
+            ? $model->payments->map(function ($payment) {
+                return sprintf(
+                    '<span class="badge %s mb-1">%s</span>', // Añadido mb-1
+                    $payment->payment_type->badgeClass(),
+                    $payment->payment_type->label()
+                );
+            })->implode('<br>')
             : '-';
 
         return [
-            'id'            => $model->id,
-            'number'        => $index + 1,
-            'branch'        => $model->branch->name ?? '',
-            'customer'      => $customerName,
-            'customer_type' => $model->customer_type,
-            'payment_type'     => $paymentTypeHtml,
-            'total' => $formattedTotals ?: $this->formatCurrency(0),
-            'requires_invoice' => $requiresInvoiceHtml,
+            'id'                   => $model->id,
+            'number'               => $index + 1,
+            'branch'               => $model->branch->name ?? '',
+            'customer'             => $customerName,
+            'customer_type'        => $model->customer_type,
+            'payment_type'         => $paymentTypeHtml,
+            'total'                => $formattedTotals ?: $this->formatCurrency(0),
+            'requires_invoice'     => $requiresInvoiceHtml,
             'requires_invoice_raw' => $model->requires_invoice,
-            'status'           => $this->resolveStatus($model, $options),
-            'status_raw'       => is_object($model->status) ? $model->status->value : $model->status,
-            'created_at'       => $model->created_at->format('Y-m-d'),
-            'phone'            => $phone,
-            'whatsapp-url'     => $phone ? $this->getWhatsAppLink($model, $phone) : null,
-
-            // opcional (solo si lo usás en JS en otro lado)
-            'total_ars' => $totalArs,
-            'total_usd' => $totalUsd,
-            'totals_json' => json_encode($totals),
-
-            'customer_name_raw' => $customerName,
+            'status'               => $this->resolveStatus($model, $options),
+            'status_raw'           => is_object($model->status) ? $model->status->value : $model->status,
+            'created_at'           => $model->created_at->format('Y-m-d'),
+            'phone'                => $phone,
+            'whatsapp-url'         => $phone ? $this->getWhatsAppLink($model, $phone) : null,
+            'total_ars'            => $totalArs,
+            'total_usd'            => $totalUsd,
+            'totals_json'          => json_encode($totals),
+            'customer_name_raw'    => $customerName,
         ];
     }
 
     protected function formatSaleForDataTable(Sale $sale, int $index): array
     {
-        // Obtenemos el formateo base (esto llama a formatForDataTable)
         $row = $this->formatForDataTable($sale, $index);
 
-        // Formateamos el "Tipo" con el atributo data-search para el JS
         $saleTypeHtml = $sale->sale_type
             ? sprintf(
-                '<span class="%s" data-search="%s">%s</span>',
+                '<span class="badge %s" data-search="%s">%s</span>',
                 $sale->sale_type->badgeClass(),
-                $sale->sale_type->value, // Usamos el ID (1, 2...)
+                $sale->sale_type->value,
                 $sale->sale_type->label()
             )
             : '';
 
-        // Formateamos el "Pago" también con data-search para mayor precisión
-        $payment = $sale->payments->first();
-        $paymentTypeHtml = $payment
-            ? sprintf(
-                '<span class="%s" data-search="%s">%s</span>',
-                $payment->payment_type->badgeClass(),
-                $payment->payment_type->value, // Usamos el ID (1, 2, 3...)
-                $payment->payment_type->label()
-            )
+        // Mapeo con margen inferior para separar badges apilados
+        $paymentTypeHtml = $sale->payments->isNotEmpty()
+            ? $sale->payments->map(function ($payment) {
+                return sprintf(
+                    '<div class="mb-1"><span class="badge %s" data-search="%s">%s</span></div>',
+                    $payment->payment_type->badgeClass(),
+                    $payment->payment_type->value,
+                    $payment->payment_type->label()
+                );
+            })->implode('')
             : '-';
 
-        // Actualizamos los valores en el array
         $row['sale_type'] = $saleTypeHtml;
         $row['payment_type'] = $paymentTypeHtml;
 
-        // Insertar "sale_type" después de "customer" (índice 4)
         return array_merge(
             array_slice($row, 0, 4, true),
             ['sale_type' => $saleTypeHtml],

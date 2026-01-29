@@ -20,6 +20,8 @@ class Payment extends Model
         'user_id',
         'paymentable_id',
         'paymentable_type',
+        'payment_method_id',
+        'payment_method_type',
     ];
 
     protected $casts = [
@@ -42,6 +44,11 @@ class Payment extends Model
     }
 
     public function paymentable()
+    {
+        return $this->morphTo();
+    }
+
+    public function paymentMethod()
     {
         return $this->morphTo();
     }

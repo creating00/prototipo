@@ -23,14 +23,6 @@ class SaleWebController extends BaseSaleController
         $this->authorize('viewAny', Sale::class);
 
         $rowData = $this->saleService->getAllSalesForDataTable();
-        // dd(
-        //     collect($this->saleService->getAllSalesForDataTable())
-        //         ->map(fn($row) => [
-        //             'id' => $row['id'] ?? null,
-        //             'total_ars' => $row['total_ars'] ?? null,
-        //             'total_usd' => $row['total_usd'] ?? null,
-        //         ])
-        // );
 
         $sales = $this->saleService->getAllSales();
 
@@ -86,6 +78,7 @@ class SaleWebController extends BaseSaleController
         $paymentOptions = [
             \App\Enums\PaymentType::Cash->value => \App\Enums\PaymentType::Cash->label(),
             \App\Enums\PaymentType::Transfer->value => \App\Enums\PaymentType::Transfer->label(),
+            \App\Enums\PaymentType::Card->value => \App\Enums\PaymentType::Card->label(),
         ];
 
         // Si es sucursal, restringimos solo a Transferencia
@@ -108,6 +101,12 @@ class SaleWebController extends BaseSaleController
             'paymentOptions'  => $paymentOptions,
             'discountOptions' => $discountService->getForSelect(),
             'discountMap'     => $discountService->getValueMap(),
+            'banks' => \App\Models\Bank::query()
+                ->orderBy('name')
+                ->pluck('name', 'id'),
+            'bankAccounts' => \App\Models\BankAccount::with(['bank', 'user'])
+                ->get()
+                ->pluck('full_description', 'id'),
         ];
 
         if ($customerType === 'App\Models\Client') {

@@ -51,11 +51,6 @@ class SaleCreator
             // 1. Creación inicial
             $sale = Sale::create($finalData);
 
-            // dd([
-            //     'model_attributes_after_create' => $sale->getAttributes(),
-            //     'was_recently_created' => $sale->wasRecentlyCreated,
-            // ]);
-
             $totals = json_decode($data['totals'], true);
             $totalToPay = array_sum(array_map('floatval', $totals));
 
@@ -71,47 +66,69 @@ class SaleCreator
                 'totals' => $totals
             ]);
 
-            // dd([
-            //     'stage' => 'after_payment_callback',
-            //     'change_returned' => $sale->fresh()->change_returned
-            // ]);
-
             $isDual = isset($data['enable_dual_payment']) && (int)$data['enable_dual_payment'] === 1;
 
             // Registro del pago
             if ($isDual) {
-                // Pago 1
+
                 if (!empty($data['amount_received'])) {
-                    $addPaymentCallback($sale, [
-                        'payment_type' => $data['payment_type'], // Viene del hidden_payment_type
-                        'amount'       => (float)$data['amount_received'],
-                        'notes'        => $data['payment_notes'] ?? null,
-                    ]);
+                    $addPaymentCallback(
+                        $sale,
+                        $this->buildPaymentData([
+                            'payment_type'    => $data['payment_type'],
+                            'amount'          => $data['amount_received'],
+                            'bank_id'         => $data['payment_method_id'] ?? null,
+                            'bank_account_id' => $data['payment_method_id'] ?? null,
+                            'payment_method_type' => $data['payment_method_type'] ?? null,
+                            'payment_notes'   => $data['payment_notes'] ?? null,
+                        ])
+                    );
                 }
 
-                // Pago 2
-                if (!empty($data['amount_received_2']) && (float)$data['amount_received_2'] > 0) {
-                    $addPaymentCallback($sale, [
-                        'payment_type' => $data['payment_type_2'], // Viene del hidden_payment_type_2
-                        'amount'       => (float)$data['amount_received_2'],
-                        'notes'        => $data['payment_notes'] ?? null,
-                    ]);
+                if (!empty($data['amount_received_2'])) {
+                    $addPaymentCallback(
+                        $sale,
+                        $this->buildPaymentData([
+                            'payment_type'    => $data['payment_type_2'],
+                            'amount'          => $data['amount_received_2'],
+                            'bank_id'         => $data['payment_method_id_2'] ?? null,
+                            'bank_account_id' => $data['payment_method_id_2'] ?? null,
+                            'payment_method_type' => $data['payment_method_type_2'] ?? null,
+                            'payment_notes'   => $data['payment_notes'] ?? null,
+                        ])
+                    );
                 }
             } else {
-                // Pago Único (Lógica original)
+
                 if (!empty($data['payment_type'])) {
-                    $addPaymentCallback($sale, [
-                        'payment_type'    => $data['payment_type'],
-                        'amount'          => min((float)$data['amount_received'], $totalToPay),
-                        'notes'           => $data['payment_notes'] ?? null,
-                        'amount_received' => (float)$data['amount_received'],
-                        'change_returned' => (float)$data['change_returned'],
-                    ]);
+                    $addPaymentCallback(
+                        $sale,
+                        $this->buildPaymentData([
+                            'payment_type'    => $data['payment_type'],
+                            'amount'          => min((float)$data['amount_received'], $totalToPay),
+                            'bank_id'         => $data['payment_method_id'] ?? null,
+                            'bank_account_id' => $data['payment_method_id'] ?? null,
+                            'payment_method_type' => $data['payment_method_type'] ?? null,
+                            'payment_notes'   => $data['payment_notes'] ?? null,
+                        ])
+                    );
                 }
             }
 
             return $sale->fresh(['items', 'payments']);
         });
+    }
+
+    private function buildPaymentData(array $data): array
+    {
+        return array_filter([
+            'payment_type'     => $data['payment_type'],
+            'amount'           => (float) $data['amount'],
+            'bank_id'          => $data['bank_id'] ?? null,
+            'bank_account_id'  => $data['bank_account_id'] ?? null,
+            'payment_method_type' => $data['payment_method_type'] ?? null,
+            'notes'            => $data['payment_notes'] ?? null,
+        ], fn($v) => $v !== null);
     }
 
     protected function generateInternalNumber(int $branchId): int

@@ -46,6 +46,15 @@
     <input type="hidden" id="totals_source" value='{}'>
     <input type="hidden" name="totals" id="hidden_totals" value="{{ old('totals', json_encode([])) }}">
 
+    <input type="hidden" name="payment_method_id" id="hidden_payment_method_id"
+        value="{{ old('payment_method_id', $pago1->payment_method_id ?? '') }}">
+    <input type="hidden" name="payment_method_type" id="hidden_payment_method_type"
+        value="{{ old('payment_method_type', $pago1->payment_method_type ?? '') }}">
+
+    <input type="hidden" name="payment_method_id_2" id="hidden_payment_method_id_2"
+        value="{{ old('payment_method_id_2', $pago2->payment_method_id ?? '') }}">
+    <input type="hidden" name="payment_method_type_2" id="hidden_payment_method_type_2"
+        value="{{ old('payment_method_type_2', $pago2->payment_method_type ?? '') }}">
 </div>
 
 <div class="row">

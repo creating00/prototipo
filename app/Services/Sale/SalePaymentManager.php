@@ -25,7 +25,8 @@ class SalePaymentManager
 
     public function addPaymentToSale(Sale $sale, array $paymentData): Payment
     {
-        $paymentData['user_id'] = $this->userId();
+        // Preparar datos específicos de la venta
+        $paymentData['user_id'] = $paymentData['user_id'] ?? $this->userId();
 
         if ($sale->customer_type === \App\Models\Branch::class) {
             $branchName = $sale->customer->name ?? 'Sucursal';
@@ -33,17 +34,9 @@ class SalePaymentManager
                 (isset($paymentData['notes']) ? ' - ' . $paymentData['notes'] : '');
         }
 
-        $payment = Payment::create([
-            'branch_id'        => $sale->branch_id,
-            'payment_type'     => $paymentData['payment_type'],
-            'amount'           => $paymentData['amount'],
-            'currency'         => $paymentData['currency'] ?? \App\Enums\CurrencyType::ARS,
-            'user_id'          => $paymentData['user_id'] ?? $sale->user_id,
-            'paymentable_id'   => $sale->id,
-            'paymentable_type' => get_class($sale),
-            'notes'            => $paymentData['notes'] ?? null,
-            'reference'        => $paymentData['reference'] ?? null,
-        ]);
+        // Unificación: Usar el Manager para procesar el pago
+        // Esto garantiza que pase por PaymentService -> Factory
+        $payment = $this->processPayment($sale, $paymentData);
 
         $this->recalculateSalePayments($sale);
 

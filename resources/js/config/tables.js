@@ -53,11 +53,18 @@ export const TABLE_CONFIGS = {
             ordering: true,
             columnDefs: [
                 {
-                    targets: [3, 4],
+                    targets: [3, 4], // Columna 4 es Pagos
                     render: function (data, type) {
                         if (type === "filter") {
-                            const match = data.match(/data-search="([^"]+)"/);
-                            return match ? match[1] : data;
+                            // Buscamos globalmente todos los data-search="x"
+                            const matches = [
+                                ...data.matchAll(/data-search="([^"]+)"/g),
+                            ];
+                            if (matches.length > 0) {
+                                // Unimos todos los IDs encontrados: "1 3"
+                                return matches.map((m) => m[1]).join(" ");
+                            }
+                            return data;
                         }
                         return data;
                     },
@@ -94,7 +101,8 @@ function setupSalesFilters(api) {
             regex: true,
             smart: false,
         });
-        api.column(4).search(paymentValue ? `^${paymentValue}$` : "", {
+
+        api.column(4).search(paymentValue ? `\\b${paymentValue}\\b` : "", {
             regex: true,
             smart: false,
         });

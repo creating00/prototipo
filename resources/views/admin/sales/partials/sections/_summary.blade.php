@@ -17,6 +17,33 @@
                         :showPlaceholder="false" />
                 </div>
             </div>
+
+            {{-- Contenedor Banco (Tarjeta) --}}
+            <div class="mb-1 d-none" id="container_payment_method_bank">
+                <div class="compact-select-wrapper">
+                    <label class="compact-select-label">Banco</label>
+                    <x-adminlte.select name="bank_id_visible" data-type="App\Models\Bank" {{-- Atributo para JS --}}
+                        :options="$banks" :value="old(
+                            'payment_method_id',
+                            $pago1 && $pago1->payment_method_type == 'App\Models\Bank' ? $pago1->payment_method_id : '',
+                        )" />
+                </div>
+            </div>
+
+            {{-- Contenedor Cuenta (Transferencia) --}}
+            <div class="mb-1 d-none" id="container_payment_method_account">
+                <div class="compact-select-wrapper">
+                    <label class="compact-select-label">Cuenta de Destino</label>
+                    <x-adminlte.select name="bank_account_id_visible" data-type="App\Models\BankAccount"
+                        {{-- Atributo para JS --}} :options="$bankAccounts" :value="old(
+                            'payment_method_id',
+                            $pago1 && $pago1->payment_method_type == 'App\Models\BankAccount'
+                                ? $pago1->payment_method_id
+                                : '',
+                        )" />
+                </div>
+            </div>
+
             <div>
                 <x-bootstrap.compact-input id="amount_received" name="amount_received_visible" type="number"
                     label="Monto Recibido" step="0.01" prefix="$"

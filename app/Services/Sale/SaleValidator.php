@@ -121,13 +121,18 @@ class SaleValidator
         return [
             // Pago 1: Siempre requerido si no es una venta a crédito/sucursal diferida
             'payment_type'    => "required|integer|in:$typesCsv",
+            'payment_method_id'     => 'nullable|integer',
+            'payment_method_type'   => 'nullable|string|max:255',
             'amount_received' => 'required|numeric|min:0',
-            'payment_notes'   => 'nullable|string|max:500',
 
             // Pago 2: Estrictamente dependiente del flag
             'enable_dual_payment' => 'sometimes|boolean',
             'payment_type_2'      => "nullable|required_if:enable_dual_payment,1|integer|in:$typesCsv",
+            'payment_method_id_2'   => 'nullable|integer',
+            'payment_method_type_2' => 'nullable|string|max:255',
             'amount_received_2'   => "nullable|required_if:enable_dual_payment,1|numeric|min:0",
+
+            'payment_notes'   => 'nullable|string|max:500',
         ];
     }
 

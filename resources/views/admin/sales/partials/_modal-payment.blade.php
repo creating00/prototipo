@@ -9,4 +9,7 @@
         'isDual' => $isDual ?? false,
         'pago1' => $pago1,
         'pago2' => $pago2,
+        'banks' => $banks,
+        'bankAccounts' => $bankAccounts,  
+
     ]" />

@@ -61,13 +61,39 @@
                 <label class="small text-muted mb-2 d-block text-uppercase">Método 1</label>
                 <div class="mb-2">
                     <x-adminlte.select name="payment_type_1_modal" id="payment_type_1_modal" label=""
-                        :options="$paymentOptions" :value="old(
-                            'payment_type',
-                            $pago1->payment_type->value ?? \App\Enums\PaymentType::Cash->value,
-                        )" :showPlaceholder="false" disabled />
+                        :options="$paymentOptions" :value="old('payment_type', $pago1->payment_type->value ?? 1)" :showPlaceholder="false" disabled />
                 </div>
+
+                {{-- Banco Pago 1 (Polimórfico: Bank) --}}
+                <div class="mb-2 d-none" id="container_bank_id_1_modal">
+                    <div class="compact-select-wrapper">
+                        <label class="compact-select-label">Banco</label>
+                        <x-adminlte.select name="bank_id_1_modal" id="bank_id_1_modal" label=""
+                            data-type="App\Models\Bank" :options="$banks" :value="old(
+                                'payment_method_id',
+                                $pago1 && $pago1->payment_method_type == 'App\Models\Bank'
+                                    ? $pago1->payment_method_id
+                                    : '',
+                            )" />
+                    </div>
+                </div>
+
+                {{-- Cuenta Pago 1 (Polimórfico: BankAccount) --}}
+                <div class="mb-2 d-none" id="container_bank_account_id_1_modal">
+                    <div class="compact-select-wrapper">
+                        <label class="compact-select-label">Cuenta</label>
+                        <x-adminlte.select name="bank_account_id_1_modal" id="bank_account_id_1_modal" label=""
+                            data-type="App\Models\BankAccount" :options="$bankAccounts" :value="old(
+                                'payment_method_id',
+                                $pago1 && $pago1->payment_method_type == 'App\Models\BankAccount'
+                                    ? $pago1->payment_method_id
+                                    : '',
+                            )" />
+                    </div>
+                </div>
+
                 <x-bootstrap.compact-input id="amount_received_1_modal" name="amount_received_1_modal" type="number"
-                    label="Monto" step="0.01" prefix="$" :value="old('amount_received', $pago1->amount ?? ($sale->amount_received ?? '0.00'))" readonly />
+                    label="Monto" step="0.01" prefix="$" :value="old('amount_received', $pago1->amount ?? '0.00')" readonly />
             </div>
         </div>
     </div>
@@ -79,11 +105,37 @@
                 <label class="small text-muted mb-2 d-block text-uppercase">Método 2</label>
                 <div class="mb-2">
                     <x-adminlte.select name="payment_type_2_modal" id="payment_type_2_modal" label=""
-                        :options="$paymentOptions" :value="old(
-                            'payment_type_2',
-                            $pago2->payment_type->value ?? \App\Enums\PaymentType::Card->value,
-                        )" :showPlaceholder="false" disabled />
+                        :options="$paymentOptions" :value="old('payment_type_2', $pago2->payment_type->value ?? 2)" :showPlaceholder="false" disabled />
                 </div>
+
+                {{-- Banco Pago 2 (Polimórfico: Bank) --}}
+                <div class="mb-2 d-none" id="container_bank_id_2_modal">
+                    <div class="compact-select-wrapper">
+                        <label class="compact-select-label">Banco</label>
+                        <x-adminlte.select name="bank_id_2_modal" id="bank_id_2_modal" label=""
+                            data-type="App\Models\Bank" :options="$banks" :value="old(
+                                'payment_method_id_2',
+                                $pago2 && $pago2->payment_method_type == 'App\Models\Bank'
+                                    ? $pago2->payment_method_id
+                                    : '',
+                            )" />
+                    </div>
+                </div>
+
+                {{-- Cuenta Pago 2 (Polimórfico: BankAccount) --}}
+                <div class="mb-2 d-none" id="container_bank_account_id_2_modal">
+                    <div class="compact-select-wrapper">
+                        <label class="compact-select-label">Cuenta</label>
+                        <x-adminlte.select name="bank_account_id_2_modal" id="bank_account_id_2_modal" label=""
+                            data-type="App\Models\BankAccount" :options="$bankAccounts" :value="old(
+                                'payment_method_id_2',
+                                $pago2 && $pago2->payment_method_type == 'App\Models\BankAccount'
+                                    ? $pago2->payment_method_id
+                                    : '',
+                            )" />
+                    </div>
+                </div>
+
                 <x-bootstrap.compact-input id="amount_received_2_modal" name="amount_received_2_modal" type="number"
                     label="Monto" step="0.01" prefix="$" :value="old('amount_received_2', $pago2->amount ?? '0.00')" readonly />
             </div>
