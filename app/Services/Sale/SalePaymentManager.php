@@ -26,7 +26,10 @@ class SalePaymentManager
     public function addPaymentToSale(Sale $sale, array $paymentData): Payment
     {
         // Preparar datos específicos de la venta
-        $paymentData['user_id'] = $paymentData['user_id'] ?? $this->userId();
+        $paymentData['user_id'] =
+            $paymentData['user_id']
+            ?? $sale->user_id
+            ?? $this->userId();
 
         if ($sale->customer_type === \App\Models\Branch::class) {
             $branchName = $sale->customer->name ?? 'Sucursal';

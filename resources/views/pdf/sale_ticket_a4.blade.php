@@ -81,30 +81,48 @@
     <div class="container">
         <div class="header">
 
-            {{-- LOGO --}}
-            <div class="logo">
-                <img src="{{ public_path('assets/img/logo.webp') }}" style="max-width:120px">
-            </div>
+            <!-- ENCABEZADO SUPERIOR -->
+            <table style="width:100%; border-collapse:collapse;">
+                <tr>
+                    <!-- LOGO -->
+                    <td style="width:25%; text-align:left;">
+                        <img src="{{ public_path('assets/img/logo.webp') }}" style="max-width:120px;">
+                    </td>
 
-            {{-- EMPRESA --}}
-            <h3>{{ $sale->branch->name }}</h3>
+                    <!-- EMPRESA -->
+                    <td style="width:50%; text-align:center;">
+                        <h3 style="margin:0;">{{ $sale->branch->name }}</h3>
+                        <p style="margin:2px 0;">{{ $sale->branch->address }}</p>
+                        <p style="margin:2px 0;">Tel: {{ $sale->branch->phone }}</p>
+                    </td>
 
-            <div class="company-info">
-                <p>{{ $sale->branch->address }}</p>
-                <p>Tel: {{ $sale->branch->phone }}</p>
-            </div>
+                    <!-- TIPO -->
+                    <td style="width:25%; text-align:right;">
+                        <h3 style="margin:0;">RECIBO DE PAGO</h3>
+                    </td>
+                </tr>
+            </table>
 
-            <hr style="border-top: 1px dashed #000; margin: 5px 0;">
+            <hr style="border-top:1px dashed #000; margin:8px 0;">
 
-            <h3>RECIBO DE PAGO</h3>
-        </div>
+            <!-- DATOS DEL RECIBO -->
+            <table style="width:100%; font-size:11px; margin-top:5px;">
+                <tr>
+                    <td style="width:25%;"><strong>Recibo Nº:</strong></td>
+                    <td style="width:25%;">{{ $sale->internal_number ?? $sale->id }}</td>
 
-        {{-- DATOS --}}
-        <div class="details">
-            <p><strong>Recibo Nº:</strong> {{ $sale->internal_number ?? $sale->id }}</p>
-            <p><strong>Fecha:</strong> {{ $sale->created_at->format('d/m/Y H:i') }}</p>
-            <p><strong>Cliente:</strong> {{ $sale->customer_name }}</p>
-            <p><strong>Vendedor:</strong> {{ $sale->user->name }}</p>
+                    <td style="width:25%;"><strong>Fecha:</strong></td>
+                    <td style="width:25%;">{{ $sale->created_at->format('d/m/Y H:i') }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Cliente:</strong></td>
+                    <td>{{ $sale->customer_name }}</td>
+
+                    <td><strong>Vendedor:</strong></td>
+                    <td>{{ $sale->user->name }}</td>
+                </tr>
+            </table>
+
         </div>
 
         {{-- ITEMS --}}
@@ -204,6 +222,10 @@
                 ${{ number_format($sale->remaining_balance, 2, ',', '.') }}
             </p>
         </div>
+
+        <div style="page-break-before: always;"></div>
+
+        @include('pdf.partials.terms')
 
     </div>
 </body>
