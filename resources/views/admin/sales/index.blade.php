@@ -33,6 +33,11 @@
                         <i class="fas fa-tools me-1"></i> Configurar Montos
                     </a>
                     @endcanResource --}}
+
+                    <a href="{{ route('web.banks.index') }}" class="btn btn-outline-info me-1">
+                        <i class="fas fa-tools me-1"></i> Configurar Bancos
+                    </a>
+
                     {{-- Ventas Sucursal → Cliente --}}
                     @canResource('sales.create_client')
                     <x-adminlte.button color="primary" icon="fas fa-user" class="me-1 btn-header-new-client">

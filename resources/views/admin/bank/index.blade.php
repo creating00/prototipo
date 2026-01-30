@@ -37,6 +37,11 @@
             </x-slot>
 
             <x-slot name="headerButtons">
+
+                <a href="{{ route('web.bank-accounts.index') }}" class="btn btn-outline-info me-1">
+                    <i class="fas fa-tools me-1"></i> Configurar Cuentas
+                </a>
+
                 @canResource('banks.create')
                 <x-adminlte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-new">
                     Nuevo Banco
