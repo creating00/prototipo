@@ -86,6 +86,7 @@ class SaleValidator
             'amount_received'     => 'nullable|numeric|min:0',
             'change_returned'     => 'nullable|numeric|min:0',
             'remaining_balance'   => 'nullable|numeric|min:0',
+            'exchange_rate_blue'  => 'nullable|numeric|min:1',
         ];
     }
 

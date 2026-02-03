@@ -4,6 +4,7 @@
 
 @push('styles')
     @vite('resources/css/modules/sales/sales-styles.css')
+    {{-- @vite('resources/css/modules/sales/payment-dual-styles.css') --}}
     <style>
         /* Ocultar botón convertir si ya fue convertida (status 4) */
         tr[data-status_raw="4"] .btn-convert {

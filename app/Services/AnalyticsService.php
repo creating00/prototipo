@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\CurrencyType;
 use App\Enums\ProductStatus;
 use App\Models\{Sale, Product, Client, Payment, Expense, ProductBranch};
 use Illuminate\Support\Facades\DB;
@@ -9,11 +10,31 @@ use Carbon\Carbon;
 
 class AnalyticsService
 {
+    private $exchangeService;
+
+    public function __construct(CurrencyExchangeService $exchangeService)
+    {
+        $this->exchangeService = $exchangeService;
+    }
+
+    /**
+     * Retorna la expresión SQL para sumar totales convertidos a ARS
+     */
+    private function getConvertedTotalExpression(): string
+    {
+        $rate = $this->exchangeService->getCurrentDollarRate();
+
+        // Esta expresión devuelve la lógica de suma convertida
+        return "SUM(
+            COALESCE(CAST(sales.totals->'$.\"1\"' AS DECIMAL(15,2)), 0) + 
+            (COALESCE(CAST(sales.totals->'$.\"2\"' AS DECIMAL(15,2)), 0) * {$rate})
+        )";
+    }
+
     public function getBranchStats(array $filters): array
     {
         $branchId = $filters['branch_id'];
 
-        // Pasamos los filtros a los métodos para que las fechas afecten a todo
         $salesInfo = $this->getSalesInfoboxes($branchId, $filters);
         $expenseInfo = $this->getExpenseInfoboxes($branchId, $filters);
 
@@ -22,7 +43,7 @@ class AnalyticsService
             'expenseBoxes' => $expenseInfo,
             'resultBoxes'  => $this->calculateResultBoxes($salesInfo, $expenseInfo),
             'products'     => $this->getTopProducts($filters),
-            'clients'      => $this->getTopClients($filters), // Ahora con filtros
+            'clients'      => $this->getTopClients($filters),
             'chartData'    => $this->getMonthlyChartData($branchId),
             'stockReport'  => $this->getStockReport($branchId),
         ];
@@ -31,8 +52,7 @@ class AnalyticsService
     private function getSalesInfoboxes(int $branchId, array $filters): array
     {
         $stats = config('analytics.infoboxes');
-
-        // Si hay rango de fechas, lo usamos. Si no, usamos los periodos por defecto.
+        $rate = $this->exchangeService->getCurrentDollarRate();
         $hasRange = !empty($filters['start_date']) && !empty($filters['end_date']);
 
         $periods = [
@@ -48,10 +68,12 @@ class AnalyticsService
                 ->whereBetween('created_at', $dates)
                 ->count();
 
+            // Suma de pagos convertida a ARS
             $stats[$key]['secondaryNumber'] = Payment::where('paymentable_type', Sale::class)
                 ->whereBetween('created_at', $dates)
                 ->whereHasMorph('paymentable', [Sale::class], fn($q) => $q->forBranch($branchId))
-                ->sum('amount');
+                ->selectRaw("SUM(CASE WHEN currency = ? THEN amount * ? ELSE amount END) as total", [CurrencyType::USD->value, $rate])
+                ->value('total') ?? 0;
 
             $stats[$key]['secondarySuffix'] = '$';
         }
@@ -118,21 +140,20 @@ class AnalyticsService
 
     private function getTopClients(array $filters, int $limit = 5)
     {
-        $query = Client::select('clients.full_name as name')
+        // Usamos la expresión directamente sin pasar parámetros extra
+        return Client::select('clients.full_name as name')
             ->selectRaw('COUNT(sales.id) as orders')
-            ->selectRaw('SUM(sales.total_amount) as total')
+            ->selectRaw("{$this->getConvertedTotalExpression()} as total")
             ->join('sales', function ($join) use ($filters) {
                 $join->on('sales.customer_id', '=', 'clients.id')
                     ->where('sales.customer_type', Client::class)
                     ->where('sales.branch_id', $filters['branch_id']);
             })
-            ->whereNull('sales.deleted_at');
-
-        if (!empty($filters['start_date']) && !empty($filters['end_date'])) {
-            $query->whereBetween('sales.created_at', [$filters['start_date'], $filters['end_date']]);
-        }
-
-        return $query->groupBy('clients.id', 'clients.full_name')->orderByDesc('total')->limit($limit)->get();
+            ->whereNull('sales.deleted_at')
+            ->groupBy('clients.id', 'clients.full_name')
+            ->orderByDesc('total')
+            ->limit($limit)
+            ->get();
     }
 
     private function getStockReport(int $branchId)
@@ -158,9 +179,12 @@ class AnalyticsService
     private function getMonthlyChartData(int $branchId): array
     {
         $monthlySales = Sale::forBranch($branchId)
-            ->selectRaw('MONTH(created_at) as month, SUM(total_amount) as total')
+            ->selectRaw('MONTH(created_at) as month')
+            ->selectRaw("{$this->getConvertedTotalExpression()} as total")
             ->whereYear('created_at', now()->year)
-            ->groupBy('month')->orderBy('month')->get();
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
 
         return [
             'months'  => $monthlySales->pluck('month')->map(fn($m) => Carbon::create()->month($m)->format('M')),

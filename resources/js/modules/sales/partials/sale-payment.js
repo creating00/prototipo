@@ -4,272 +4,213 @@ import FieldSyncer from "../services/FieldSyncer";
 import RepairUiManager from "../services/RepairUiManager";
 import { dispatchRepairCategoryChanged } from "@/helpers/repair-category-events";
 
-const SALE_TYPE = { SALE: "1", REPAIR: "2" };
+const SALE_TYPE = Object.freeze({ SALE: "1", REPAIR: "2" });
+const PAYMENT_TYPE = Object.freeze({ CASH: "1", CARD: "2", TRANSFER: "3" });
+const PAYMENT_MODELS = Object.freeze({
+    [PAYMENT_TYPE.CARD]: "App\\Models\\Bank",
+    [PAYMENT_TYPE.TRANSFER]: "App\\Models\\BankAccount",
+});
 
-const salePayment = {
-    saleTotal: 0,
-    saleType: SALE_TYPE.SALE,
-    isSyncing: false,
+class SalePayment {
+    constructor() {
+        this.saleTotal = 0;
+        this.saleType = SALE_TYPE.SALE;
+        this.isSyncing = false;
+        this._domCache = new Map();
+        this.fieldsToSync = {
+            sale_date: "hidden_sale_date",
+            amount_received_1_modal: "hidden_amount_received",
+            amount_received_2_modal: "hidden_amount_received_2",
+            payment_type_1_modal: "hidden_payment_type",
+            payment_type_2_modal: "hidden_payment_type_2",
+            change_returned: "hidden_change_returned",
+            remaining_balance: "hidden_remaining_balance",
+            repair_amount: "hidden_repair_amount",
+            discount_id: "hidden_discount_id",
+            payment_type_visible: "hidden_payment_type",
+            discount_amount_input: "hidden_discount_amount",
+            bank_id_visible: "hidden_payment_method_id",
+            bank_account_id_visible: "hidden_payment_method_id",
+            bank_id_1_modal: "hidden_payment_method_id",
+            bank_account_id_1_modal: "hidden_payment_method_id",
+            bank_id_2_modal: "hidden_payment_method_id_2",
+            bank_account_id_2_modal: "hidden_payment_method_id_2",
+            exchange_rate_blue: "hidden_exchange_rate_blue",
+        };
+    }
 
-    // Cache de elementos para mejorar rendimiento
-    _elementCache: new Map(),
-
-    elements: {
-        saleType: () => document.querySelector('select[name="sale_type"]'),
-        repairType: () =>
-            document.querySelector('select[name="repair_type_id"]') ||
-            document.getElementById("repair_type"),
-        repairAmount: () => document.getElementById("repair_amount"),
-        hiddenRepairAmount: () =>
-            document.getElementById("hidden_repair_amount"),
-        amountReceived: () => document.getElementById("amount_received"),
-        paymentTypeVisible: () =>
-            document.querySelector('select[name="payment_type_visible"]'),
-        totalAmount: () => document.getElementById("total_amount"),
-        changeReturned: () => document.getElementById("change_returned"),
-        remainingBalance: () => document.getElementById("remaining_balance"),
-        statusIndicator: () =>
-            document.getElementById("payment_status_indicator"),
-        summaryStatus: () => document.getElementById("summary_payment_status"),
-        discountInput: () => document.getElementById("discount_amount_input"),
-        subtotalHidden: () => document.getElementById("subtotal_amount"),
-        discountHidden: () => document.getElementById("hidden_discount_amount"),
-        enableDualPayment: () => document.getElementById("enable_dual_payment"),
-        modalAmount1: () => document.getElementById("amount_received_1_modal"),
-        modalType1: () => document.getElementById("payment_type_1_modal"),
-        modalAmount2: () => document.getElementById("amount_received_2_modal"),
-        modalType2: () => document.getElementById("payment_type_2_modal"),
-        labelTotalReceived: () =>
-            document.getElementById("label_total_received"),
-        labelChange: () => document.getElementById("label_change_returned"),
-        labelRemaining: () =>
-            document.getElementById("label_remaining_balance"),
-        wrapperSingle: () => document.getElementById("wrapper_single_payment"),
-        wrapperDualInfo: () =>
-            document.getElementById("wrapper_dual_payment_info"),
-        summaryAmount1: () => document.getElementById("summary_amount_1_label"),
-        summaryAmount2: () => document.getElementById("summary_amount_2_label"),
-        summaryType1: () =>
-            document.getElementById("summary_payment_type_1_label"),
-        summaryType2: () =>
-            document.getElementById("summary_payment_type_2_label"),
-
-        containerBank: () =>
-            document.getElementById("container_payment_method_bank"),
-        containerAccount: () =>
-            document.getElementById("container_payment_method_account"),
-
-        bankVisible: () =>
-            document.querySelector('select[name="bank_id_visible"]'),
-        accountVisible: () =>
-            document.querySelector('select[name="bank_account_id_visible"]'),
-
-        modalBank1: () => document.getElementById("bank_id_1_modal"),
-        modalAccount1: () => document.getElementById("bank_account_id_1_modal"),
-        containerBank1Modal: () =>
-            document.getElementById("container_bank_id_1_modal"),
-        containerAccount1Modal: () =>
-            document.getElementById("container_bank_account_id_1_modal"),
-
-        modalBank2: () => document.getElementById("bank_id_2_modal"),
-        modalAccount2: () => document.getElementById("bank_account_id_2_modal"),
-        containerBank2Modal: () =>
-            document.getElementById("container_bank_id_2_modal"),
-        containerAccount2Modal: () =>
-            document.getElementById("container_bank_account_id_2_modal"),
-    },
-
-    fieldsToSync: {
-        sale_date: "hidden_sale_date",
-        amount_received_1_modal: "hidden_amount_received",
-        amount_received_2_modal: "hidden_amount_received_2",
-        payment_type_1_modal: "hidden_payment_type",
-        payment_type_2_modal: "hidden_payment_type_2",
-        change_returned: "hidden_change_returned",
-        remaining_balance: "hidden_remaining_balance",
-        repair_amount: "hidden_repair_amount",
-        discount_id: "hidden_discount_id",
-        payment_type_visible: "hidden_payment_type",
-        discount_amount_input: "hidden_discount_amount",
-
-        bank_id_visible: "hidden_payment_method_id",
-        bank_account_id_visible: "hidden_payment_method_id",
-        bank_id_1_modal: "hidden_payment_method_id",
-        bank_account_id_1_modal: "hidden_payment_method_id",
-
-        bank_id_2_modal: "hidden_payment_method_id_2",
-        bank_account_id_2_modal: "hidden_payment_method_id_2",
-    },
+    // Cached DOM getter
+    el(id, selector) {
+        if (!this._domCache.has(id)) {
+            this._domCache.set(
+                id,
+                typeof selector === "string"
+                    ? document.getElementById(selector)
+                    : document.querySelector(selector),
+            );
+        }
+        return this._domCache.get(id);
+    }
 
     init() {
         this.detectSaleType();
         this.bindEvents();
         FieldSyncer.sync(this.fieldsToSync);
         this.initialLoad();
-    },
+    }
 
     detectSaleType() {
-        const select = this.elements.saleType();
+        const select = this.el("saleType", 'select[name="sale_type"]');
         if (select) {
             this.saleType = select.value;
             RepairUiManager.toggleFields(this.saleType === SALE_TYPE.REPAIR);
         }
-    },
+    }
 
     initialLoad() {
-        const subtotal = this.getFloatValue("subtotalHidden");
-        const currentTotal = this.getFloatValue("totalAmount");
-
+        const subtotal = this.getFloat("subtotal_amount");
+        const currentTotal = this.getFloat("total_amount");
         this.saleTotal = currentTotal;
 
         this.dispatchEvent("sale:subtotalUpdated", { subtotal });
 
-        if (this.elements.paymentTypeVisible()) {
-            const val = this.elements.paymentTypeVisible().value;
-            this.updateMethodVisibility(val, ""); // Summary
-            this.updateMethodVisibility(val, "1"); // Modal Pago 1
+        const paymentType = this.el(
+            "payType",
+            'select[name="payment_type_visible"]',
+        );
+        if (paymentType) {
+            this.updateMethodVisibility(paymentType.value, "");
+            this.updateMethodVisibility(paymentType.value, "1");
         }
 
-        if (this.elements.modalType2()) {
-            this.updateMethodVisibility(this.elements.modalType2().value, "2");
-        }
+        const modalType2 = this.el("modalType2", "payment_type_2_modal");
+        if (modalType2) this.updateMethodVisibility(modalType2.value, "2");
 
-        const dualCheck = this.elements.enableDualPayment();
-        if (dualCheck) {
-            this.toggleDualPayment(dualCheck.checked);
-        }
+        const dualCheck = this.el("dualCheck", "enable_dual_payment");
+        if (dualCheck) this.toggleDualPayment(dualCheck.checked);
 
+        this.updateTotalsHiddenFields(this.saleTotal);
         this.syncRepairAmount();
         this.calculate();
-    },
+    }
 
     bindEvents() {
-        const el = this.elements;
-
-        // Sincronización bidireccional entre Summary y Modal (Pago 1)
-        this.bindBidirectionalSync(
-            el.amountReceived(),
-            el.modalAmount1(),
+        // Bidirectional syncs
+        this.bindSync(
+            this.el("amtRcv", "amount_received"),
+            this.el("modal1", "amount_received_1_modal"),
             "input",
         );
-
-        this.bindBidirectionalSync(
-            el.paymentTypeVisible(),
-            el.modalType1(),
+        this.bindSync(
+            this.el("payTypeVis", 'select[name="payment_type_visible"]'),
+            this.el("modalType1", "payment_type_1_modal"),
+            "change",
+            true,
+        );
+        this.bindSync(
+            this.el("bankVis", 'select[name="bank_id_visible"]'),
+            this.el("modalBank1", "bank_id_1_modal"),
+            "change",
+            true,
+        );
+        this.bindSync(
+            this.el("accVis", 'select[name="bank_account_id_visible"]'),
+            this.el("modalAcc1", "bank_account_id_1_modal"),
             "change",
             true,
         );
 
-        // Toggle dual payment
-        el.enableDualPayment()?.addEventListener("change", (e) => {
-            this.toggleDualPayment(e.target.checked);
-        });
+        // Event listeners
+        this.on("dualCheck", "enable_dual_payment", "change", (e) =>
+            this.toggleDualPayment(e.target.checked),
+        );
 
-        // Calcular al cambiar montos
-        [el.amountReceived(), el.modalAmount1(), el.modalAmount2()]
-            .filter(Boolean)
-            .forEach((input) => {
-                input.addEventListener("input", () => this.calculate());
-            });
+        [
+            "amount_received",
+            "amount_received_1_modal",
+            "amount_received_2_modal",
+            "exchange_rate_blue",
+        ].forEach((id) =>
+            this.on(id, id, "input", () => {
+                this.calculate();
+                this.updateTotalsHiddenFields(this.saleTotal);
+            }),
+        );
 
-        // Cambios de tipo de venta y reparación
-        el.saleType()?.addEventListener("change", (e) =>
+        this.on("saleType", 'select[name="sale_type"]', "change", (e) =>
             this.handleSaleTypeChange(e.target.value),
         );
-
-        el.repairType()?.addEventListener("change", (e) =>
+        this.on("repairType", 'select[name="repair_type_id"]', "change", (e) =>
             this.handleRepairTypeChange(e.target.value),
         );
-
-        // Descuento manual
-        el.discountInput()?.addEventListener("input", () => {
-            this.applyManualDiscount();
-        });
-
-        // Eventos personalizados
-        document.addEventListener("sale:subtotalUpdated", () => {
-            this.applyManualDiscount();
-        });
-
-        document.addEventListener("sale:totalUpdated", (e) => {
-            this.setTotal(e.detail.total);
-        });
-
-        // Sincronización de Bancos (Summary <-> Modal 1)
-        this.bindBidirectionalSync(
-            el.bankVisible(),
-            el.modalBank1(),
-            "change",
-            true,
+        this.on("discount", "discount_amount_input", "input", () =>
+            this.applyManualDiscount(),
+        );
+        this.on("payDollars", "pay_in_dollars", "change", () =>
+            this.updateTotalsHiddenFields(this.saleTotal),
         );
 
-        // Sincronización de Cuentas (Summary <-> Modal 1)
-        this.bindBidirectionalSync(
-            el.accountVisible(),
-            el.modalAccount1(),
+        this.on(
+            "payTypeVis",
+            'select[name="payment_type_visible"]',
             "change",
-            true,
+            (e) => {
+                this.updateMethodVisibility(e.target.value, "");
+                this.updateMethodVisibility(e.target.value, "1");
+            },
+        );
+        this.on("modalType2", "payment_type_2_modal", "change", (e) =>
+            this.updateMethodVisibility(e.target.value, "2"),
         );
 
-        // Listeners para visibilidad
-        el.paymentTypeVisible()?.addEventListener("change", (e) => {
-            const val = e.target.value;
-            // Actualizamos visibilidad en el Summary
-            this.updateMethodVisibility(val);
-            // Forzamos que el contenedor del Pago 1 en el Modal también se sincronice
-            this.updateMethodVisibility(val, "1");
-        });
+        document.addEventListener("sale:subtotalUpdated", () =>
+            this.applyManualDiscount(),
+        );
+        document.addEventListener("sale:totalUpdated", (e) =>
+            this.setTotal(e.detail.total),
+        );
+    }
 
-        // Listener para el Pago 2 en el Modal (siempre independiente)
-        el.modalType2()?.addEventListener("change", (e) => {
-            this.updateMethodVisibility(e.target.value, "2");
-        });
-    },
+    on(cacheKey, id, event, handler) {
+        const el = this.el(cacheKey, id);
+        el?.addEventListener(event, handler);
+    }
 
-    // Método helper para vincular sincronización bidireccional
-    bindBidirectionalSync(source, target, eventType, isSelect = false) {
+    bindSync(source, target, eventType, isSelect = false) {
         if (!source || !target) return;
-
-        const syncMethod = isSelect ? this.syncSelects : this.syncFields;
-
-        source.addEventListener(eventType, (e) => {
-            syncMethod.call(this, e.target.value, target);
-        });
-
-        target.addEventListener(eventType, (e) => {
-            syncMethod.call(this, e.target.value, source);
-        });
-    },
+        const syncFn = isSelect ? this.syncSelects : this.syncFields;
+        source.addEventListener(eventType, (e) =>
+            syncFn.call(this, e.target.value, target),
+        );
+        target.addEventListener(eventType, (e) =>
+            syncFn.call(this, e.target.value, source),
+        );
+    }
 
     syncFields(value, targetEl) {
         if (this.isSyncing || !targetEl || targetEl.value === value) return;
-
-        this.isSyncing = true;
-        targetEl.value = value;
-        targetEl.dispatchEvent(new Event("input"));
-        this.isSyncing = false;
-    },
+        this.withSync(() => {
+            targetEl.value = value;
+            targetEl.dispatchEvent(new Event("input"));
+        });
+    }
 
     syncSelects(value, targetEl) {
         if (this.isSyncing || !targetEl || targetEl.value === value) return;
-
-        this.isSyncing = true;
-        targetEl.value = value;
-
-        if (targetEl._choices) {
-            targetEl._choices.setChoiceByValue(value);
-        }
-
-        targetEl.dispatchEvent(new Event("change"));
-        this.isSyncing = false;
-    },
+        this.withSync(() => {
+            targetEl.value = value;
+            if (targetEl._choices) targetEl._choices.setChoiceByValue(value);
+            targetEl.dispatchEvent(new Event("change"));
+        });
+    }
 
     syncRepairAmount() {
         const val = this.saleTotal.toFixed(2);
-        const isRepair = this.saleType === SALE_TYPE.REPAIR;
-        const targetValue = isRepair ? val : "";
-
-        [this.elements.repairAmount(), this.elements.hiddenRepairAmount()]
+        const targetValue = this.saleType === SALE_TYPE.REPAIR ? val : "";
+        [
+            this.el("repairAmt", "repair_amount"),
+            this.el("hiddenRepair", "hidden_repair_amount"),
+        ]
             .filter(Boolean)
             .forEach((input) => {
                 if (input.value !== targetValue) {
@@ -277,325 +218,321 @@ const salePayment = {
                     input.dispatchEvent(new Event("input"));
                 }
             });
-    },
+    }
 
     setTotal(value) {
         if (this.isSyncing) return;
-
         this.withSync(() => {
             this.saleTotal = parseFloat(value) || 0;
             this.syncRepairAmount();
             this.updateTotalsHiddenFields(this.saleTotal);
         });
-
         this.calculate();
         this.dispatchEvent("sale:totalUpdated", { total: this.saleTotal });
-    },
+    }
 
     handleSaleTypeChange(value) {
         this.saleType = value;
         this.dispatchEvent("sale:typeChanged", { saleType: value });
         RepairUiManager.toggleFields(value === SALE_TYPE.REPAIR);
         this.refreshTotalFromSource();
-    },
+    }
 
     applyManualDiscount() {
         if (this.isSyncing) return;
 
-        const subtotal = this.getFloatValue("subtotalHidden");
-        const discount = this.getFloatValue("discountInput");
+        const subtotal = this.getFloat("subtotal_amount");
+        const discount = this.getFloat("discount_amount_input");
+
         const newTotal = Math.max(0, subtotal - discount);
-
-        this.dispatchEvent("sale:discountUpdated", { discount });
-
-        if (this.saleTotal === newTotal && newTotal !== 0) {
-            this.calculate();
-            return;
-        }
-
         this.saleTotal = newTotal;
+
+        // Total del pedido (siempre en $)
         this.updateTotalDisplay(newTotal);
+
         this.syncRepairAmount();
-        this.updateTotalsHiddenFields(this.saleTotal);
+        this.updateTotalsHiddenFields(newTotal);
+
+        // ✅ recalculamos UNA sola vez
         this.calculate();
 
-        this.withSync(() => {
-            this.dispatchEvent("sale:totalUpdated", { total: newTotal });
-        });
-    },
+        this.dispatchEvent("sale:discountUpdated", { discount });
+    }
 
     handleRepairTypeChange(typeId) {
         dispatchRepairCategoryChanged(typeId || null);
-    },
+    }
 
     refreshTotalFromSource() {
         const source =
             this.saleType === SALE_TYPE.REPAIR
-                ? this.elements.repairAmount()
-                : this.elements.totalAmount();
-
+                ? this.el("repairAmt", "repair_amount")
+                : this.el("totalAmt", "total_amount");
         this.setTotal(source?.value || 0);
-    },
+    }
 
     toggleDualPayment(enabled) {
-        const el = this.elements;
-        const hiddenDual = document.getElementById(
-            "hidden_enable_dual_payment",
-        );
+        const hiddenDual = this.el("hiddenDual", "hidden_enable_dual_payment");
         if (hiddenDual) hiddenDual.value = enabled ? "1" : "0";
 
-        // Toggle visibilidad de wrappers
-        this.toggleElement(el.wrapperSingle(), !enabled);
-        this.toggleElement(el.wrapperDualInfo(), enabled);
+        this.toggle(this.el("wrapSingle", "wrapper_single_payment"), !enabled);
+        this.toggle(this.el("wrapDual", "wrapper_dual_payment_info"), enabled);
 
-        // Bloquear/Desbloquear montos
-        [el.modalAmount1(), el.modalAmount2()]
+        [
+            this.el("modal1", "amount_received_1_modal"),
+            this.el("modal2", "amount_received_2_modal"),
+        ]
             .filter(Boolean)
-            .forEach((input) => {
-                input.readOnly = !enabled;
+            .forEach((input) => (input.readOnly = !enabled));
+
+        [
+            "modalType1",
+            "modalType2",
+            "modalBank1",
+            "modalBank2",
+            "modalAcc1",
+            "modalAcc2",
+        ]
+            .map((key) =>
+                this.el(
+                    key,
+                    key
+                        .replace("modal", "")
+                        .replace(/(\d)/, "_$1_modal")
+                        .toLowerCase(),
+                ),
+            )
+            .filter(Boolean)
+            .forEach((select) => {
+                if (select._choices) {
+                    enabled
+                        ? select._choices.enable()
+                        : select._choices.disable();
+                } else {
+                    select.disabled = !enabled;
+                }
             });
 
-        // Bloquear/Desbloquear selects (incluyendo los de banco/cuenta)
-        const selectsToToggle = [
-            el.modalType1(),
-            el.modalType2(),
-            el.modalBank1(),
-            el.modalBank2(),
-            el.modalAccount1(),
-            el.modalAccount2(),
-        ];
-
-        selectsToToggle.filter(Boolean).forEach((select) => {
-            if (select._choices) {
-                enabled ? select._choices.enable() : select._choices.disable();
-            } else {
-                select.disabled = !enabled;
-            }
-        });
-
-        if (!enabled && el.modalAmount2()) {
-            el.modalAmount2().value = "0.00";
+        if (!enabled && this.el("modal2", "amount_received_2_modal")) {
+            this.el("modal2", "amount_received_2_modal").value = "0.00";
             this.calculate();
         }
-    },
+    }
 
     calculate() {
         if (this.isSyncing) return;
-
         this.withSync(() => {
-            const r1 = this.getFloatValue("modalAmount1");
-            const r2 = this.getFloatValue("modalAmount2");
-            const totalReceived = r1 + r2;
+            const isDollarMode = this.el(
+                "payDollars",
+                "pay_in_dollars",
+            )?.checked;
+            const rate = this.getFloat("exchange_rate_blue") || 1;
 
+            // 1. Obtener montos y normalizarlos a Pesos si el usuario digita en Dólares
+            let r1 = this.getFloat("amount_received_1_modal");
+            let r2 = this.getFloat("amount_received_2_modal");
+
+            if (isDollarMode) {
+                r1 = r1 * rate;
+                r2 = r2 * rate;
+            }
+
+            const totalReceivedArs = r1 + r2;
+
+            // 2. El calculador siempre opera en Pesos (Moneda Base)
             const result = PaymentCalculator.calculate(
                 this.saleTotal,
-                totalReceived,
+                totalReceivedArs,
             );
-            const change = parseFloat(result.change) || 0;
-            const balance = parseFloat(result.balance) || 0;
 
-            this.updateCalculationLabels(
-                totalReceived,
-                r1,
-                r2,
-                change,
-                balance,
+            const changeArs = parseFloat(result.change) || 0;
+            const balanceArs = parseFloat(result.balance) || 0;
+
+            const symbol = isDollarMode ? "U$D" : "$";
+
+            // 3. Conversión para visualización y campos ocultos
+            const displayTotal = isDollarMode
+                ? this.saleTotal / rate
+                : this.saleTotal;
+            const displayBalance = isDollarMode
+                ? balanceArs / rate
+                : balanceArs;
+            const displayChange = isDollarMode ? changeArs / rate : changeArs;
+
+            // Resumen visual
+            this.setText("summary_total", displayTotal.toFixed(2));
+            this.setText("summary_remaining", displayBalance.toFixed(2));
+            this.setText("summary_change", displayChange.toFixed(2));
+
+            // Labels técnicos (Siempre en Pesos)
+            this.setText("label_total_received", totalReceivedArs.toFixed(2));
+            this.setText("label_change_returned", changeArs.toFixed(2));
+            this.setText("label_remaining_balance", balanceArs.toFixed(2));
+
+            // Actualizar símbolos
+            document
+                .querySelectorAll(".summary-symbol")
+                .forEach((el) => (el.textContent = symbol));
+
+            // 4. Sincronizar campos ocultos para el backend
+            const hChange = this.el("hChange", "hidden_change_returned");
+            const hBalance = this.el("hBalance", "hidden_remaining_balance");
+
+            if (hChange) hChange.value = displayChange.toFixed(2);
+            if (hBalance) hBalance.value = displayBalance.toFixed(2);
+
+            // Badges (Usan valores en pesos para determinar el estado)
+            const status = PaymentCalculator.getStatus(
+                this.saleTotal,
+                totalReceivedArs,
+                changeArs,
+                balanceArs,
             );
-            this.updateHiddenFields(change, balance);
-            this.updateStatusUI(totalReceived, change, balance);
+            const badgeHtml = `<span class="badge bg-${status.class}">${status.label}</span>`;
+            this.setHTML("payment_status_indicator", badgeHtml);
+            this.setHTML("summary_payment_status", badgeHtml);
         });
-    },
-
-    updateCalculationLabels(totalReceived, r1, r2, change, balance) {
-        const el = this.elements;
-
-        this.updateTextContent(
-            el.labelTotalReceived(),
-            totalReceived.toFixed(2),
-        );
-        this.updateTextContent(el.labelChange(), change.toFixed(2));
-        this.updateTextContent(el.labelRemaining(), balance.toFixed(2));
-        this.updateTextContent(el.summaryAmount1(), r1.toFixed(2));
-        this.updateTextContent(el.summaryAmount2(), r2.toFixed(2));
-
-        // Actualizar tipos de pago
-        [1, 2].forEach((num) => {
-            const label = el[`summaryType${num}`]();
-            const select = el[`modalType${num}`]();
-
-            if (label && select && select.selectedIndex !== -1) {
-                label.textContent = select.options[select.selectedIndex].text;
-            }
-        });
-    },
-
-    updateHiddenFields(change, balance) {
-        const hChange = document.getElementById("hidden_change_returned");
-        const hBalance = document.getElementById("hidden_remaining_balance");
-
-        if (hChange) hChange.value = change.toFixed(2);
-        if (hBalance) hBalance.value = balance.toFixed(2);
-    },
-
-    updateStatusUI(received, change, balance) {
-        const status = PaymentCalculator.getStatus(
-            this.saleTotal,
-            received,
-            change,
-            balance,
-        );
-
-        const badgeHtml = `<span class="badge bg-${status.class}">${status.label}</span>`;
-
-        this.updateHTML(this.elements.statusIndicator(), badgeHtml);
-        this.updateHTML(this.elements.summaryStatus(), badgeHtml);
-
-        this.dispatchEvent("sale:paymentUpdated", {
-            amountReceived: received,
-            changeReturned: change,
-            remainingBalance: balance,
-            saleTotal: this.saleTotal,
-            status,
-        });
-    },
+    }
 
     updateTotalsHiddenFields(total) {
-        const totals = this.calculateTotalsByCurrency(total);
+        const rate = this.getFloat("exchange_rate_blue") || 1;
+        const hRate = this.el("hRate", "hidden_exchange_rate_blue");
+        if (hRate) {
+            hRate.value = rate;
+        }
+        const totalArs = parseFloat(total) || 0;
+        const isDollarMode = this.el("payDollars", "pay_in_dollars")?.checked;
+
+        // Persistencia de datos en JSON para el backend
+        const totals = isDollarMode
+            ? { 2: parseFloat((totalArs / rate).toFixed(2)) }
+            : { 1: totalArs };
+
         const jsonString = JSON.stringify(totals);
 
+        // Actualiza el equivalente USD estático
+        this.setText("summary_total_usd", (totalArs / rate).toFixed(2));
+
         ["totals_source", "hidden_totals"].forEach((id) => {
-            const el = document.getElementById(id);
+            const el = this.el(id, id);
             if (el) el.value = jsonString;
         });
-    },
+
+        // convirtiéndolos a la moneda seleccionada.
+        this.calculate();
+    }
 
     updateMethodVisibility(paymentType, suffix = "") {
-        const isCard = paymentType === "2";
-        const isTransfer = paymentType === "3";
-
-        // Helper para obtener elementos de forma segura
-        const getEl = (key) =>
-            this.elements[key] ? this.elements[key]() : null;
+        const isCard = paymentType === PAYMENT_TYPE.CARD;
+        const isTransfer = paymentType === PAYMENT_TYPE.TRANSFER;
 
         if (suffix === "") {
-            this.toggleElement(getEl("containerBank"), isCard);
-            this.toggleElement(getEl("containerAccount"), isTransfer);
-            // Sincronizamos visualmente el Modal 1 si el suffix es "" (desde el summary)
-            this.toggleElement(getEl("containerBank1Modal"), isCard);
-            this.toggleElement(getEl("containerAccount1Modal"), isTransfer);
+            this.toggle(
+                this.el("contBank", "container_payment_method_bank"),
+                isCard,
+            );
+            this.toggle(
+                this.el("contAcc", "container_payment_method_account"),
+                isTransfer,
+            );
+            this.toggle(
+                this.el("contBank1", "container_bank_id_1_modal"),
+                isCard,
+            );
+            this.toggle(
+                this.el("contAcc1", "container_bank_account_id_1_modal"),
+                isTransfer,
+            );
         } else {
-            this.toggleElement(getEl(`containerBank${suffix}Modal`), isCard);
-            this.toggleElement(
-                getEl(`containerAccount${suffix}Modal`),
+            this.toggle(
+                this.el(
+                    `contBank${suffix}`,
+                    `container_bank_id_${suffix}_modal`,
+                ),
+                isCard,
+            );
+            this.toggle(
+                this.el(
+                    `contAcc${suffix}`,
+                    `container_bank_account_id_${suffix}_modal`,
+                ),
                 isTransfer,
             );
         }
 
-        // Limpieza de selects
         const bankSelect =
-            suffix === "" ? getEl("bankVisible") : getEl(`modalBank${suffix}`);
+            suffix === ""
+                ? this.el("bankVis", 'select[name="bank_id_visible"]')
+                : this.el(`bank${suffix}`, `bank_id_${suffix}_modal`);
         const accountSelect =
             suffix === ""
-                ? getEl("accountVisible")
-                : getEl(`modalAccount${suffix}`);
+                ? this.el("accVis", 'select[name="bank_account_id_visible"]')
+                : this.el(`acc${suffix}`, `bank_account_id_${suffix}_modal`);
 
-        if (!isCard) this.resetSelectValue(bankSelect);
-        if (!isTransfer) this.resetSelectValue(accountSelect);
+        if (!isCard) this.resetSelect(bankSelect);
+        if (!isTransfer) this.resetSelect(accountSelect);
 
-        // Limpiar el ID oculto si no es ninguno de los dos
         if (!isCard && !isTransfer) {
-            const idField = document.getElementById(
+            const idField = this.el(
+                `hiddenMethod${suffix}`,
                 `hidden_payment_method_id${suffix === "2" ? "_2" : ""}`,
             );
             if (idField) idField.value = "";
         }
 
         this.updatePolymorphicType(paymentType, suffix);
-    },
+    }
 
-    // método helper para resetear selects (compatible con Choices.js)
-    resetSelectValue(selectEl) {
+    resetSelect(selectEl) {
         if (!selectEl) return;
+        this.withSync(() => {
+            selectEl.value = "";
+            if (selectEl._choices) selectEl._choices.setChoiceByValue("");
+            selectEl.dispatchEvent(new Event("change"));
+        });
+    }
 
-        this.isSyncing = true; // Bloqueamos sync para evitar bucles
-        selectEl.value = "";
-
-        if (selectEl._choices) {
-            selectEl._choices.setChoiceByValue("");
-        }
-
-        selectEl.dispatchEvent(new Event("change"));
-        this.isSyncing = false;
-    },
-
-    // Dentro de salePayment.js
     updatePolymorphicType(paymentType, suffix = "") {
-        // suffix puede ser vacío (Summary), '1' o '2' (Modal)
-        const hiddenType = document.getElementById(
+        const hiddenType = this.el(
+            `hiddenType${suffix}`,
             `hidden_payment_method_type${suffix === "2" ? "_2" : ""}`,
         );
-
-        if (!hiddenType) return;
-
-        let typeValue = "";
-        switch (paymentType) {
-            case "2": // Card
-                typeValue = "App\\Models\\Bank";
-                break;
-            case "3": // Transfer
-                typeValue = "App\\Models\\BankAccount";
-                break;
-            default:
-                typeValue = "";
-        }
-
-        hiddenType.value = typeValue;
-    },
-
-    calculateTotalsByCurrency(total) {
-        const totals = {};
-        const rows = document.querySelectorAll("#order-items-table tbody tr");
-
-        if (rows.length > 0) {
-            const currency =
-                rows[0].querySelector('[name*="[currency]"]')?.value || "1";
-            totals[currency] = parseFloat(total) || 0;
-        } else {
-            totals["1"] = parseFloat(total) || 0;
-        }
-
-        return totals;
-    },
+        if (hiddenType) hiddenType.value = PAYMENT_MODELS[paymentType] || "";
+    }
 
     updateTotalDisplay(total) {
-        const totalDisplay = document.getElementById("total_amount_display");
-        const totalHidden = document.getElementById("total_amount");
+        const formattedTotal = total.toFixed(2);
 
-        if (totalDisplay) totalDisplay.textContent = total.toFixed(2);
-        if (totalHidden) totalHidden.value = total.toFixed(2);
-    },
+        // Actualiza el <span> $ 0.00
+        this.setText("total_amount_display", formattedTotal);
 
-    // ========== MÉTODOS HELPER ==========
+        // Actualiza el <input type="hidden">
+        const totalHidden = this.el("totalHidden", "total_amount");
+        if (totalHidden) {
+            totalHidden.value = formattedTotal;
+        }
+    }
 
-    getFloatValue(elementKey) {
-        const element = this.elements[elementKey]?.();
-        return parseFloat(element?.value) || 0;
-    },
+    // Utilities
+    getFloat(id) {
+        const el = this.el(id, id);
+        return parseFloat(el?.value) || 0;
+    }
 
-    updateTextContent(element, value) {
-        if (element) element.textContent = value;
-    },
+    setText(id, value) {
+        const el = this.el(id, id);
+        if (el) el.textContent = value;
+    }
 
-    updateHTML(element, html) {
-        if (element) element.innerHTML = html;
-    },
+    setHTML(id, html) {
+        const el = this.el(id, id);
+        if (el) el.innerHTML = html;
+    }
 
-    toggleElement(element, show) {
+    toggle(element, show) {
         if (!element) return;
-        show
-            ? element.classList.remove("d-none")
-            : element.classList.add("d-none");
-    },
+        element.classList.toggle("d-none", !show);
+    }
 
     withSync(callback) {
         this.isSyncing = true;
@@ -604,12 +541,13 @@ const salePayment = {
         } finally {
             this.isSyncing = false;
         }
-    },
+    }
 
     dispatchEvent(eventName, detail) {
         document.dispatchEvent(new CustomEvent(eventName, { detail }));
-    },
-};
+    }
+}
 
+const salePayment = new SalePayment();
 window.salePayment = salePayment;
 export default salePayment;

@@ -37,7 +37,8 @@ class Sale extends Model
         'requires_invoice',
         'customer_type',
         'notes',
-        'sale_date'
+        'sale_date',
+        'exchange_rate',
     ];
 
     /**

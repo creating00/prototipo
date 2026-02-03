@@ -96,7 +96,7 @@ const OrderForm = {
         try {
             const existingItems = JSON.parse(existingItemsInput.value || "[]");
             if (existingItems.length > 0) {
-                console.log(`Cargando ${existingItems.length} productos...`);
+                //console.log(`Cargando ${existingItems.length} productos...`);
                 existingItems.forEach((item) => {
                     orderItems.addRow(item.html || item);
                 });

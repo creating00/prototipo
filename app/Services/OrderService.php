@@ -155,56 +155,45 @@ class OrderService
     {
         return DB::transaction(function () use ($id, $options) {
             $order = $this->getOrderById($id);
+            $order->load('items');
 
             if ($order->status === OrderStatus::ConvertedToSale->value) {
                 throw new \Exception("Esta orden ya fue convertida a venta.");
             }
 
-            // 1. Obtener cotización actual
-            $exchangeService = app(CurrencyExchangeService::class);
-            $rate = $exchangeService->getCurrentDollarRate();
+            // 1. Usar la tasa que envió el usuario (evita discrepancias por centavos)
+            $rate = (float)($options['exchange_rate_blue'] ?? app(CurrencyExchangeService::class)->getCurrentDollarRate());
 
-            // 2. Preparar claves de moneda
             $arsKey = \App\Enums\CurrencyType::ARS->value;
             $usdKey = \App\Enums\CurrencyType::USD->value;
 
-            // 3. Calcular total consolidado para el monto recibido
-            $totals = $order->totals;
-            $arsTotal = isset($totals[$arsKey])
-                ? (float) $totals[$arsKey]
-                : 0;
+            // 2. Determinar qué moneda se está pagando y el monto consolidado
+            // Si total_amount_usd tiene valor, el pago es en dólares.
+            $isPayingInUsd = !empty($options['total_amount_usd']);
+            $totalConsolidado = $isPayingInUsd
+                ? (float)$options['total_amount_usd']
+                : (float)($options['total_amount'] ?? 0);
 
-            $usdTotal = isset($totals[$usdKey])
-                ? (float) $totals[$usdKey]
-                : 0;
-
-            $totalArsConsolidado = $arsTotal + ($usdTotal * $rate);
-
-            $defaultPaymentType = ($order->customer_type === Branch::class)
-                ? \App\Enums\PaymentType::Transfer->value
-                : \App\Enums\PaymentType::Cash->value;
+            $currencyId = $isPayingInUsd ? $usdKey : $arsKey;
 
             $userId = $options['user_id'] ?? $this->userId();
+            if (!$userId) throw new \Exception('No se pudo determinar el usuario.');
 
-            if (!$userId) {
-                throw new \Exception('No se pudo determinar el usuario.');
-            }
-
-            // 4. Mapear ítems convirtiendo precios USD a ARS
-            $items = $order->items->map(function ($i) use ($rate, $usdKey, $arsKey) {
-                $currencyValue = is_object($i->currency) ? $i->currency->value : $i->currency;
-                $isUsd = (int)$currencyValue === (int)$usdKey;
-                $unitPrice = (float)$i->unit_price;
-
+            // 3. Mapear ítems (Forzamos ARS para la tabla de ventas)
+            $items = $order->items->map(function ($i) {
                 return [
                     'product_id' => $i->product_id,
                     'quantity'   => $i->quantity,
-                    'unit_price' => $isUsd ? ($unitPrice * $rate) : $unitPrice,
-                    'currency'   => $arsKey, // Forzamos ARS para la venta
+                    'unit_price' => $i->unit_price,
+                    'currency'   => is_object($i->currency) ? $i->currency->value : $i->currency,
                 ];
-            })->toArray();
+            })->values()->toArray();
 
-            // 5. Estructurar data para SaleService
+            if (empty($items)) {
+                throw new \Exception("Error: La orden no tiene ítems cargados.");
+            }
+
+            // 4. Estructurar data para SaleService
             $data = [
                 'source_order_id'     => $order->id,
                 'branch_id'           => $order->branch_id,
@@ -214,24 +203,26 @@ class OrderService
                 'sale_date'           => now()->format('Y-m-d'),
                 'status'              => \App\Enums\SaleStatus::Paid->value,
                 'items'               => $items,
-                'payment_type'        => $options['payment_type'] ?? $defaultPaymentType,
-                'amount_received'     => $options['amount_received'] ?? $totalArsConsolidado,
-                'change_returned'     => 0,
+                'payment_type'        => $options['payment_type_1'] ?? $options['payment_type'] ?? \App\Enums\PaymentType::Cash->value,
+                'amount_received'     => (float)($options['amount_received'] ?? $totalConsolidado),
+                'currency_id'         => $currencyId, // Informamos al servicio en qué moneda paga
+                'exchange_rate'       => $rate,
                 'skip_stock_movement' => true,
                 'totals' => json_encode([
-                    \App\Enums\CurrencyType::ARS->value => $totalArsConsolidado,
-                    // \App\Enums\CurrencyType::USD->value => 0,
+                    $currencyId => $totalConsolidado,
                 ]),
             ];
 
-            // Mapeo de cliente/sucursal destino
+            // Mapeo cliente/sucursal
             if ($order->customer_type === Client::class) {
                 $data['client_id'] = $order->customer_id;
             } else {
                 $data['branch_recipient_id'] = $order->customer_id;
             }
 
-            // 6. Crear Venta y actualizar Orden
+            //dd($data['items']);
+
+            // 5. Crear Venta y actualizar Orden
             $sale = app(SaleService::class)->createSale($data);
 
             $order->update([

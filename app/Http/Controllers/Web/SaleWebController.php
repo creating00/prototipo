@@ -38,6 +38,7 @@ class SaleWebController extends BaseSaleController
             'total_ars',
             'total_usd',
             'requires_invoice_raw',
+            'exchange_rate'
         ];
 
         return view('admin.sales.index', compact('sales', 'rowData', 'headers', 'hiddenFields'));
@@ -67,6 +68,12 @@ class SaleWebController extends BaseSaleController
         $repairAmountService = app(\App\Services\RepairAmountService::class);
         $userBranchId = $this->currentBranchId();
 
+        $isDollarSale = false;
+        if ($sale) {
+            $totals = is_array($sale->totals) ? $sale->totals : json_decode($sale->totals ?? '{}', true);
+            $isDollarSale = isset($totals[\App\Enums\CurrencyType::USD->value]);
+        }
+
         $activeRepairAmounts = \App\Models\RepairAmount::query()
             ->forBranch($userBranchId)
             ->active()
@@ -89,6 +96,7 @@ class SaleWebController extends BaseSaleController
         }
 
         $data = [
+            'isDollarSale'    => $isDollarSale,
             'customer_type'   => $customerType,
             'categories'      => $categoryService->getAllCategories(),
             'statusOptions'   => SaleStatus::forSelect(),
@@ -209,10 +217,9 @@ class SaleWebController extends BaseSaleController
         $this->authorize('update', $sale);
 
         $existingOrderItems = $this->saleService->buildOrderItemsHtml($sale);
-        $customerType = $sale->customer_type;
 
         return view('admin.sales.edit', array_merge(
-            $this->getCommonFormData($customerType, $sale),
+            $this->getCommonFormData($sale->customer_type, $sale),
             compact('sale', 'existingOrderItems')
         ));
     }

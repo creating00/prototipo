@@ -43,6 +43,7 @@
     <input type="hidden" name="discount_amount" id="hidden_discount_amount" value="{{ old('discount_amount', 0) }}">
     <input type="hidden" name="subtotal_amount" id="subtotal_amount"
         value="{{ old('subtotal_amount', $sale->subtotal_amount ?? 0) }}">
+
     <input type="hidden" id="totals_source" value='{}'>
     <input type="hidden" name="totals" id="hidden_totals" value="{{ old('totals', json_encode([])) }}">
 
@@ -55,6 +56,8 @@
         value="{{ old('payment_method_id_2', $pago2->payment_method_id ?? '') }}">
     <input type="hidden" name="payment_method_type_2" id="hidden_payment_method_type_2"
         value="{{ old('payment_method_type_2', $pago2->payment_method_type ?? '') }}">
+
+    <input type="hidden" name="exchange_rate_blue" id="hidden_exchange_rate_blue" value="1000">
 </div>
 
 <div class="row">

@@ -4,68 +4,43 @@ namespace App\Traits;
 
 use App\Services\CurrencyExchangeService;
 use App\Enums\CurrencyType;
-use Illuminate\Support\Facades\Log;
 
 trait ConvertsCurrency
 {
+    /**
+     * Suma convertida directamente en Base de Datos (Eficiente)
+     */
     public function scopeSumConverted($query)
     {
-        return static::sumWithCurrencyConversion($query);
+        $rate = app(CurrencyExchangeService::class)->getCurrentDollarRate();
+
+        return (float) $query->selectRaw("
+            SUM(CASE 
+                WHEN currency = ? THEN amount * ? 
+                ELSE amount 
+            END) as total", [CurrencyType::USD->value, $rate])
+            ->value('total') ?? 0;
     }
 
-    protected static function sumWithCurrencyConversion($query)
-    {
-        $expenses = $query->get(['amount', 'currency']);
-
-        if ($expenses->isEmpty()) {
-            Log::debug('No expenses found, returning 0');
-            return 0;
-        }
-
-        $currencyService = app(CurrencyExchangeService::class);
-        $rate = $currencyService->getCurrentDollarRate();
-
-        $totalArs = 0;
-
-        foreach ($expenses as $index => $expense) {
-
-            if ($expense->currency === CurrencyType::ARS) {
-                $totalArs += (float) $expense->amount;
-            } else {
-                $converted = (float) $expense->amount * $rate;
-                $totalArs += $converted;
-            }
-        }
-
-        return $totalArs;
-    }
-
+    /**
+     * Breakdown de totales sin cargar modelos en memoria
+     */
     public function scopeSumConvertedWithBreakdown($query)
     {
-        $expenses = $query->get(['amount', 'currency']);
+        $rate = app(CurrencyExchangeService::class)->getCurrentDollarRate();
 
-        if ($expenses->isEmpty()) {
-            return ['ars' => 0, 'usd' => 0, 'rate' => 0];
-        }
+        $totals = $query->selectRaw("
+            SUM(CASE WHEN currency = ? THEN amount ELSE 0 END) as ars_sum,
+            SUM(CASE WHEN currency = ? THEN amount ELSE 0 END) as usd_sum
+        ", [CurrencyType::ARS->value, CurrencyType::USD->value])
+            ->first();
 
-        $currencyService = app(CurrencyExchangeService::class);
-        $rate = $currencyService->getCurrentDollarRate();
-        $totalArs = 0;
-        $totalUsd = 0;
-
-        foreach ($expenses as $expense) {
-            if ($expense->currency === CurrencyType::ARS) {
-                $totalArs += (float) $expense->amount;
-                $totalUsd += $rate > 0 ? (float) $expense->amount / $rate : 0;
-            } else {
-                $totalUsd += (float) $expense->amount;
-                $totalArs += (float) $expense->amount * $rate;
-            }
-        }
+        $ars = (float) ($totals->ars_sum ?? 0);
+        $usd = (float) ($totals->usd_sum ?? 0);
 
         return [
-            'ars' => $totalArs,
-            'usd' => $totalUsd,
+            'ars'  => $ars + ($usd * $rate),
+            'usd'  => $usd + ($rate > 0 ? $ars / $rate : 0),
             'rate' => $rate,
         ];
     }

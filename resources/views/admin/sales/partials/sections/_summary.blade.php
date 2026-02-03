@@ -3,9 +3,16 @@
 
     {{-- COLUMNA IZQUIERDA --}}
     <div class="col-md-6">
-        <div class="mb-1">
-            <x-bootstrap.compact-input id="sale_date" name="sale_date_visible" type="date" label="Fecha"
-                value="{{ $saleDate }}" />
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="flex-grow-1">
+                <x-bootstrap.compact-input id="sale_date" name="sale_date_visible" type="date" label="Fecha"
+                    value="{{ $saleDate }}" />
+            </div>
+
+            <div class="mt-4">
+                <x-adminlte.checkbox name="pay_in_dollars" id="pay_in_dollars" label="Cobrar en dólares" value="1"
+                    :checked="$isDollarSale" />
+            </div>
         </div>
 
         {{-- Contenedor para Pago Único --}}
@@ -71,6 +78,22 @@
     {{-- COLUMNA DERECHA --}}
     <div class="col-md-6">
 
+        <div class="d-flex justify-content-between align-items-center mb-1 p-2 bg-light rounded border">
+            <small class="text-muted fw-bold text-uppercase">Cotización USD Blue</small>
+            <div class="d-flex align-items-center">
+                <span class="me-2 fw-bold text-primary">$</span>
+                <input type="number" id="exchange_rate_blue" class="form-control form-control-sm text-end fw-bold"
+                    style="width: 100px;" value="1000" step="1" readonly>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between mb-1 border-top pt-1" id="wrapper_usd_total">
+            <small class="text-muted text-uppercase">Equivalente USD</small>
+            <span class="fw-bold text-primary">
+                U$D <span id="summary_total_usd">0.00</span>
+            </span>
+        </div>
+
         <div class="d-flex justify-content-between mb-1">
             <small class="text-muted">Subtotal</small>
             <span class="fw-semibold">$ <span id="summary_subtotal">0.00</span></span>
@@ -88,21 +111,21 @@
         <div class="d-flex justify-content-between mb-1">
             <small class="text-muted">Total</small>
             <span class="fw-bold text-success fs-6">
-                $ <span id="summary_total">0.00</span>
+                <span class="summary-symbol">$</span> <span id="summary_total">0.00</span>
             </span>
         </div>
 
         <div class="d-flex justify-content-between mb-1">
             <small class="text-muted">Saldo Pendiente</small>
             <span class="fw-semibold text-warning">
-                $ <span id="summary_remaining">0.00</span>
+                <span class="summary-symbol">$</span> <span id="summary_remaining">0.00</span>
             </span>
         </div>
 
         <div class="d-flex justify-content-between">
             <small class="text-muted">Cambio</small>
             <span class="fw-semibold text-info">
-                $ <span id="summary_change">0.00</span>
+                <span class="summary-symbol">$</span> <span id="summary_change">0.00</span>
             </span>
         </div>
 

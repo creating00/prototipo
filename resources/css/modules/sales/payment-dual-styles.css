@@ -1,0 +1,198 @@
+/**
+ * Estilos para sistema de pagos duales
+ */
+
+/* ==========================================
+   SWITCHES Y CHECKBOXES
+   ========================================== */
+
+.form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.form-check-input:focus {
+    border-color: #80c9a0;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* ==========================================
+   CARDS DE MÉTODOS DE PAGO
+   ========================================== */
+
+.card-outline.card-secondary {
+    border-top: 3px solid #6c757d !important;
+}
+
+.card-outline.card-info {
+    border-top: 3px solid #17a2b8 !important;
+}
+
+/* Efecto hover en cards de pago */
+.card-outline:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    transition: all 0.3s ease;
+}
+
+/* ==========================================
+   BADGES Y ESTADOS
+   ========================================== */
+
+.badge {
+    font-weight: 600;
+    padding: 0.35em 0.65em;
+    font-size: 0.75rem;
+}
+
+.badge .fas {
+    font-size: 0.7rem;
+}
+
+/* ==========================================
+   ANIMACIONES
+   ========================================== */
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.animated-slide {
+    animation: slideDown 0.3s ease-out;
+}
+
+.animated-fade {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* ==========================================
+   RESUMEN DE TOTALES
+   ========================================== */
+
+#payment_summary_modal {
+    animation: slideDown 0.3s ease-out;
+}
+
+#payment_summary_modal .alert {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+/* ==========================================
+   INPUTS Y SELECTORES
+   ========================================== */
+
+.compact-select-wrapper .form-select:disabled,
+.form-control:readonly {
+    background-color: #e9ecef;
+    opacity: 0.7;
+}
+
+.compact-select-wrapper .form-select:not(:disabled):hover,
+.form-control:not(:readonly):hover {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.1rem rgba(0, 123, 255, 0.15);
+}
+
+/* ==========================================
+   COTIZACIÓN USD
+   ========================================== */
+
+#exchange_rate_section {
+    animation: slideDown 0.3s ease-out;
+}
+
+#exchange_rate_blue {
+    font-family: "Courier New", monospace;
+    font-weight: 700;
+    color: #0d6efd;
+}
+
+#wrapper_usd_total {
+    animation: fadeIn 0.3s ease-out;
+    border-top: 2px solid #dee2e6;
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .col-md-6 {
+        margin-bottom: 1rem;
+    }
+
+    .card-body {
+        padding: 1rem !important;
+    }
+
+    .badge {
+        font-size: 0.7rem;
+    }
+}
+
+/* ==========================================
+   MODO OSCURO (OPCIONAL)
+   ========================================== */
+
+@media (prefers-color-scheme: dark) {
+    .bg-light {
+        background-color: #2d3748 !important;
+    }
+
+    .text-muted {
+        color: #a0aec0 !important;
+    }
+
+    .border {
+        border-color: #4a5568 !important;
+    }
+
+    .alert-light {
+        background-color: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+}
+
+/* ==========================================
+   UTILIDADES ADICIONALES
+   ========================================== */
+
+.text-silver {
+    color: #6c757d;
+}
+
+.fw-bold {
+    font-weight: 700 !important;
+}
+
+.shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+/* Transiciones suaves */
+* {
+    transition: all 0.2s ease;
+}
+
+/* Evitar transición en inputs de número */
+input[type="number"] {
+    transition: none;
+}

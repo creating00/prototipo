@@ -60,32 +60,14 @@ const saleSummary = {
         if (el) el.textContent = value.toFixed(2);
     },
 
-    updatePaymentStatus({ remainingBalance, changeReturned, amountReceived }) {
+    // En saleSummary.js
+    updatePaymentStatus(detail) {
         const container = document.getElementById("summary_payment_status");
-        if (!container) return;
+        if (!container || !detail.status) return;
 
-        let text = "Pendiente";
-        let cls = "secondary";
-
-        if (
-            remainingBalance === 0 &&
-            changeReturned === 0 &&
-            amountReceived > 0
-        ) {
-            text = "Pagado exacto";
-            cls = "success";
-        } else if (remainingBalance === 0 && changeReturned > 0) {
-            text = "Pagado con cambio";
-            cls = "info";
-        } else if (remainingBalance > 0 && amountReceived > 0) {
-            text = "Pago parcial";
-            cls = "warning";
-        } else if (remainingBalance > 0) {
-            text = "Pendiente";
-            cls = "danger";
-        }
-
-        container.innerHTML = `<span class="badge bg-${cls}">${text}</span>`;
+        // Usar el objeto status que ya viene procesado desde salePayment
+        const { label, class: cls } = detail.status;
+        container.innerHTML = `<span class="badge bg-${cls}">${label}</span>`;
     },
     updatePaymentValues({ remainingBalance, changeReturned, amountReceived }) {
         const remainingEl = document.getElementById("summary_remaining");

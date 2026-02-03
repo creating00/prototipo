@@ -10,10 +10,11 @@ import salePayment from "./partials/sale-payment";
 import saleDiscount from "./partials/sale-discount";
 import saleSummary from "./partials/sale-summary";
 import productAutocomplete from "./partials/product-autocomplete";
+import CurrencyLoader from "./services/currency-loader";
 
 export function initSaleForm({ existingItems = [] } = {}) {
     const customerTypeInput = document.querySelector(
-        'input[name="customer_type"]'
+        'input[name="customer_type"]',
     );
     const isBranch = customerTypeInput?.value === "App\\Models\\Branch";
 
@@ -33,10 +34,11 @@ export function initSaleForm({ existingItems = [] } = {}) {
     }
 
     // 1. Inicialización de componentes
-    productAutocomplete.init({ context: 'sale' });
+    productAutocomplete.init({ context: "sale" });
     customerType.init();
     //saleDiscount.init();
     salePayment.init();
+    CurrencyLoader.init();
     saleSummary.init();
     salesItems.init();
     //orderSearch.init();
@@ -54,7 +56,7 @@ export function initSaleForm({ existingItems = [] } = {}) {
             allowInInputs: true,
             action: () => {
                 const searchInput = document.getElementById(
-                    "product_search_input"
+                    "product_search_input",
                 );
                 if (searchInput) {
                     searchInput.focus();
@@ -83,7 +85,7 @@ export function initSaleForm({ existingItems = [] } = {}) {
             action: () =>
                 ShortcutManager.openModal(
                     "modal-product-search",
-                    'input[type="search"]'
+                    'input[type="search"]',
                 ),
         },
         {
@@ -92,7 +94,7 @@ export function initSaleForm({ existingItems = [] } = {}) {
             action: () =>
                 ShortcutManager.openModal(
                     "modalSalePayment",
-                    "#amount_received"
+                    "#amount_received",
                 ),
         },
         {
@@ -112,6 +114,6 @@ export function initSaleForm({ existingItems = [] } = {}) {
     // 3. Vista
     ViewManager.initSmartScroll(
         ".card-primary.card-outline",
-        "#product_search_input"
+        "#product_search_input",
     );
 }

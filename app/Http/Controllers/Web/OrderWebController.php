@@ -30,6 +30,14 @@ class OrderWebController extends BaseOrderController
 
         $currentRate = $exchangeService->getCurrentDollarRate();
 
+        $banks = \App\Models\Bank::query()
+            ->orderBy('name')
+            ->pluck('name', 'id');
+
+        $bankAccounts = \App\Models\BankAccount::with(['bank', 'user'])
+            ->get()
+            ->pluck('full_description', 'id');
+
         $headers = ['#', 'Sucursal', 'Cliente', 'Total', 'Estado', 'Creado en:'];
         $hiddenFields = [
             'id',
@@ -44,9 +52,18 @@ class OrderWebController extends BaseOrderController
             'total_ars',
             'total_usd',
             'requires_invoice_raw',
+            'exchange_rate'
         ];
 
-        return view('admin.order.index', compact('orders', 'rowData', 'headers', 'hiddenFields', 'currentRate'));
+        return view('admin.order.index', compact(
+            'orders',
+            'rowData',
+            'headers',
+            'hiddenFields',
+            'currentRate',
+            'banks',
+            'bankAccounts'
+        ));
     }
 
     public function purchaseDetails($id)

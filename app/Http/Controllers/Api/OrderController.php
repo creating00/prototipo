@@ -155,11 +155,7 @@ class OrderController extends BaseOrderController
     {
         try {
             // Recolectamos las opciones del request
-            $options = $request->only([
-                'payment_type',
-                'amount_received',
-                'user_id'
-            ]);
+            $options = $request->all();
 
             /**
              * Prioridad del Usuario:

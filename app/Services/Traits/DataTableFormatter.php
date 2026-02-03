@@ -138,6 +138,7 @@ trait DataTableFormatter
             'total_usd'            => $totalUsd,
             'totals_json'          => json_encode($totals),
             'customer_name_raw'    => $customerName,
+            'exchange_rate' => $model->exchange_rate
         ];
     }
 
