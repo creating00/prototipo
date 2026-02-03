@@ -1,188 +1,151 @@
-const orderCurrency = {
-    dollarPrice: 0,
+/**
+ * Order Currency Manager - Orquestador Principal
+ * Ensambla y coordina todos los módulos del sistema de monedas
+ */
+import { CONFIG } from "./currency/config.js";
+import { ExchangeRateService } from "./currency/exchange-rate-service.js";
+import { TotalsCalculator } from "./currency/totals-calculator.js";
+import { UIManager } from "./currency/ui-manager.js";
+import { EventManager } from "./currency/event-manager.js";
 
-    selectors: {
-        dollarInput: "current_dollar_price",
-        totalUsd: "total_amount_usd",
-        totalArs: "total_amount",
-        labelArs: "subtotal_ars_pure",
-        labelUsd: "subtotal_usd_pure",
-        rows: "#order-items-table tr[data-id]",
-    },
+class OrderCurrency {
+    constructor() {
+        this.dollarPrice = 0;
+        this.rateType = CONFIG.RATE_TYPES.BRANCH;
 
+        // Inicializar módulos
+        this.uiManager = new UIManager();
+        this.eventManager = new EventManager();
+        this.calculator = null; // Se inicializa cuando tengamos el rate
+        this.rateService = null; // Se inicializa cuando sepamos el tipo
+    }
+
+    // ==================== Inicialización ====================
+
+    /**
+     * Inicializa el módulo completo
+     */
     init() {
-        this.cacheElements();
-
-        const isEdit = document.getElementById("is_edit")?.value === "1";
-        const storedRate = document.getElementById("exchange_rate")?.value;
-
-        // Si es edición → usar valor guardado
-        if (isEdit && storedRate) {
-            this.updateDollarUI(parseFloat(storedRate));
-        }
-        // Si no es edición → buscar cotización
-        else if (this.elements.dollarInput) {
-            this.fetchDollarPrice();
-        }
-
+        this.determineRateType();
+        this.loadExchangeRate();
         this.bindEvents();
         this.calculateTotal();
-    },
-    cacheElements() {
-        this.elements = {};
-        Object.entries(this.selectors).forEach(([key, id]) => {
-            this.elements[key] =
-                key === "rows" ? null : document.getElementById(id);
-        });
-    },
+    }
 
+    /**
+     * Determina el tipo de cotización según el tipo de cliente
+     */
+    determineRateType() {
+        const customerType =
+            this.uiManager.getElement("customerType")?.value || "";
+        const isClient = customerType.endsWith("\\Client");
+
+        this.rateType = isClient
+            ? CONFIG.RATE_TYPES.CLIENT
+            : CONFIG.RATE_TYPES.BRANCH;
+
+        // Inicializar servicio con el tipo correcto
+        this.rateService = new ExchangeRateService(this.rateType);
+    }
+
+    /**
+     * Carga la cotización inicial
+     */
+    loadExchangeRate() {
+        const isEdit = this.uiManager.getElement("isEdit")?.value === "1";
+        const storedRate = this.uiManager.getElement("exchangeRate")?.value;
+        const isBranch = this.rateType === CONFIG.RATE_TYPES.BRANCH;
+
+        // Branch en edit mode reutiliza la cotización guardada
+        if (isBranch && isEdit && storedRate) {
+            this.updateRate(parseFloat(storedRate));
+        } else {
+            // Client siempre fetch / Branch en create mode fetch
+            this.fetchExchangeRate();
+        }
+    }
+
+    /**
+     * Registra los event listeners
+     */
     bindEvents() {
-        document.addEventListener("sale:totalUpdated", () =>
-            this.calculateTotal(),
-        );
-    },
+        this.eventManager.bindEvents(() => this.calculateTotal());
+    }
 
-    async fetchDollarPrice() {
-        // Prioridad 1: Backend (mantiene consistencia con la base de datos)
-        // Prioridad 2: API Directa (emergencia)
-        const strategies = [
-            { name: "backend", fn: () => this.syncRateWithBackend() },
-            { name: "api", fn: () => this.fetchFromDolarApi() },
-        ];
+    // ==================== Obtención de Cotización ====================
 
-        for (const strategy of strategies) {
-            try {
-                const rate = await strategy.fn();
-                if (rate && rate > 0) {
-                    console.log(`Cotización obtenida vía: ${strategy.name}`);
-                    return;
-                }
-            } catch (error) {
-                console.warn(`Estrategia ${strategy.name} falló:`, error);
-            }
+    /**
+     * Obtiene la cotización usando el servicio
+     */
+    async fetchExchangeRate() {
+        const rate = await this.rateService.fetchRate();
+
+        if (rate) {
+            this.updateRate(rate);
+        } else {
+            const fallbackRate = this.rateService.getFallbackRate();
+            this.updateRate(fallbackRate);
         }
+    }
 
-        this.useFallbackRate();
-    },
+    // ==================== Actualización ====================
 
-    async syncRateWithBackend() {
-        try {
-            const response = await fetch("/api/currency/rate");
-            const data = await response.json();
-
-            if (data?.rate) {
-                this.updateDollarUI(data.rate);
-                return data.rate;
-            }
-        } catch (error) {
-            return null;
-        }
-    },
-
-    async fetchFromDolarApi() {
-        try {
-            const response = await fetch(
-                "https://dolarapi.com/v1/dolares/blue",
-            );
-            const data = await response.json();
-
-            if (data?.venta) {
-                this.updateDollarUI(data.venta);
-                return data.venta;
-            }
-        } catch (error) {
-            console.error("DolarApi Error:", error);
-            return null;
-        }
-    },
-
-    updateDollarUI(rate) {
+    /**
+     * Actualiza la cotización y recalcula
+     * @param {number} rate
+     */
+    updateRate(rate) {
         this.dollarPrice = rate;
 
-        if (this.elements.dollarInput) {
-            this.elements.dollarInput.value = this.formatCurrency(
-                rate,
-                "es-AR",
-            );
+        // Actualizar UI
+        this.uiManager.updateRateInputs(rate);
+
+        // Actualizar calculadora con el nuevo rate
+        if (!this.calculator) {
+            this.calculator = new TotalsCalculator(rate);
+        } else {
+            this.calculator.setRate(rate);
         }
 
-        const hidden = document.getElementById("exchange_rate");
-        if (hidden) {
-            hidden.value = rate;
-        }
-
+        // Recalcular totales
         this.calculateTotal();
-    },
-    useFallbackRate() {
-        this.updateDollarUI(1000);
-        console.warn("Using fallback exchange rate: 1000");
-    },
+    }
 
+    // ==================== Cálculo de Totales ====================
+
+    /**
+     * Calcula y renderiza todos los totales
+     */
     calculateTotal() {
-        let sumArs = 0;
-        let sumUsd = 0;
-
-        document.querySelectorAll(this.selectors.rows).forEach((row) => {
-            const subtotal =
-                parseFloat(row.querySelector(".subtotal")?.value) || 0;
-            const currencyValue = row.querySelector(
-                'input[name*="[currency]"]',
-            )?.value;
-
-            // Ajuste: El Enum de PHP envía "2" para USD y "1" para ARS
-            if (currencyValue === "2") {
-                sumUsd += subtotal;
-            } else {
-                sumArs += subtotal;
-            }
-        });
-
-        this.updateLabels(sumArs, sumUsd);
-        this.renderTotals(sumArs, sumUsd);
-    },
-
-    updateLabels(ars, usd) {
-        if (this.elements.labelArs)
-            this.elements.labelArs.innerText = `$ ${ars.toFixed(2)}`;
-        if (this.elements.labelUsd)
-            this.elements.labelUsd.innerText = `U$D ${usd.toFixed(2)}`;
-    },
-
-    renderTotals(sumArs, sumUsd) {
-        const cotizacion = this.dollarPrice || 0;
-
-        const totalArs = sumArs + sumUsd * cotizacion;
-        const totalUsd = cotizacion > 0 ? sumUsd + sumArs / cotizacion : sumUsd;
-
-        if (this.elements.totalArs) {
-            this.elements.totalArs.value = totalArs.toFixed(2);
-            this.elements.totalArs.dispatchEvent(new Event("input"));
+        // Si aún no hay calculadora, inicializarla
+        if (!this.calculator) {
+            this.calculator = new TotalsCalculator(this.dollarPrice);
         }
 
-        if (this.elements.totalUsd) {
-            this.elements.totalUsd.value = this.formatCurrency(
-                totalUsd,
-                "en-US",
-            );
-        }
+        // Calcular
+        const { subtotals, totals } = this.calculator.calculate();
 
-        this.dispatchTotals(totalArs, totalUsd, cotizacion);
-    },
+        // Renderizar
+        this.renderResults(subtotals, totals);
+    }
 
-    formatCurrency(value, locale) {
-        return value.toLocaleString(locale, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
-    },
+    /**
+     * Renderiza los resultados en la UI
+     * @param {{sumArs: number, sumUsd: number}} subtotals
+     * @param {{ars: number, usd: number, rate: number}} totals
+     */
+    renderResults(subtotals, totals) {
+        // Actualizar etiquetas de subtotales
+        this.uiManager.updateLabels(subtotals.sumArs, subtotals.sumUsd);
 
-    dispatchTotals(ars, usd, cotizacion) {
-        document.dispatchEvent(
-            new CustomEvent("order:totalsCalculated", {
-                detail: { ars, usd, cotizacion },
-            }),
-        );
-    },
-};
+        // Actualizar inputs de totales
+        this.uiManager.updateTotalInputs(totals);
 
+        // Disparar evento para otros módulos
+        this.eventManager.dispatchTotalsCalculated(totals);
+    }
+}
+
+// Exportar instancia singleton para compatibilidad con código existente
+const orderCurrency = new OrderCurrency();
 export default orderCurrency;

@@ -26,7 +26,7 @@
                 </x-slot:headerActions>
 
                 {{-- Datos ocultos --}}
-                <input type="hidden" name="customer_type" value="App\Models\Branch">
+                {{-- <input type="hidden" name="customer_type" value="App\Models\Branch"> --}}
                 <input type="hidden" id="existing_order_items" value="[]">
 
                 {{-- Formulario --}}

@@ -30,7 +30,7 @@
 {{-- Campos ocultos base --}}
 <input type="hidden" name="user_id" value="{{ auth()->id() }}">
 <input type="hidden" name="source" value="1">
-<input type="hidden" name="customer_type" value="{{ $customerType }}">
+<input type="hidden" id="customer_type" name="customer_type" value="{{ $customerType }}">
 <input type="hidden" id="is_edit" value="{{ isset($order) ? '1' : '0' }}">
 
 <div class="row g-4">
