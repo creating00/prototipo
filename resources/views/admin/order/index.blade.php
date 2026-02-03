@@ -20,6 +20,16 @@
         tr[data-whatsapp-url=""] .btn-whatsapp {
             display: none !important;
         }
+
+        /* Ocultar botón de impresión por defecto */
+        .btn-print {
+            display: none !important;
+        }
+
+        /* Mostrar solo cuando el status es 4 (Convertido) */
+        tr[data-status_raw="4"] .btn-print {
+            display: inline-block !important;
+        }
     </style>
 @endpush
 
@@ -40,7 +50,8 @@
             </div>
         @endisset
 
-        <div id="orders-container" data-base-url="{{ route('web.orders.index') }}" data-api-url="/api/orders">
+        <div id="orders-container" data-base-url="{{ route('web.orders.index') }}"
+            data-sale-url="{{ route('web.sales.index') }}" data-api-url="/api/orders">
             {{-- DataTable de Pedidos --}}
             <x-adminlte.data-table tableId="orders-table" title="Gestión de Pedidos" :headers="$headers" :rowData="$rowData"
                 :hiddenFields="$hiddenFields" withActions="true">
@@ -48,6 +59,9 @@
                 {{-- Botones en cada fila --}}
                 <x-slot name="actions">
                     <div class="d-flex justify-content-center gap-1">
+                        @canResource('sales.print')
+                        <x-adminlte.button color="info" size="sm" icon="fas fa-print" class="me-1 btn-print" />
+                        @endcanResource
                         {{-- Ver detalles --}}
                         @canResource('orders.view')
                         <x-adminlte.button color="custom-jade" size="sm" icon="fas fa-eye" class="me-1 btn-view" />
@@ -103,6 +117,7 @@
         </div>
     </div>
     @include('admin.order.partials._convert_to_sale_modal')
+    @include('admin.sales.partials._modal-print')
 @endsection
 
 @push('scripts')
@@ -112,3 +127,5 @@
     </script>
     @vite('resources/js/modules/orders/index.js')
 @endpush
+
+<x-sale-print-handler />

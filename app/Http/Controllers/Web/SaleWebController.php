@@ -8,11 +8,13 @@ use App\Enums\SaleType;
 use App\Http\Controllers\BaseSaleController;
 use App\Models\Sale;
 use App\Traits\AuthTrait;
+use App\Traits\CanHandleSalePrints;
 use Illuminate\Http\Request;
 
 class SaleWebController extends BaseSaleController
 {
     use AuthTrait;
+    use CanHandleSalePrints;
 
     public function index()
     {
@@ -192,13 +194,8 @@ class SaleWebController extends BaseSaleController
         try {
             $sale = $this->saleService->createSale($request->all());
 
-            $receiptType = $request->input('receipt_type');
-
-            if ($receiptType) {
-                session()->flash('print_receipt', [
-                    'type' => $receiptType,
-                    'sale_id' => $sale->id,
-                ]);
+            if ($receiptType = $request->input('receipt_type')) {
+                $this->triggerPrint($sale->id, $receiptType);
             }
 
             return redirect($this->getCreateRoute($request->input('customer_type')))

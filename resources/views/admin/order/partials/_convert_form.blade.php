@@ -81,15 +81,25 @@
         </div>
 
         {{-- Switch para habilitar doble método de pago --}}
-        <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-3 mb-2">
-                <div class="card-body py-2 px-3">
+        <div class="card border-0 shadow-sm rounded-3 mb-2">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex align-items-center justify-content-between flex-wrap">
+                    {{-- Switch Dual --}}
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="enable_dual_payment">
                         <label class="form-check-label fw-bold" for="enable_dual_payment">
-                            Habilitar doble tipo de pago / Editar montos
+                            Pago Dual / Editar Montos
                         </label>
                     </div>
+
+                    {{-- Separador vertical opcional en desktop --}}
+                    <div class="border-start mx-3 d-none d-md-block" style="height: 30px;"></div>
+
+                    {{-- El Partial en modo compacto --}}
+                    @include('admin.sales.partials._receipt_type_inline', [
+                        'default' => 'ticket',
+                        'layout' => 'compact',
+                    ])
                 </div>
             </div>
         </div>
@@ -98,12 +108,35 @@
         <div class="col-12" id="single_payment_section">
             <div class="card border-0 shadow-sm rounded-3 mb-2">
                 <div class="card-body py-3">
+                    {{-- Fila 1: Método + Banco / Cuenta --}}
                     <div class="row g-3 align-items-end">
+                        {{-- Método de Pago --}}
                         <div class="col-md-6 compact-select-wrapper">
                             <label class="compact-select-label fw-bold small">Método de Pago</label>
-                            <x-adminlte.select name="payment_type" id="convert_payment_type" label=""
-                                :options="$paymentTypes" :showPlaceholder="false" required />
+                            <x-adminlte.select name="payment_type" id="convert_payment_type" :options="$paymentTypes"
+                                :showPlaceholder="false" required />
                         </div>
+
+                        {{-- Banco (Card) --}}
+                        <div class="col-md-6 d-none" id="container_bank_id_single">
+                            <div class="compact-select-wrapper">
+                                <label class="compact-select-label">Banco</label>
+                                <x-adminlte.select name="bank_id" id="bank_id_single" :options="$banks" />
+                            </div>
+                        </div>
+
+                        {{-- Cuenta (Transfer) --}}
+                        <div class="col-md-6 d-none" id="container_bank_account_id_single">
+                            <div class="compact-select-wrapper">
+                                <label class="compact-select-label">Cuenta</label>
+                                <x-adminlte.select name="bank_account_id" id="bank_account_id_single"
+                                    :options="$bankAccounts" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Fila 2: Monto --}}
+                    <div class="row g-3 mt-1">
                         <div class="col-md-6">
                             <x-bootstrap.compact-input id="convert_amount_received" name="amount_received"
                                 type="number" label="Monto Recibido" placeholder="0.00" step="0.01" prefix="$"

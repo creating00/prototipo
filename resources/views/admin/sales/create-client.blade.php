@@ -14,20 +14,6 @@
         $isRepair = false;
     @endphp
 
-    @if (session('print_receipt'))
-        <script>
-            (() => {
-                const data = @json(session('print_receipt'));
-
-                const url = data.type === 'a4' ?
-                    "{{ route('sales.a4', ':id') }}" :
-                    "{{ route('sales.ticket', ':id') }}";
-
-                window.open(url.replace(':id', data.sale_id), '_blank');
-            })();
-        </script>
-    @endif
-
     <div class="row justify-content-center">
         <div class="col-12" style="max-width: 100%;">
             <x-adminlte.alert-manager />
@@ -67,3 +53,5 @@
 
     @vite('resources/js/modules/sales/create.js')
 @endpush
+
+<x-sale-print-handler />

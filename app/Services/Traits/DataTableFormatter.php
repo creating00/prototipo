@@ -3,6 +3,7 @@
 namespace App\Services\Traits;
 
 use App\Enums\CurrencyType;
+use App\Models\Order;
 use App\Models\Sale;
 
 trait DataTableFormatter
@@ -140,6 +141,21 @@ trait DataTableFormatter
             'customer_name_raw'    => $customerName,
             'exchange_rate' => $model->exchange_rate
         ];
+    }
+
+    protected function formatOrderForDataTable(Order $order, int $index): array
+    {
+        // 1. Obtenemos la base común
+        $row = $this->formatForDataTable($order, $index);
+
+        // 2. Agregamos el ID de la venta si existe
+        // Esto es lo que necesita el JS para el botón "imprimir"
+        $row['sale_id'] = $order->sale?->id;
+
+        // 3. (Opcional) Si quieres añadir más lógica específica de Order aquí
+        // $row['otro_campo'] = ...
+
+        return $row;
     }
 
     protected function formatSaleForDataTable(Sale $sale, int $index): array

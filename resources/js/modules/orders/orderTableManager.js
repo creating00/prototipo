@@ -6,12 +6,50 @@ import CurrencyLoader from "@/modules/sales/services/currency-loader";
 // 1. Extraemos la URL base del componente Blade (ej: /web/orders)
 const tableContainer = document.querySelector("[data-base-url]");
 const baseUrl = tableContainer ? tableContainer.dataset.baseUrl : "";
+const saleUrl = tableContainer ? tableContainer.dataset.saleUrl : "";
 const apiUrl = tableContainer ? tableContainer.dataset.apiUrl : "/api/orders";
 let paymentManager = null;
 
 const TABLE_CONFIG = {
     tableId: "orders-table",
     rowActions: {
+        print: {
+            selector: ".btn-print",
+            handler: (row) => {
+                // Si el HTML es data-sale_id, se accede como row.dataset.sale_id
+                const { id, sale_id } = row.dataset;
+                const modalEl = document.getElementById("modalPrintSale");
+
+                if (!modalEl) return;
+
+                // Si no hay sale_id, no se puede imprimir (orden no convertida)
+                if (!sale_id || sale_id === "null") {
+                    Swal.fire({
+                        icon: "warning",
+                        title: "No disponible",
+                        text: "Esta orden no tiene una venta asociada para imprimir.",
+                    });
+                    return;
+                }
+
+                const ticketLink = modalEl.querySelector("#linkPrintTicket");
+                const a4Link = modalEl.querySelector("#linkPrintA4");
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+                // Actualizar rutas usando la variable saleUrl del scope superior
+                ticketLink.href = `${saleUrl}/${sale_id}/ticket`;
+                a4Link.href = `${saleUrl}/${sale_id}/a4`;
+
+                const closeLabels = () => {
+                    setTimeout(() => modal.hide(), 500);
+                };
+
+                ticketLink.onclick = closeLabels;
+                a4Link.onclick = closeLabels;
+
+                modal.show();
+            },
+        },
         view: {
             selector: ".btn-view",
             handler: (row, baseUrl) => {
@@ -39,7 +77,6 @@ const TABLE_CONFIG = {
         convert: {
             selector: ".btn-convert",
             handler: (row) => {
-                // 1. Extraer exchangeRate del dataset
                 const {
                     id,
                     totals_json,
@@ -47,7 +84,6 @@ const TABLE_CONFIG = {
                     customer_type,
                     exchange_rate,
                 } = row.dataset;
-
                 const totals = JSON.parse(totals_json || "{}");
 
                 const modalElement =
@@ -61,17 +97,22 @@ const TABLE_CONFIG = {
                 const modalInstance =
                     bootstrap.Modal.getOrCreateInstance(modalElement);
 
+                // Ajuste: Remover listeners previos para evitar ejecuciones múltiples inesperadas
+                const newShownHandler = () => {
+                    setupConvertModal({
+                        orderId: id,
+                        totals: totals,
+                        customerName: customer_name,
+                        customerType: customer_type,
+                        rowExchangeRate: exchange_rate,
+                    });
+                };
+
+                // Clonamos el nodo o simplemente removemos el evento anterior si tuviéramos la referencia
+                // Al usar { once: true } como ya tenías, funciona bien, pero asegúrate de que se limpie:
                 modalElement.addEventListener(
                     "shown.bs.modal",
-                    () => {
-                        setupConvertModal({
-                            orderId: id,
-                            totals: totals,
-                            customerName: customer_name,
-                            customerType: customer_type,
-                            rowExchangeRate: exchange_rate, // Pasar el valor extraído
-                        });
-                    },
+                    newShownHandler,
                     { once: true },
                 );
 

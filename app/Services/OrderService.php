@@ -153,6 +153,8 @@ class OrderService
      */
     public function convertToSale($id, array $options = [])
     {
+        // dd($options); // Comentado para permitir el flujo
+
         return DB::transaction(function () use ($id, $options) {
             $order = $this->getOrderById($id);
             $order->load('items');
@@ -161,25 +163,22 @@ class OrderService
                 throw new \Exception("Esta orden ya fue convertida a venta.");
             }
 
-            // 1. Usar la tasa que envió el usuario (evita discrepancias por centavos)
+            // 1. Tasa y determinación de moneda
             $rate = (float)($options['exchange_rate_blue'] ?? app(CurrencyExchangeService::class)->getCurrentDollarRate());
-
             $arsKey = \App\Enums\CurrencyType::ARS->value;
             $usdKey = \App\Enums\CurrencyType::USD->value;
 
-            // 2. Determinar qué moneda se está pagando y el monto consolidado
-            // Si total_amount_usd tiene valor, el pago es en dólares.
             $isPayingInUsd = !empty($options['total_amount_usd']);
             $totalConsolidado = $isPayingInUsd
                 ? (float)$options['total_amount_usd']
                 : (float)($options['total_amount'] ?? 0);
 
             $currencyId = $isPayingInUsd ? $usdKey : $arsKey;
-
             $userId = $options['user_id'] ?? $this->userId();
+
             if (!$userId) throw new \Exception('No se pudo determinar el usuario.');
 
-            // 3. Mapear ítems (Forzamos ARS para la tabla de ventas)
+            // 2. Mapeo de ítems
             $items = $order->items->map(function ($i) {
                 return [
                     'product_id' => $i->product_id,
@@ -193,7 +192,9 @@ class OrderService
                 throw new \Exception("Error: La orden no tiene ítems cargados.");
             }
 
-            // 4. Estructurar data para SaleService
+            // 3. Preparación de datos de venta y pagos
+            $isDual = (bool)($options['is_dual_payment'] ?? false);
+
             $data = [
                 'source_order_id'     => $order->id,
                 'branch_id'           => $order->branch_id,
@@ -203,26 +204,36 @@ class OrderService
                 'sale_date'           => now()->format('Y-m-d'),
                 'status'              => \App\Enums\SaleStatus::Paid->value,
                 'items'               => $items,
-                'payment_type'        => $options['payment_type_1'] ?? $options['payment_type'] ?? \App\Enums\PaymentType::Cash->value,
-                'amount_received'     => (float)($options['amount_received'] ?? $totalConsolidado),
-                'currency_id'         => $currencyId, // Informamos al servicio en qué moneda paga
-                'exchange_rate'       => $rate,
-                'skip_stock_movement' => true,
-                'totals' => json_encode([
-                    $currencyId => $totalConsolidado,
-                ]),
+                'currency_id'         => $currencyId,
+                'exchange_rate_blue'  => $rate,
+                'totals'              => json_encode([$currencyId => $totalConsolidado]),
+
+                // Flags para HandlesSalePayments
+                'enable_dual_payment' => $isDual ? 1 : 0,
+                'requires_invoice'    => !empty($options['requires_invoice']),
+
+                // Pago 1: Normalizado (Viene de _1 gracias a la sincronización JS)
+                'payment_type'      => $options['payment_type_1'] ?? null,
+                'amount_received'   => (float)($options['amount_received_1'] ?? 0),
+                'payment_method_id' => $options['bank_account_id_1'] ?? $options['bank_id_1'] ?? null,
+                'payment_notes'     => $options['payment_notes'] ?? null,
             ];
 
-            // Mapeo cliente/sucursal
-            if ($order->customer_type === Client::class) {
+            // Pago 2: Solo si es dual
+            if ($isDual) {
+                $data['payment_type_2']      = $options['payment_type_2'] ?? null;
+                $data['amount_received_2']   = (float)($options['amount_received_2'] ?? 0);
+                $data['payment_method_id_2'] = $options['bank_account_id_2'] ?? $options['bank_id_2'] ?? null;
+            }
+
+            // 4. Mapeo cliente/sucursal
+            if ($order->customer_type === \App\Models\Client::class) {
                 $data['client_id'] = $order->customer_id;
             } else {
                 $data['branch_recipient_id'] = $order->customer_id;
             }
 
-            //dd($data['items']);
-
-            // 5. Crear Venta y actualizar Orden
+            // 5. Ejecución
             $sale = app(SaleService::class)->createSale($data);
 
             $order->update([
@@ -248,7 +259,7 @@ class OrderService
     public function getAllOrdersForDataTable(): array
     {
         return $this->getAllOrders()->map(
-            fn($order, $index) => $this->formatForDataTable($order, $index)
+            fn($order, $index) => $this->formatOrderForDataTable($order, $index)
         )->toArray();
     }
 

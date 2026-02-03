@@ -154,30 +154,27 @@ class OrderController extends BaseOrderController
     public function convert(Request $request, $id)
     {
         try {
-            // Recolectamos las opciones del request
             $options = $request->all();
 
-            /**
-             * Prioridad del Usuario:
-             * 1. El que viene explícitamente en el JSON del Request.
-             * 2. El usuario autenticado (si funcionara).
-             * 3. El usuario de sistema definido en config/orders.php.
-             */
             if (!isset($options['user_id'])) {
                 $options['user_id'] = $this->userId() ?? config('orders.system_user_id');
             }
 
-            // Ejecutar conversión
             $sale = $this->orderService->convertToSale($id, $options);
 
+            // Disparamos la impresión para que al recargar el Index se ejecute
+            if ($receiptType = $request->input('receipt_type')) {
+                session()->flash('print_receipt', [
+                    'type' => $receiptType,
+                    'sale_id' => $sale->id,
+                ]);
+            }
+
             return response()->json([
-                'message' => 'Orden convertida a venta exitosamente',
+                'message' => 'Orden convertida exitosamente',
                 'sale_id' => $sale->id,
-                'internal_number' => $sale->internal_number,
-                'sale' => $sale
+                'print'   => session('print_receipt') // Lo enviamos por si el JS quiere usarlo ya
             ], 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json(['error' => 'La orden no existe'], 404);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 400);
         }
