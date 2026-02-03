@@ -18,17 +18,15 @@ class AnalyticsService
     }
 
     /**
-     * Retorna la expresión SQL para sumar totales convertidos a ARS
+     * Retorna la expresión SQL para sumar montos de pagos convertidos a ARS.
+     * Esta expresión se usa sobre la tabla 'payments'.
      */
-    private function getConvertedTotalExpression(): string
+    private function getConvertedPaymentExpression(): string
     {
         $rate = $this->exchangeService->getCurrentDollarRate();
+        $usdValue = CurrencyType::USD->value;
 
-        // Esta expresión devuelve la lógica de suma convertida
-        return "SUM(
-            COALESCE(CAST(sales.totals->'$.\"1\"' AS DECIMAL(15,2)), 0) + 
-            (COALESCE(CAST(sales.totals->'$.\"2\"' AS DECIMAL(15,2)), 0) * {$rate})
-        )";
+        return "SUM(CASE WHEN currency = '{$usdValue}' THEN amount * {$rate} ELSE amount END)";
     }
 
     public function getBranchStats(array $filters): array
@@ -52,7 +50,6 @@ class AnalyticsService
     private function getSalesInfoboxes(int $branchId, array $filters): array
     {
         $stats = config('analytics.infoboxes');
-        $rate = $this->exchangeService->getCurrentDollarRate();
         $hasRange = !empty($filters['start_date']) && !empty($filters['end_date']);
 
         $periods = [
@@ -64,15 +61,16 @@ class AnalyticsService
         foreach ($periods as $period => $dates) {
             $key = "sales_$period";
 
+            // Cantidad de transacciones (Ventas)
             $stats[$key]['number'] = Sale::forBranch($branchId)
                 ->whereBetween('created_at', $dates)
                 ->count();
 
-            // Suma de pagos convertida a ARS
+            // Dinero real ingresado (Pagos)
             $stats[$key]['secondaryNumber'] = Payment::where('paymentable_type', Sale::class)
                 ->whereBetween('created_at', $dates)
                 ->whereHasMorph('paymentable', [Sale::class], fn($q) => $q->forBranch($branchId))
-                ->selectRaw("SUM(CASE WHEN currency = ? THEN amount * ? ELSE amount END) as total", [CurrencyType::USD->value, $rate])
+                ->selectRaw("{$this->getConvertedPaymentExpression()} as total")
                 ->value('total') ?? 0;
 
             $stats[$key]['secondarySuffix'] = '$';
@@ -140,15 +138,17 @@ class AnalyticsService
 
     private function getTopClients(array $filters, int $limit = 5)
     {
-        // Usamos la expresión directamente sin pasar parámetros extra
+        // Unificado: El top de clientes se basa en cuánto DINERO real pagaron
         return Client::select('clients.full_name as name')
-            ->selectRaw('COUNT(sales.id) as orders')
-            ->selectRaw("{$this->getConvertedTotalExpression()} as total")
-            ->join('sales', function ($join) use ($filters) {
-                $join->on('sales.customer_id', '=', 'clients.id')
-                    ->where('sales.customer_type', Client::class)
-                    ->where('sales.branch_id', $filters['branch_id']);
+            ->selectRaw('COUNT(DISTINCT sales.id) as orders')
+            ->selectRaw("{$this->getConvertedPaymentExpression()} as total")
+            ->join('sales', 'sales.customer_id', '=', 'clients.id')
+            ->join('payments', function ($join) {
+                $join->on('payments.paymentable_id', '=', 'sales.id')
+                    ->where('payments.paymentable_type', Sale::class);
             })
+            ->where('sales.customer_type', Client::class)
+            ->where('sales.branch_id', $filters['branch_id'])
             ->whereNull('sales.deleted_at')
             ->groupBy('clients.id', 'clients.full_name')
             ->orderByDesc('total')
@@ -176,20 +176,58 @@ class AnalyticsService
             ]);
     }
 
+    private function getConvertedSaleExpression(): string
+    {
+        $rate = $this->exchangeService->getCurrentDollarRate();
+        return "SUM(COALESCE(CAST(sales.totals->'$.\"1\"' AS DECIMAL(15,2)), 0) + (COALESCE(CAST(sales.totals->'$.\"2\"' AS DECIMAL(15,2)), 0) * {$rate}))";
+    }
+
     private function getMonthlyChartData(int $branchId): array
     {
-        $monthlySales = Sale::forBranch($branchId)
-            ->selectRaw('MONTH(created_at) as month')
-            ->selectRaw("{$this->getConvertedTotalExpression()} as total")
-            ->whereYear('created_at', now()->year)
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get();
+        $currentYear = now()->year;
+        $rate = $this->exchangeService->getCurrentDollarRate();
+        $usdValue = CurrencyType::USD->value;
+
+        // --- DATOS MENSUALES (Año actual) ---
+        $paymentsMonth = Payment::where('paymentable_type', Sale::class)
+            ->whereHasMorph('paymentable', [Sale::class], fn($q) => $q->forBranch($branchId))
+            ->whereYear('created_at', $currentYear)
+            ->selectRaw('MONTH(created_at) as month, ' . $this->getConvertedPaymentExpression() . ' as total')
+            ->groupBy('month')->pluck('total', 'month');
+
+        $expensesMonth = Expense::forBranch($branchId)
+            ->whereYear('date', $currentYear)
+            ->selectRaw('MONTH(date) as month, SUM(CASE WHEN currency = ' . "'{$usdValue}'" . ' THEN amount * ' . $rate . ' ELSE amount END) as total')
+            ->groupBy('month')->pluck('total', 'month');
+
+        // --- DATOS ANUALES (Últimos 5 años) ---
+        $years = collect(range($currentYear - 4, $currentYear));
+
+        $paymentsYear = Payment::where('paymentable_type', Sale::class)
+            ->whereHasMorph('paymentable', [Sale::class], fn($q) => $q->forBranch($branchId))
+            ->whereBetween('created_at', [now()->subYears(4)->startOfYear(), now()->endOfYear()])
+            ->selectRaw('YEAR(created_at) as year, ' . $this->getConvertedPaymentExpression() . ' as total')
+            ->groupBy('year')->pluck('total', 'year');
+
+        $expensesYear = Expense::forBranch($branchId)
+            ->whereBetween('date', [now()->subYears(4)->startOfYear(), now()->endOfYear()])
+            ->selectRaw('YEAR(date) as year, SUM(CASE WHEN currency = ' . "'{$usdValue}'" . ' THEN amount * ' . $rate . ' ELSE amount END) as total')
+            ->groupBy('year')->pluck('total', 'year');
+
+        $months = collect(range(1, 12));
 
         return [
-            'months'  => $monthlySales->pluck('month')->map(fn($m) => Carbon::create()->month($m)->format('M')),
-            'revenue' => $monthlySales->pluck('total'),
-            'profits' => $monthlySales->pluck('total')->map(fn($v) => $v * 0.3),
+            // Datos para el gráfico de barras/líneas mensual
+            'monthly' => [
+                'labels'   => $months->map(fn($m) => Carbon::create()->month($m)->format('M')),
+                'payments' => $months->map(fn($m) => (float)($paymentsMonth->get($m) ?? 0)),
+                'expenses' => $months->map(fn($m) => (float)($expensesMonth->get($m) ?? 0)),
+            ],
+            // Datos para el gráfico de Ganancias Anuales (Histórico)
+            'yearly' => [
+                'labels'  => $years->map(fn($y) => (string)$y),
+                'profits' => $years->map(fn($y) => (float)($paymentsYear->get($y, 0) - $expensesYear->get($y, 0))),
+            ]
         ];
     }
 }
