@@ -64,12 +64,12 @@
                 Doble</small>
             <div class="d-flex justify-content-between small">
                 <span id="summary_payment_type_1_label">Método 1</span>
-                <span class="fw-bold">$ <span
+                <span class="fw-bold"><span class="summary-symbol">$</span> <span
                         id="summary_amount_1_label">{{ number_format($pago1->amount ?? 0, 2, '.', '') }}</span></span>
             </div>
             <div class="d-flex justify-content-between small">
                 <span id="summary_payment_type_2_label">Método 2</span>
-                <span class="fw-bold">$ <span
+                <span class="fw-bold"><span class="summary-symbol">$</span> <span
                         id="summary_amount_2_label">{{ number_format($pago2->amount ?? 0, 2, '.', '') }}</span></span>
             </div>
         </div>

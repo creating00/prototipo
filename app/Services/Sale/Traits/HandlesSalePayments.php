@@ -12,10 +12,15 @@ trait HandlesSalePayments
         $isDual = isset($data['enable_dual_payment']) && (int)$data['enable_dual_payment'] === 1;
         $totalToPay = array_sum(array_map('floatval', $totals));
 
-        // Detectar moneda de la venta: si existe ID 2 es USD, sino ARS
-        $currency = isset($totals[CurrencyType::USD->value])
-            ? CurrencyType::USD
-            : CurrencyType::ARS;
+        // Determinar moneda del pago
+        // Si es dual, forzamos ARS. Si es simple, verificamos si la venta está en USD.
+        $paymentCurrency = CurrencyType::ARS;
+
+        if (!$isDual) {
+            $paymentCurrency = isset($totals[CurrencyType::USD->value])
+                ? CurrencyType::USD
+                : CurrencyType::ARS;
+        }
 
         // Pago 1
         if (!empty($data['amount_received'])) {
@@ -24,7 +29,7 @@ trait HandlesSalePayments
             $addPaymentCallback($sale, $this->buildPaymentData([
                 'payment_type'        => $data['payment_type'],
                 'amount'              => $amount1,
-                'currency'            => $currency,
+                'currency'            => $paymentCurrency, // Usar la moneda detectada
                 'bank_id'             => $data['payment_method_id'] ?? null,
                 'bank_account_id'     => $data['payment_method_id'] ?? null,
                 'payment_method_type' => $data['payment_method_type'] ?? null,
@@ -32,12 +37,12 @@ trait HandlesSalePayments
             ]));
         }
 
-        // Pago 2
+        // Pago 2 (Siempre ARS según tu requerimiento actual)
         if ($isDual && !empty($data['amount_received_2'])) {
             $addPaymentCallback($sale, $this->buildPaymentData([
                 'payment_type'        => $data['payment_type_2'],
-                'amount'              => $data['amount_received_2'],
-                'currency'            => $currency,
+                'amount'              => (float)$data['amount_received_2'],
+                'currency'            => CurrencyType::ARS, // Forzado a ARS
                 'bank_id'             => $data['payment_method_id_2'] ?? null,
                 'bank_account_id'     => $data['payment_method_id_2'] ?? null,
                 'payment_method_type' => $data['payment_method_type_2'] ?? null,

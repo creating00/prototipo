@@ -22,6 +22,7 @@ class Payment extends Model
         'paymentable_type',
         'payment_method_id',
         'payment_method_type',
+        'exchange_rate',
     ];
 
     protected $casts = [

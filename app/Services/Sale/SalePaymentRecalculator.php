@@ -4,45 +4,48 @@ namespace App\Services\Sale;
 
 use App\Models\Sale;
 use App\Enums\SaleStatus;
+use App\Enums\CurrencyType;
 
 class SalePaymentRecalculator
 {
-    /**
-     * Recalcula campos de pago y estado.
-     * Los items están en moneda base (ARS), los pagos pueden ser nominales.
-     */
     public function recalculate(Sale $sale): void
     {
         $sale->refresh();
 
-        // 1. Determinar Totales y Pagos según moneda
         $totals = $sale->totals ?? [];
-        $isDollarSale = isset($totals[2]);
-        $rate = (float) ($sale->exchange_rate ?? request('exchange_rate_blue', 1));
+        $isDollarSale = isset($totals[CurrencyType::USD->value]);
+        $rate = (float) ($sale->exchange_rate ?? 1);
 
-        // El "Target" es lo que el cliente debe pagar
-        $target = $isDollarSale
-            ? (float) ($totals[2] ?? 0)
+        // 1. Normalizar Target a Pesos
+        // Si la venta es en USD, el target para el vuelto debe ser USD * Rate
+        $targetUSD = (float) ($totals[CurrencyType::USD->value] ?? 0);
+        $targetARS = $isDollarSale
+            ? round($targetUSD * $rate, 2)
             : round((float)$sale->items()->sum('subtotal') - (float)$sale->discount_amount, 2);
 
-        // El "Paid" es lo que entró (Nominal)
-        $paid = (float) $sale->payments()->sum('amount');
+        // 2. Normalizar Pagos a Pesos
+        // Sumamos los pagos convirtiendo los que sean USD a ARS
+        $paidARS = $sale->payments->reduce(function ($carry, $payment) use ($rate) {
+            $amount = (float) $payment->amount;
+            if ($payment->currency === CurrencyType::USD) {
+                return $carry + ($amount * ($payment->exchange_rate ?? $rate));
+            }
+            return $carry + $amount;
+        }, 0);
 
-        // 2. Cálculo de estados y saldos
-        $isPaid = ($paid >= ($target - 0.01));
-        $diff = round($paid - $target, 2);
+        // 3. Cálculo de estados y saldos sobre moneda base (ARS)
+        $isPaid = ($paidARS >= ($targetARS - 0.10)); // Margen de 10 centavos
+        $diffARS = round($paidARS - $targetARS, 2);
 
-        // 3. Preparar datos de actualización
-        // Si es dólar, el balance pendiente se guarda en pesos para la contabilidad
-        $remaining = (!$isPaid)
-            ? ($isDollarSale ? round(abs($diff) * $rate, 2) : abs($diff))
-            : 0;
+        // 4. Preparar datos de actualización
+        $remaining = (!$isPaid) ? max(0, abs($diffARS)) : 0;
+        $change = ($isPaid && $targetARS > 0) ? max(0, $diffARS) : 0;
 
         $updateData = [
-            'amount_received'   => max((float)$sale->amount_received, $paid),
-            'change_returned'   => ($isPaid && $target > 0) ? max(0, $diff) : 0,
+            'amount_received'   => $paidARS,
+            'change_returned'   => $change,
             'remaining_balance' => $remaining,
-            'status'            => ($isPaid && $target > 0) ? SaleStatus::Paid->value : SaleStatus::Pending->value,
+            'status'            => ($isPaid && $targetARS > 0) ? SaleStatus::Paid->value : SaleStatus::Pending->value,
         ];
 
         $sale->updateQuietly($updateData);

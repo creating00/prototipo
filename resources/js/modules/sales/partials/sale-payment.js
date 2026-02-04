@@ -163,6 +163,26 @@ class SalePayment {
             this.updateMethodVisibility(e.target.value, "2"),
         );
 
+        this.on("modalType1", "payment_type_1_modal", "change", () => {
+            const isDualEnabled = this.el(
+                "dualCheck",
+                "enable_dual_payment",
+            )?.checked;
+            if (isDualEnabled) {
+                this.updatePaymentTypeLabels();
+            }
+        });
+
+        this.on("modalType2", "payment_type_2_modal", "change", () => {
+            const isDualEnabled = this.el(
+                "dualCheck",
+                "enable_dual_payment",
+            )?.checked;
+            if (isDualEnabled) {
+                this.updatePaymentTypeLabels();
+            }
+        });
+
         document.addEventListener("sale:subtotalUpdated", () =>
             this.applyManualDiscount(),
         );
@@ -317,6 +337,10 @@ class SalePayment {
             this.el("modal2", "amount_received_2_modal").value = "0.00";
             this.calculate();
         }
+
+        if (enabled) {
+            this.updatePaymentTypeLabels();
+        }
     }
 
     calculate() {
@@ -327,14 +351,19 @@ class SalePayment {
                 "pay_in_dollars",
             )?.checked;
             const rate = this.getFloat("exchange_rate_blue") || 1;
+            const isDualEnabled = this.el(
+                "dualCheck",
+                "enable_dual_payment",
+            )?.checked;
 
-            // 1. Obtener montos y normalizarlos a Pesos si el usuario digita en Dólares
+            // 1. Obtener montos
             let r1 = this.getFloat("amount_received_1_modal");
             let r2 = this.getFloat("amount_received_2_modal");
 
-            if (isDollarMode) {
+            // Solo convertir a pesos si NO es modo dual
+            // En modo dual, los valores modales YA están en pesos
+            if (isDollarMode && !isDualEnabled) {
                 r1 = r1 * rate;
-                r2 = r2 * rate;
             }
 
             const totalReceivedArs = r1 + r2;
@@ -359,17 +388,30 @@ class SalePayment {
                 : balanceArs;
             const displayChange = isDollarMode ? changeArs / rate : changeArs;
 
-            // Resumen visual
+            // Conversión de montos recibidos para el summary
+            const displayR1 = isDollarMode ? r1 / rate : r1;
+            const displayR2 = isDollarMode ? r2 / rate : r2;
+
+            // Resumen visual (en la moneda seleccionada)
             this.setText("summary_total", displayTotal.toFixed(2));
             this.setText("summary_remaining", displayBalance.toFixed(2));
             this.setText("summary_change", displayChange.toFixed(2));
 
-            // Labels técnicos (Siempre en Pesos)
+            // Labels técnicos (SIEMPRE en pesos - estos son los que están en el modal dual)
             this.setText("label_total_received", totalReceivedArs.toFixed(2));
             this.setText("label_change_returned", changeArs.toFixed(2));
             this.setText("label_remaining_balance", balanceArs.toFixed(2));
 
-            // Actualizar símbolos
+            // Actualizar desglose de pago doble (en la moneda seleccionada)
+            if (isDualEnabled) {
+                this.setText("summary_amount_1_label", displayR1.toFixed(2));
+                this.setText("summary_amount_2_label", displayR2.toFixed(2));
+
+                // ✅ Actualizar etiquetas de tipo de pago
+                this.updatePaymentTypeLabels();
+            }
+
+            // Actualizar símbolos del summary (no de los labels)
             document
                 .querySelectorAll(".summary-symbol")
                 .forEach((el) => (el.textContent = symbol));
@@ -392,6 +434,40 @@ class SalePayment {
             this.setHTML("payment_status_indicator", badgeHtml);
             this.setHTML("summary_payment_status", badgeHtml);
         });
+    }
+
+    updatePaymentTypeLabels() {
+        const paymentType1 = this.getPaymentTypeLabel("payment_type_1_modal");
+        const paymentType2 = this.getPaymentTypeLabel("payment_type_2_modal");
+
+        this.setText("summary_payment_type_1_label", paymentType1);
+        this.setText("summary_payment_type_2_label", paymentType2);
+    }
+
+    getPaymentTypeLabel(selectId) {
+        const select = this.el(selectId, selectId);
+        if (!select) return "Método";
+
+        try {
+            // Obtener el texto de la opción seleccionada directamente del DOM
+            const selectedOption = select.querySelector("option:checked");
+            if (selectedOption) {
+                return selectedOption.textContent.trim();
+            }
+
+            // Fallback: usar selectedIndex
+            if (
+                select.selectedIndex >= 0 &&
+                select.options[select.selectedIndex]
+            ) {
+                return select.options[select.selectedIndex].textContent.trim();
+            }
+
+            return "Método";
+        } catch (error) {
+            console.warn(`Error obteniendo label de ${selectId}:`, error);
+            return "Método";
+        }
     }
 
     updateTotalsHiddenFields(total) {

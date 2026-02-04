@@ -120,7 +120,7 @@
 
         {{-- DATOS --}}
         <div class="details">
-            <p><strong>Recibo Nº:</strong> {{ $sale->internal_number ?? $sale->id }}</p>
+            <p><strong>Recibo Nº:</strong> {{ str_pad($sale->internal_number ?? $sale->id, 8, '0', STR_PAD_LEFT) }}</p>
             <p><strong>Fecha:</strong> {{ $sale->created_at->format('d/m/Y H:i') }}</p>
             <p><strong>Cliente:</strong> {{ $sale->customer_name }}</p>
             <p><strong>Vendedor:</strong> {{ $sale->user->name }}</p>
@@ -184,22 +184,40 @@
                 </thead>
                 <tbody>
 
-                    @php $totalPagado = 0; @endphp
+                    @php $totalPagadoARS = 0; @endphp
 
                     @foreach ($sale->payments as $payment)
-                        @php $totalPagado += $payment->amount; @endphp
+                        @php
+                            $amountARS =
+                                $payment->currency === \App\Enums\CurrencyType::ARS
+                                    ? $payment->amount
+                                    : $payment->amount * ($payment->exchange_rate ?? $sale->exchange_rate);
+
+                            $totalPagadoARS += $amountARS;
+                        @endphp
+
                         <tr>
                             <td>{{ $payment->payment_type->label() }}</td>
                             <td class="text-right">
-                                ${{ number_format($payment->amount, 2, ',', '.') }}
+                                {{ $payment->currency->code() }}
+                                {{ number_format($payment->amount, 2, ',', '.') }}
                             </td>
                         </tr>
+
+                        @if ($payment->currency !== \App\Enums\CurrencyType::ARS)
+                            <tr>
+                                <td colspan="2" class="text-right" style="font-size:9px;">
+                                    TC:
+                                    {{ number_format($payment->exchange_rate ?? $sale->exchange_rate, 2, ',', '.') }}
+                                </td>
+                            </tr>
+                        @endif
                     @endforeach
 
                     <tr class="total-row">
                         <td>TOTAL PAGADO</td>
                         <td class="text-right">
-                            ${{ number_format($totalPagado, 2, ',', '.') }}
+                            ${{ number_format($totalPagadoARS, 2, ',', '.') }} ARS
                         </td>
                     </tr>
 
@@ -208,20 +226,32 @@
         </div>
 
         {{-- TOTALES --}}
-        <div class="details">
+        <div class="details" style="margin-top: 10px; border-top: 1px solid #000; padding-top: 5px;">
             @if ($sale->discount_amount > 0)
                 <p><strong>Descuento:</strong>
                     -${{ number_format($sale->discount_amount, 2, ',', '.') }}
                 </p>
             @endif
 
-            <p><strong>Total:</strong>
+            <p style="font-size: 11px;"><strong>TOTAL A PAGAR:</strong>
                 ${{ number_format($sale->total_general_ars, 2, ',', '.') }}
             </p>
 
-            <p><strong>Saldo pendiente:</strong>
-                ${{ number_format($sale->remaining_balance, 2, ',', '.') }}
+            <p><strong>PAGADO:</strong>
+                ${{ number_format($totalPagadoARS, 2, ',', '.') }}
             </p>
+
+            @if ($sale->change_returned > 0)
+                <p><strong>SU VUELTO:</strong>
+                    ${{ number_format($sale->change_returned, 2, ',', '.') }}
+                </p>
+            @endif
+
+            @if ($sale->remaining_balance > 0)
+                <p style="color: red;"><strong>SALDO PENDIENTE:</strong>
+                    ${{ number_format($sale->remaining_balance, 2, ',', '.') }}
+                </p>
+            @endif
         </div>
 
     </div>
