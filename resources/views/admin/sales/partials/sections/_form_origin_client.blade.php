@@ -20,7 +20,7 @@
         <label class="compact-select-label">
             Tipo de Reparación <span class="text-danger">*</span>
         </label>
-        <x-adminlte.select name="repair_type_id" id="repair_type" label="" :options="$repairTypes ?? []" :value="old('repair_type_id', $sale->repair_type_id ?? '')"
+        <x-adminlte.select name="repair_type_id" id="repair_type_id" label="" :options="$repairTypes ?? []" :value="old('repair_type_id', $sale->repair_type_id ?? '')"
             placeholder="Seleccione tipo de reparación" :showPlaceholder="true" />
     </div>
 

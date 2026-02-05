@@ -60,9 +60,11 @@ class SalePayment {
     }
 
     detectSaleType() {
-        const select = this.el("saleType", 'select[name="sale_type"]');
+        // Cambiamos el selector genérico por el ID específico 'sale_type'
+        const select = this.el("saleType", "sale_type");
         if (select) {
             this.saleType = select.value;
+            // Ejecución inmediata para el estado inicial
             RepairUiManager.toggleFields(this.saleType === SALE_TYPE.REPAIR);
         }
     }
@@ -137,9 +139,10 @@ class SalePayment {
             }),
         );
 
-        this.on("saleType", 'select[name="sale_type"]', "change", (e) =>
+        this.on("saleType", "sale_type", "change", (e) =>
             this.handleSaleTypeChange(e.target.value),
         );
+
         this.on("repairType", 'select[name="repair_type_id"]', "change", (e) =>
             this.handleRepairTypeChange(e.target.value),
         );
@@ -273,7 +276,7 @@ class SalePayment {
         this.syncRepairAmount();
         this.updateTotalsHiddenFields(newTotal);
 
-        // ✅ recalculamos UNA sola vez
+        // recalculamos UNA sola vez
         this.calculate();
 
         this.dispatchEvent("sale:discountUpdated", { discount });
@@ -407,7 +410,7 @@ class SalePayment {
                 this.setText("summary_amount_1_label", displayR1.toFixed(2));
                 this.setText("summary_amount_2_label", displayR2.toFixed(2));
 
-                // ✅ Actualizar etiquetas de tipo de pago
+                // Actualizar etiquetas de tipo de pago
                 this.updatePaymentTypeLabels();
             }
 
