@@ -30,7 +30,7 @@ class ExpenseWebController extends BaseExpenseController
             'Motivo'
         ];
 
-        $hiddenFields = ['id'];
+        $hiddenFields = ['id', 'payment_type_raw', 'currency', 'amount_raw'];
 
         return view('admin.expense.index', compact('headers', 'rowData', 'hiddenFields'));
     }

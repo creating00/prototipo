@@ -28,7 +28,10 @@ class ExpenseDataTableService
                 'branch'       => $expense->branch->name ?? '-',
                 'date'         => $expense->date ? $expense->date->format('d/m/Y') : '-',
                 'amount'       => $this->formatExpenseAmount($expense),
+                'currency'       => $expense->currency->value,
+                'amount_raw'       => $expense->amount,
                 'payment_type' => $this->formatStatusBadge($expense->payment_type->label(), PaymentType::class),
+                'payment_type_raw' => $expense->payment_type->value,
                 'observation'  => $expense->observation ?? '-',
             ];
         })->toArray();
