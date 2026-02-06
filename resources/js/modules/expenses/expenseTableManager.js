@@ -25,7 +25,7 @@ const TABLE_CONFIG = {
                 // Usamos description o el campo que tengas mapeado en el Service
                 deleteItem(
                     `${baseUrl}/${id}`,
-                    `el gasto "${description || id}"`
+                    `el gasto "${description || id}"`,
                 );
             },
         },
@@ -41,8 +41,38 @@ const TABLE_CONFIG = {
     },
 };
 
+function getLockedTemplate() {
+    const tpl = document.getElementById("expense-actions-locked-template");
+    return tpl ? tpl.content.cloneNode(true) : null;
+}
+
+function applyBranchActionRestrictions() {
+    const wrapper = document.getElementById("expenses-table-wrapper");
+    if (!wrapper) return;
+
+    const currentBranchId = parseInt(wrapper.dataset.currentBranchId);
+    const lockedTemplate = getLockedTemplate();
+
+    document.querySelectorAll("#expenses-table tbody tr").forEach((row) => {
+        const branchId = parseInt(row.dataset.branchId);
+
+        if (branchId !== currentBranchId) {
+            const actionsCell = row.querySelector("td.text-center");
+            if (!actionsCell || actionsCell.dataset.locked === "true") return;
+
+            actionsCell.innerHTML = "";
+            if (lockedTemplate) {
+                actionsCell.appendChild(lockedTemplate.cloneNode(true));
+            }
+
+            actionsCell.dataset.locked = "true";
+        }
+    });
+}
+
 export function initExpenseTable() {
-    return TableManager.initTable(TABLE_CONFIG);
+    TableManager.initTable(TABLE_CONFIG);
+    applyBranchActionRestrictions();
 }
 
 export default {

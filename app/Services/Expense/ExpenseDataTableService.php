@@ -27,6 +27,7 @@ class ExpenseDataTableService
                 'id'           => $expense->id,
                 'number'       => $index + 1,
                 'branch'       => $expense->branch->name ?? '-',
+                'branch-id'         => $expense->branch_id,
                 'date'         => $expense->date ? $expense->date->format('d/m/Y') : '-',
                 'amount'       => $this->formatExpenseAmount($expense),
                 'currency'       => $expense->currency->value,

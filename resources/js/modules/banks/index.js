@@ -1,4 +1,4 @@
-    import BankTableManager from "./bankTableManager";
+import BankTableManager from "./bankTableManager";
 
 document.addEventListener("DOMContentLoaded", () => {
     BankTableManager.init();

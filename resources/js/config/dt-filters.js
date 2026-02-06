@@ -91,32 +91,47 @@ export function setupExpenseFilters(api) {
     const filterTable = () => {
         const payment = document.getElementById("filter-payment")?.value;
         const month = document.getElementById("filter-month")?.value;
+        const branch = document.getElementById("filter-branch")?.value;
 
+        // Filtro por forma de pago (columna)
         api.column(5).search(payment ? `^${payment}$` : "", {
             regex: true,
             smart: false,
         });
 
         DataTable.ext.search.push((settings, data, dataIndex) => {
-            if (settings.nTable.classList.contains("datatable-sm-expenses")) {
-                if (!month) return true;
-                const date = api.row(dataIndex).node()?.dataset.date;
-                if (date) {
-                    const [d, m, y] = date.split("/");
-                    return `${y}-${m}` === month;
-                }
+            if (!settings.nTable.classList.contains("datatable-sm-expenses")) {
+                return true;
+            }
+
+            const row = api.row(dataIndex).node();
+            if (!row) return true;
+
+            const ds = row.dataset;
+
+            // --- filtro por mes ---
+            if (month && ds.date) {
+                const [d, m, y] = ds.date.split("/");
+                if (`${y}-${m}` !== month) return false;
+            }
+
+            // --- filtro por sucursal ---
+            if (branch && ds.branchId !== branch) {
                 return false;
             }
+
             return true;
         });
+
         api.draw();
         DataTable.ext.search.pop();
     };
 
-    setupCommonUI(filterTable, ["filter-payment"]);
-    document
-        .getElementById("filter-payment")
-        ?.addEventListener("change", filterTable);
+    setupCommonUI(filterTable, ["filter-payment", "filter-branch"]);
+
+    ["filter-payment", "filter-branch"].forEach((id) =>
+        document.getElementById(id)?.addEventListener("change", filterTable),
+    );
 }
 
 export function updateSalesFooter(api) {

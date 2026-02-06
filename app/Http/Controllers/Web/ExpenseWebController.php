@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\BaseExpenseController;
 use App\Http\Requests\Expense\ExpenseWebRequest;
+use App\Models\Branch;
 use App\Models\Expense;
 use App\Models\Province;
 use App\Models\User;
@@ -30,9 +31,12 @@ class ExpenseWebController extends BaseExpenseController
             'Motivo'
         ];
 
-        $hiddenFields = ['id', 'payment_type_raw', 'currency', 'amount_raw'];
+        $hiddenFields = ['id', 'branch-id', 'payment_type_raw', 'currency', 'amount_raw'];
 
-        return view('admin.expense.index', compact('headers', 'rowData', 'hiddenFields'));
+        $currentBranchId = $this->currentBranchId();
+        $branches = Branch::pluck('name', 'id');
+
+        return view('admin.expense.index', compact('headers', 'rowData', 'hiddenFields', 'currentBranchId', 'branches'));
     }
 
     public function create()
@@ -74,6 +78,13 @@ class ExpenseWebController extends BaseExpenseController
     public function edit($id)
     {
         $expense = $this->expenseService->getExpenseById($id);
+
+        if ($expense->branch_id !== $this->currentBranchId()) {
+            return redirect()
+                ->route('web.expenses.index')
+                ->withErrors('No tienes permiso para editar gastos de otra sucursal.');
+        }
+
         $this->authorize('update', $expense);
 
         //dd($expense);
