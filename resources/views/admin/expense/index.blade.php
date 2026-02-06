@@ -52,7 +52,7 @@
                     <div class="d-flex align-items-center gap-3 border-start ps-3">
                         <div class="text-end">
                             <div class="small text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Total ARS</div>
-                            <span id="total-ars" class="fw-bold text-success fs-5">$ 0,00</span>
+                            <span id="total-ars" class="fw-bold text-danger fs-5">$ 0,00</span>
                         </div>
                         <div class="text-end">
                             <div class="small text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Total USD</div>

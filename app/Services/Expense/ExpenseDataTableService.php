@@ -2,6 +2,7 @@
 
 namespace App\Services\Expense;
 
+use App\Enums\CurrencyType;
 use App\Enums\PaymentType;
 use App\Models\Expense;
 use App\Traits\HasStatusBadge;
@@ -37,13 +38,22 @@ class ExpenseDataTableService
         })->toArray();
     }
 
-    private function formatExpenseAmount(Expense $expense, string $class = 'fw-bold text-primary'): string
+    private function formatExpenseAmount(Expense $expense): string
     {
         if (!$expense->currency) {
             return '<span class="text-muted">-</span>';
         }
+
+        $colorClass = ($expense->currency->value === CurrencyType::USD->value) ? 'text-primary' : 'text-danger';
+
         $symbol = $expense->currency->symbol();
         $formatted = number_format($expense->amount, 2, ',', '.');
-        return sprintf('<span class="%s">%s %s</span>', $class, $symbol, $formatted);
+
+        return sprintf(
+            '<span class="fw-bold %s">%s %s</span>',
+            $colorClass,
+            $symbol,
+            $formatted
+        );
     }
 }
