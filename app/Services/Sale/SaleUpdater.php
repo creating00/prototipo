@@ -5,11 +5,12 @@ namespace App\Services\Sale;
 use App\Models\Sale;
 use App\Services\Sale\Traits\HandlesSalePayments;
 use App\Services\Sale\Traits\CalculatesSaleTotals;
+use App\Services\Sale\Traits\NormalizesSaleInput;
 use Illuminate\Support\Facades\DB;
 
 class SaleUpdater
 {
-    use HandlesSalePayments, CalculatesSaleTotals;
+    use HandlesSalePayments, CalculatesSaleTotals, NormalizesSaleInput;
 
     protected SaleDataProcessor $dataProcessor;
     protected SaleItemProcessor $itemProcessor;
@@ -37,6 +38,11 @@ class SaleUpdater
 
             // 2. Cálculos mediante Trait
             $totals = json_decode($data['totals'] ?? '{}', true);
+
+            // 2.5. Normalización (Misma lógica que en Create)
+            // Esto asegura que si el usuario ajusta el monto en el edit, el total se adapte.
+            $data['amount_received'] = $this->resolveAndAdjustTotals($data, $totals);
+
             $calculated = $this->calculateNormalizedData($data, $totals);
 
             // 3. Actualizar cabecera

@@ -6,12 +6,13 @@ use App\Models\Sale;
 use App\Services\PriceAuditService;
 use App\Services\Sale\Traits\HandlesSalePayments;
 use App\Services\Sale\Traits\CalculatesSaleTotals;
+use App\Services\Sale\Traits\NormalizesSaleInput;
 use App\Traits\AuthTrait;
 use Illuminate\Support\Facades\DB;
 
 class SaleCreator
 {
-    use AuthTrait, HandlesSalePayments, CalculatesSaleTotals;
+    use AuthTrait, HandlesSalePayments, CalculatesSaleTotals, NormalizesSaleInput;
 
     protected SaleDataProcessor $dataProcessor;
     protected SaleItemProcessor $itemProcessor;
@@ -36,6 +37,11 @@ class SaleCreator
 
             // 1. Cálculos mediante Trait (Unificado con Updater)
             $totals = json_decode($data['totals'] ?? '{}', true);
+
+            // 1.5. Normalización: Ajusta el monto Y modifica el array $totals si es menor
+            // Pasamos $totals para que se actualice internamente si es necesario
+            $data['amount_received'] = $this->resolveAndAdjustTotals($data, $totals);
+
             $calculated = $this->calculateNormalizedData($data, $totals);
 
             // 2. Preparación de datos finales
