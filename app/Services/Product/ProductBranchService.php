@@ -63,4 +63,19 @@ class ProductBranchService
         // Convertimos el string/value que viene del request a una instancia del Enum
         return ProductStatus::from($data['status']);
     }
+
+    public function deleteBranchData(Product $product, int $branchId): bool
+    {
+        $productBranch = $product->productBranches()
+            ->where('branch_id', $branchId)
+            ->first();
+
+        if ($productBranch) {
+            $productBranch->prices()->delete();
+            $productBranch->delete();
+            return true;
+        }
+
+        return false;
+    }
 }

@@ -161,14 +161,14 @@ class AnalyticsService
         // Margen de aviso preventivo sobre el umbral
         $alertMargin = 10;
 
-        return ProductBranch::with('product')
+        return ProductBranch::with(['product' => fn($q) => $q->withTrashed()])
             ->where('branch_id', $branchId)
             ->where('status', '!=', ProductStatus::Discontinued)
-            // Filtrado eficiente en SQL
             ->whereRaw('stock <= (low_stock_threshold + ?)', [$alertMargin])
             ->get()
+            ->filter(fn($pb) => $pb->product !== null) // Seguridad extra
             ->map(fn($pb) => [
-                'name'      => $pb->product->name,
+                'name'      => $pb->product->name ?? 'Producto no encontrado',
                 'stock'     => $pb->stock,
                 'threshold' => $pb->low_stock_threshold,
                 'is_low'    => $pb->stock <= $pb->low_stock_threshold,

@@ -217,6 +217,8 @@ class OrderService
                 'amount_received'   => (float)($options['amount_received_1'] ?? 0),
                 'payment_method_id' => $options['bank_account_id_1'] ?? $options['bank_id_1'] ?? null,
                 'payment_notes'     => $options['payment_notes'] ?? null,
+
+                'skip_stock_movement' => true,
             ];
 
             // Pago 2: Solo si es dual

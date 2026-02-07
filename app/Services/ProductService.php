@@ -9,6 +9,7 @@ use App\Services\Product\ProductValidatorService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use App\Traits\AuthTrait;
+use Illuminate\Support\Facades\DB;
 
 class ProductService
 {
@@ -118,9 +119,27 @@ class ProductService
         return $product->fresh();
     }
 
-    public function delete(Product $product): void
+    public function delete(Product $product, int $branchId): string
     {
-        $product->delete();
+        return DB::transaction(function () use ($product, $branchId) {
+            $deletedFromBranch = $this->branchService->deleteBranchData($product, $branchId);
+
+            // Si no se borró nada (porque ya no existía en la sucursal)
+            if (!$deletedFromBranch) {
+                return 'not_found';
+            }
+
+            // Si después de borrar de la sucursal, no quedan más asociaciones
+            if ($product->productBranches()->count() === 0) {
+                $product->update([
+                    'code' => $product->code . '_del_' . now()->timestamp
+                ]);
+                $product->delete();
+                return 'global_delete';
+            }
+
+            return 'branch_delete';
+        });
     }
 
     public function getById(int $id): Product

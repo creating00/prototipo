@@ -185,11 +185,21 @@ class ProductWebController extends BaseProductController
         $this->authorize('delete', $product);
 
         try {
-            $this->productService->delete($product);
+            $result = $this->productService->delete($product, $this->currentBranchId());
 
-            return redirect()
-                ->route('web.products.index')
-                ->with('success', 'Producto eliminado exitosamente.');
+            return match ($result) {
+                'global_delete' => redirect()->route('web.products.index')
+                    ->with('success', 'Producto eliminado completamente del sistema.'),
+
+                'branch_delete' => redirect()->route('web.products.index')
+                    ->with('success', 'Los datos de stock y precio de su sucursal han sido eliminados.'),
+
+                'not_found' => redirect()->back()
+                    ->with('info', 'Su sucursal ya no tenía registros vinculados a este producto.'),
+
+                default => redirect()->route('web.products.index')
+                    ->with('warning', 'Acción finalizada con un estado desconocido.'),
+            };
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', $e->getMessage());
