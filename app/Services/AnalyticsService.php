@@ -161,6 +161,25 @@ class AnalyticsService
         // Margen de aviso preventivo sobre el umbral
         $alertMargin = 10;
 
+        return ProductBranch::with('product')
+            ->where('branch_id', $branchId)
+            ->whereHas('product')
+            ->where('status', '!=', ProductStatus::Discontinued)
+            ->whereRaw('stock <= (low_stock_threshold + ?)', [$alertMargin])
+            ->get()
+            ->map(fn($pb) => [
+                'name'      => $pb->product->name,
+                'stock'     => $pb->stock,
+                'threshold' => $pb->low_stock_threshold,
+                'is_low'    => $pb->stock <= $pb->low_stock_threshold,
+                'is_near'   => $pb->stock > $pb->low_stock_threshold
+            ]);
+    }
+    private function getStockReportOld(int $branchId)
+    {
+        // Margen de aviso preventivo sobre el umbral
+        $alertMargin = 10;
+
         return ProductBranch::with(['product' => fn($q) => $q->withTrashed()])
             ->where('branch_id', $branchId)
             ->where('status', '!=', ProductStatus::Discontinued)
