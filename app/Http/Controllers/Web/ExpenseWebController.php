@@ -20,7 +20,10 @@ class ExpenseWebController extends BaseExpenseController
     public function index(ExpenseDataTableService $dataTableService)
     {
         $this->authorize('viewAny', Expense::class);
-        $rowData = $dataTableService->getAllExpensesForDataTable();
+
+        $currentBranchId = $this->currentBranchId();
+
+        $rowData = $dataTableService->getAllExpensesForDataTable($currentBranchId);
 
         $headers = [
             '#',

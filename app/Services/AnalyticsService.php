@@ -176,12 +176,6 @@ class AnalyticsService
             ]);
     }
 
-    private function getConvertedSaleExpression(): string
-    {
-        $rate = $this->exchangeService->getCurrentDollarRate();
-        return "SUM(COALESCE(CAST(sales.totals->'$.\"1\"' AS DECIMAL(15,2)), 0) + (COALESCE(CAST(sales.totals->'$.\"2\"' AS DECIMAL(15,2)), 0) * {$rate}))";
-    }
-
     private function getMonthlyChartData(int $branchId): array
     {
         $currentYear = now()->year;

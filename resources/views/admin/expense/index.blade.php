@@ -35,7 +35,7 @@
                         <div class="d-flex flex-wrap align-items-center gap-3">
                             <div class="d-flex align-items-center gap-2">
                                 <x-bootstrap.select name="filter_branch" id="filter-branch" :options="$branches"
-                                    placeholder="Todas las Sucursales" class="form-select-sm" container-class="mb-0" />
+                                    placeholder="Todas las Sucursales" class="form-select-sm d-none" container-class="mb-0" />
                                 <x-bootstrap.select name="filter_payment" id="filter-payment" :options="\App\Enums\PaymentType::forSelect()"
                                     placeholder="Todos los Pagos" class="form-select-sm" container-class="mb-0" />
                             </div>
