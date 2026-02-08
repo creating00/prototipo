@@ -70,8 +70,15 @@ class BranchWebController extends BaseBranchController
     {
         $branch = $this->branchService->getBranchById($id);
         $this->authorize('delete', $branch);
-        $this->branchService->deleteBranch($id);
-        return redirect()->route('web.branches.index')
-            ->with('success', 'Sucursal eliminada exitosamente');
+
+        try {
+            $this->branchService->deleteBranch($id);
+
+            return redirect()->route('web.branches.index')
+                ->with('success', 'Sucursal eliminada exitosamente');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
     }
 }

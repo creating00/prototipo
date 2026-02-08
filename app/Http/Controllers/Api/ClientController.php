@@ -4,12 +4,22 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\BaseClientController;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class ClientController extends BaseClientController
 {
-    public function index()
+    public function index(Request $request): JsonResponse
     {
-        $clients = $this->clientService->getAllClients();
+        // Validamos que el branch_id sea enviado y exista
+        $request->validate([
+            'branch_id' => 'required|integer|exists:branches,id'
+        ]);
+
+        $branchId = (int) $request->input('branch_id');
+
+        // El service ya usa el scope forBranch internamente
+        $clients = $this->clientService->getAllClients($branchId);
+
         return response()->json($clients);
     }
 

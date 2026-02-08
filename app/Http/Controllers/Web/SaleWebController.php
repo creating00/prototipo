@@ -117,6 +117,7 @@ class SaleWebController extends BaseSaleController
             'bankAccounts' => \App\Models\BankAccount::with(['bank', 'user'])
                 ->get()
                 ->pluck('full_description', 'id'),
+            'currentBranchId' =>  $userBranchId,
         ];
 
         if ($customerType === 'App\Models\Client') {
@@ -129,7 +130,7 @@ class SaleWebController extends BaseSaleController
 
             $data['branches'] = collect([$originBranch]);
 
-            $data['clients'] = $clientService->getAllClients();
+            $data['clients'] = $clientService->getAllClients($userBranchId);
 
             $defaultDoc = config('app.default_client_document');
             $data['defaultClientId'] = $data['clients']

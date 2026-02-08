@@ -12,11 +12,13 @@ class Client extends Model
 {
     use HasFactory, SoftDeletes;
     protected $fillable = [
+        'branch_id',
         'document',
         'full_name',
         'phone',
         'address',
         'email',
+        'is_system'
     ];
 
     protected $appends = ['display_name'];
@@ -41,6 +43,16 @@ class Client extends Model
 
     public function orders()
     {
-        return $this->hasMany(Order::class);
+        return $this->morphMany(Order::class, 'customer');
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function scopeForBranch($query, int $branchId)
+    {
+        return $query->where('branch_id', $branchId);
     }
 }

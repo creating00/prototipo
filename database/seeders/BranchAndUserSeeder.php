@@ -14,18 +14,18 @@ class BranchAndUserSeeder extends Seeder
     {
         // Configuración de provincias y sus datos
         $locations = [
-            'Jujuy' => [
-                'branch_name' => 'Sucursal Jujuy',
-                'address' => 'Av. Libertador San Martín 123, San Salvador de Jujuy',
-                'email' => 'admin@admin.com',
-                'admin_name' => 'Administrador Jujuy'
-            ],
-            'Salta' => [
-                'branch_name' => 'Sucursal Salta',
-                'address' => 'Av. Belgrano 456, Salta Capital',
-                'email' => 'admin_salta@admin.com',
-                'admin_name' => 'Administrador Salta'
-            ],
+            // 'Jujuy' => [
+            //     'branch_name' => 'Sucursal Jujuy',
+            //     'address' => 'Av. Libertador San Martín 123, San Salvador de Jujuy',
+            //     'email' => 'admin@admin.com',
+            //     'admin_name' => 'Administrador Jujuy'
+            // ],
+            // 'Salta' => [
+            //     'branch_name' => 'Sucursal Salta',
+            //     'address' => 'Av. Belgrano 456, Salta Capital',
+            //     'email' => 'admin_salta@admin.com',
+            //     'admin_name' => 'Administrador Salta'
+            // ],
             'Córdoba' => [
                 'branch_name' => 'Sucursal Córdoba',
                 'address' => 'Colón 789, Córdoba Capital',

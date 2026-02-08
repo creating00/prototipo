@@ -165,9 +165,10 @@ class OrderWebController extends BaseOrderController
 
     public function create()
     {
+        $userBranchId = $this->currentBranchId();
         $branches = app(\App\Services\BranchService::class)->getAllBranches();
         $categories = app(\App\Services\CategoryService::class)->getAllCategories();
-        $clients = app(\App\Services\ClientService::class)->getAllClients();
+        $clients = app(\App\Services\ClientService::class)->getAllClients($userBranchId);
         $statusOptions = OrderStatus::forSelect();
 
         return view('admin.order.create', compact(
@@ -181,8 +182,9 @@ class OrderWebController extends BaseOrderController
     public function createClient()
     {
         $this->authorize('create_client', Order::class);
+        $currentBranchId = $this->currentBranchId();
         $branches = collect(app(BranchService::class)->getAllBranches());
-        $clients = collect(app(ClientService::class)->getAllClients());
+        $clients = collect(app(ClientService::class)->getAllClients($currentBranchId));
         $statusOptions = OrderStatus::forSale();
         $customer_type = 'App\Models\Client';
 
@@ -195,6 +197,7 @@ class OrderWebController extends BaseOrderController
             'clients',
             'statusOptions',
             'defaultClientId',
+            'currentBranchId',
         ));
     }
 
@@ -251,6 +254,7 @@ class OrderWebController extends BaseOrderController
     {
         $order = $this->orderService->getOrderById($id);
         $this->authorize('update', $order);
+        $userBranchId = $this->currentBranchId();
 
         $isEdit = true;
 
@@ -285,7 +289,7 @@ class OrderWebController extends BaseOrderController
             'branches'            => $branches,
             // 'branches'            => $branchService->getAllBranches(),
             'categories'          => app(CategoryService::class)->getAllCategories(),
-            'clients'             => app(ClientService::class)->getAllClients(),
+            'clients'             => app(ClientService::class)->getAllClients($userBranchId),
             'statusOptions'       => $statusOptions,
             'originBranch'        => $originBranch,
             'destinationBranches' => $destinationBranches,

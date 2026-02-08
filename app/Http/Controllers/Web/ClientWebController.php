@@ -4,15 +4,19 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\BaseClientController;
 use App\Models\Client;
+use App\Traits\AuthTrait;
 use Illuminate\Http\Request;
 
 class ClientWebController extends BaseClientController
 {
+    use AuthTrait;
+
     public function index()
     {
         $this->authorize('viewAny', Client::class);
-        $rowData = $this->clientService->getAllClientsForDataTable();
-        $clients = $this->clientService->getAllClients();
+        $branch_id = $this->currentBranchId();
+        $rowData = $this->clientService->getAllClientsForDataTable($branch_id);
+        $clients = $this->clientService->getAllClients($branch_id);
 
         $headers = ['#', 'Documento', 'Nombre Completo', 'Teléfono', 'Email', 'Creado en:'];
         $hiddenFields = ['id', 'is_system'];
@@ -31,7 +35,10 @@ class ClientWebController extends BaseClientController
     {
         $this->authorize('create', Client::class);
         try {
-            $this->clientService->createClient($request->all());
+            $data = $request->all();
+            $data['branch_id'] = $this->currentBranchId();
+
+            $this->clientService->createClient($data);
             return redirect()->route('web.clients.index')
                 ->with('success', 'Cliente creado exitosamente');
         } catch (\Illuminate\Validation\ValidationException $e) {

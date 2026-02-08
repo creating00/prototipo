@@ -1,6 +1,9 @@
 @props([
     'client' => null,
+    'branch_id' => null,
 ])
+
+<input type="hidden" name="branch_id" value="{{ $branch_id ?? ($client->branch_id ?? '') }}">
 
 {{-- Sección 1: Datos Personales --}}
 <h3 class="form-section-title">Datos Personales</h3>

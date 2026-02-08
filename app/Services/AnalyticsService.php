@@ -138,8 +138,10 @@ class AnalyticsService
 
     private function getTopClients(array $filters, int $limit = 5)
     {
-        // Unificado: El top de clientes se basa en cuánto DINERO real pagaron
-        return Client::select('clients.full_name as name')
+        $branchId = $filters['branch_id'];
+
+        return Client::forBranch($branchId)
+            ->select('clients.full_name as name')
             ->selectRaw('COUNT(DISTINCT sales.id) as orders')
             ->selectRaw("{$this->getConvertedPaymentExpression()} as total")
             ->join('sales', 'sales.customer_id', '=', 'clients.id')
@@ -148,7 +150,7 @@ class AnalyticsService
                     ->where('payments.paymentable_type', Sale::class);
             })
             ->where('sales.customer_type', Client::class)
-            ->where('sales.branch_id', $filters['branch_id'])
+            ->where('sales.branch_id', $branchId)
             ->whereNull('sales.deleted_at')
             ->groupBy('clients.id', 'clients.full_name')
             ->orderByDesc('total')
