@@ -20,7 +20,7 @@
             <div class="mb-1">
                 <div class="compact-select-wrapper">
                     <label class="compact-select-label">Tipo de Pago</label>
-                    <x-adminlte.select name="payment_type_visible" label="" :options="$paymentOptions" :value="old('payment_type', $pago1->payment_type->value ?? 1)"
+                    <x-adminlte.select id="payment_type_visible" name="payment_type_visible" label="" :options="$paymentOptions" :value="old('payment_type', $pago1->payment_type->value ?? 1)"
                         :showPlaceholder="false" />
                 </div>
             </div>
@@ -29,7 +29,7 @@
             <div class="mb-1 d-none" id="container_payment_method_bank">
                 <div class="compact-select-wrapper">
                     <label class="compact-select-label">Banco</label>
-                    <x-adminlte.select name="bank_id_visible" data-type="App\Models\Bank" {{-- Atributo para JS --}}
+                    <x-adminlte.select id="bank_id_visible" name="bank_id_visible" data-type="App\Models\Bank" {{-- Atributo para JS --}}
                         :options="$banks" :value="old(
                             'payment_method_id',
                             $pago1 && $pago1->payment_method_type == 'App\Models\Bank' ? $pago1->payment_method_id : '',
@@ -41,7 +41,7 @@
             <div class="mb-1 d-none" id="container_payment_method_account">
                 <div class="compact-select-wrapper">
                     <label class="compact-select-label">Cuenta de Destino</label>
-                    <x-adminlte.select name="bank_account_id_visible" data-type="App\Models\BankAccount"
+                    <x-adminlte.select id="bank_account_id_visible" name="bank_account_id_visible" data-type="App\Models\BankAccount"
                         {{-- Atributo para JS --}} :options="$bankAccounts" :value="old(
                             'payment_method_id',
                             $pago1 && $pago1->payment_method_type == 'App\Models\BankAccount'
