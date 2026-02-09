@@ -20,7 +20,7 @@ jobs:
           script: |
             set -e
 
-            cd domains/prototipo.creatingsoft.net/public_html/laravel-project
+            cd domains/tecnonautaserviciotecnico.creatingsoft.net/public_html/master
 
             echo "📥 Sincronizando repositorio..."
             git fetch origin
