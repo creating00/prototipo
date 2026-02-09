@@ -8,13 +8,15 @@ use App\Models\Bank;
 use App\Models\BankAccount;
 use App\Models\User;
 use App\Traits\AuthTrait;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class BankAccountWebController extends Controller
 {
-    use AuthTrait;
+    use AuthTrait, AuthorizesRequests;
 
     public function index()
     {
+        $this->authorize('viewAny', BankAccount::class);
         $accounts = BankAccount::with(['bank', 'user'])->get();
 
         $headers = [
@@ -47,6 +49,7 @@ class BankAccountWebController extends Controller
 
     public function create()
     {
+        $this->authorize('create', BankAccount::class);
         $formData = (object) [
             'bankAccount' => null,
             'banks' => Bank::orderBy('name')->pluck('name', 'id'),
@@ -58,6 +61,7 @@ class BankAccountWebController extends Controller
 
     public function store(BankAccountWebRequest $request)
     {
+        $this->authorize('create', BankAccount::class);
         BankAccount::create($request->validated());
 
         return redirect()
@@ -67,6 +71,9 @@ class BankAccountWebController extends Controller
 
     public function edit($id)
     {
+        $account = BankAccount::findOrFail($id);
+        $this->authorize('update', $account);
+
         $formData = (object) [
             'bankAccount' => BankAccount::findOrFail($id),
             'banks' => Bank::orderBy('name')->pluck('name', 'id'),
@@ -79,6 +86,8 @@ class BankAccountWebController extends Controller
     public function update(BankAccountWebRequest $request, $id)
     {
         $account = BankAccount::findOrFail($id);
+        $this->authorize('update', $account);
+
         $account->update($request->validated());
 
         return redirect()
@@ -88,7 +97,11 @@ class BankAccountWebController extends Controller
 
     public function destroy($id)
     {
-        BankAccount::findOrFail($id)->delete();
+        $account = BankAccount::findOrFail($id);
+        
+        $this->authorize('delete', $account);
+
+        $account->delete();
 
         return redirect()
             ->route('web.bank-accounts.index')
