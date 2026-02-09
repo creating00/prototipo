@@ -19,6 +19,10 @@ class ExpenseWebController extends BaseExpenseController
 
     public function index(ExpenseDataTableService $dataTableService)
     {
+        if ($redirect = $this->redirectIfNotAdmin('web.expenses.create')) {
+            return $redirect;
+        }
+
         $this->authorize('viewAny', Expense::class);
 
         $currentBranchId = $this->currentBranchId();
