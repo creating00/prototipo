@@ -5,7 +5,6 @@ namespace App\Enums;
 enum RoleLabel: string
 {
     case ADMIN  = 'admin';
-    case EDITOR = 'editor';
     case SELLER = 'seller';
 
     /**
@@ -15,7 +14,6 @@ enum RoleLabel: string
     {
         return match ($this) {
             self::ADMIN  => 'Administrador',
-            self::EDITOR => 'Editor',
             self::SELLER => 'Vendedor',
         };
     }

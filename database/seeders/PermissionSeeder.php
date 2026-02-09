@@ -72,28 +72,27 @@ class PermissionSeeder extends Seeder
 
         //Monto por tipo de reraparacion
         'repair_amounts' => ['view', 'create', 'update', 'delete'],
+
+        //Bancos
+        'banks' => ['view', 'create', 'update', 'delete'],
+        
+        //Cuentas Bancarias
+        'bank_accounts' => ['view', 'create', 'update', 'delete'],
     ];
 
     // Roles con permisos definidos (puede moverse a config/roles.php)
     private array $roles = [
         'admin' => [],
-        'editor' => [
-            'products.view',
-            'products.create',
-            'products.update',
-            'categories.view',
-            'categories.create',
-            'categories.update',
-        ],
         'seller' => [
             'products.view',
             'clients.view',
             'clients.create',
-            'sales.view',
+            // 'sales.view',
             'sales.create_client',
             'sales.create_branch',
             'sales.print',
             'payments.create',
+            'expenses.create'
         ]
     ];
 
