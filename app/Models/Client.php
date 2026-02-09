@@ -53,6 +53,6 @@ class Client extends Model
 
     public function scopeForBranch($query, int $branchId)
     {
-        return $query->where('branch_id', $branchId);
+        return $query->where($this->getTable() . '.branch_id', $branchId);
     }
 }

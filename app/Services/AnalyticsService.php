@@ -140,19 +140,19 @@ class AnalyticsService
     {
         $branchId = $filters['branch_id'];
 
-        return Client::where('clients.branch_id', $branchId)
+        return Client::forBranch($branchId)
             ->select('clients.full_name as name')
             ->selectRaw('COUNT(DISTINCT sales.id) as orders')
             ->selectRaw("{$this->getConvertedPaymentExpression()} as total")
             ->join('sales', 'sales.customer_id', '=', 'clients.id')
             ->join('payments', function ($join) {
+
                 $join->on('payments.paymentable_id', '=', 'sales.id')
                     ->where('payments.paymentable_type', Sale::class);
             })
             ->where('sales.customer_type', Client::class)
             ->where('sales.branch_id', $branchId)
             ->whereNull('sales.deleted_at')
-            ->whereNull('clients.deleted_at')
             ->groupBy('clients.id', 'clients.full_name')
             ->orderByDesc('total')
             ->limit($limit)
