@@ -26,7 +26,8 @@ class AnalyticsService
         $rate = $this->exchangeService->getCurrentDollarRate();
         $usdValue = CurrencyType::USD->value;
 
-        return "SUM(CASE WHEN currency = '{$usdValue}' THEN amount * {$rate} ELSE amount END)";
+        // Especificamos 'payments.' para evitar conflictos en los JOINs
+        return "SUM(CASE WHEN payments.currency = '{$usdValue}' THEN payments.amount * {$rate} ELSE payments.amount END)";
     }
 
     public function getBranchStats(array $filters): array
