@@ -206,6 +206,7 @@ class OrderWebController extends BaseOrderController
         $this->authorize('create_branch', Order::class);
         $userBranchId = $this->currentBranchId();
         $branchService = app(BranchService::class);
+        $currentBranchId = $this->currentBranchId();
 
         $originBranch = $branchService->getUserBranch($userBranchId);
         $destinationBranches = collect($branchService->getAllBranchesExcept($userBranchId));
@@ -216,6 +217,7 @@ class OrderWebController extends BaseOrderController
         return view('admin.order.create-branch', compact(
             'customer_type',
             'originBranch',
+            'currentBranchId',
             'destinationBranches',
             'statusOptions'
         ) + ['isEdit' => false, 'order' => null]);
