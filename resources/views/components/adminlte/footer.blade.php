@@ -4,7 +4,7 @@
     <!--end::To the end-->
     <!--begin::Copyright-->
     <strong>
-        Copyright &copy; 2014-2025&nbsp;
+        Copyright &copy; 2014-2026&nbsp;
         <a href="https://adminlte.io" class="text-decoration-none">CreatingSoft</a>.
     </strong>
     Todos los derechos Rerservados
