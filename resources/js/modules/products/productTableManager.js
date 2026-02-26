@@ -51,139 +51,25 @@ const TABLE_CONFIG = {
         },
         importExcel: {
             selector: ".btn-header-import",
-            handler: (baseUrl) => {
-                const fileInput = document.getElementById("import-excel-input");
-                const btn = document.querySelector(".btn-header-import");
-
-                if (!fileInput) return;
-
-                fileInput.value = "";
-                fileInput.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-
-                    // Validación de extensión
-                    const allowed = ["xlsx", "xls", "csv"];
-                    const ext = file.name.split(".").pop().toLowerCase();
-
-                    if (!allowed.includes(ext)) {
-                        UIHelper.error(
-                            `Selecciona un archivo válido: ${allowed.join(", ")}`,
-                        );
-                        fileInput.value = "";
-                        return;
-                    }
-
-                    // UI: Estado cargando
-                    UIHelper.disableButton(btn, "Subiendo...");
-
-                    // Loading modal
-                    Swal.fire({
-                        title: "Importando productos...",
-                        allowOutsideClick: false,
-                        didOpen: () => Swal.showLoading(),
-                    });
-
-                    const formData = new FormData();
-                    formData.append("file", file);
-
-                    try {
-                        const { data } = await axios.post(
-                            "/web/products/import",
-                            formData,
-                            {
-                                headers: {
-                                    "Content-Type": "multipart/form-data",
-                                },
-                            },
-                        );
-
-                        UIHelper.success(data.message || "Importación exitosa");
-
-                        // Recarga diferida para que vean el toast
-                        setTimeout(() => window.location.reload(), 1500);
-                    } catch (error) {
-                        console.error(error);
-                        const msg =
-                            error.response?.data?.error || "Error al importar";
-                        Swal.fire("Error", msg, "error");
-                    } finally {
-                        UIHelper.enableButton(btn);
-                    }
-                };
-
-                fileInput.click();
+            handler: (baseUrl, event) => {
+                UIHelper.handleImport(
+                    event.currentTarget,
+                    "import-excel-input",
+                    `${baseUrl}/import`,
+                    "productos",
+                );
             },
         },
 
         importProviders: {
             selector: ".btn-header-import-providers",
-            handler: (baseUrl) => {
-                const fileInput = document.getElementById(
+            handler: (baseUrl, event) => {
+                UIHelper.handleImport(
+                    event.currentTarget,
                     "import-providers-excel-input",
+                    `${baseUrl}/import`,
+                    "proveedores",
                 );
-                const btn = document.querySelector(
-                    ".btn-header-import-providers",
-                );
-
-                if (!fileInput) return;
-
-                fileInput.value = "";
-                fileInput.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-
-                    const allowed = ["xlsx", "xls", "csv"];
-                    const ext = file.name.split(".").pop().toLowerCase();
-
-                    if (!allowed.includes(ext)) {
-                        UIHelper.error(
-                            `Selecciona un archivo válido: ${allowed.join(", ")}`,
-                        );
-                        fileInput.value = "";
-                        return;
-                    }
-
-                    UIHelper.disableButton(btn, "Subiendo...");
-
-                    Swal.fire({
-                        title: "Importando proveedores...",
-                        text: "Esto puede demorar unos segundos",
-                        allowOutsideClick: false,
-                        didOpen: () => Swal.showLoading(),
-                    });
-
-                    const formData = new FormData();
-                    formData.append("file", file);
-
-                    try {
-                        const { data } = await axios.post(
-                            "/web/providers/import", // Ajusta esta ruta según tu api.php/web.php
-                            formData,
-                            {
-                                headers: {
-                                    "Content-Type": "multipart/form-data",
-                                },
-                            },
-                        );
-
-                        UIHelper.success(
-                            data.message ||
-                                "Importación de proveedores exitosa",
-                        );
-                        setTimeout(() => window.location.reload(), 1500);
-                    } catch (error) {
-                        console.error(error);
-                        const msg =
-                            error.response?.data?.error ||
-                            "Error al importar proveedores";
-                        Swal.fire("Error", msg, "error");
-                    } finally {
-                        UIHelper.enableButton(btn);
-                    }
-                };
-
-                fileInput.click();
             },
         },
 

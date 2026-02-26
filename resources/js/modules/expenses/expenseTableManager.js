@@ -42,72 +42,13 @@ const TABLE_CONFIG = {
 
         importExpenses: {
             selector: ".btn-header-import-expenses",
-            handler: (baseUrl) => {
-                const fileInput = document.getElementById(
+            handler: (baseUrl, event) => {
+                UIHelper.handleImport(
+                    event.currentTarget,
                     "import-expenses-excel-input",
+                    `${baseUrl}/import`,
+                    "gastos",
                 );
-                const btn = document.querySelector(
-                    ".btn-header-import-expenses",
-                );
-
-                if (!fileInput) return;
-
-                fileInput.value = "";
-                fileInput.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-
-                    const allowed = ["xlsx", "xls", "csv"];
-                    const ext = file.name.split(".").pop().toLowerCase();
-
-                    if (!allowed.includes(ext)) {
-                        UIHelper.error(
-                            `Formato no válido. Use: ${allowed.join(", ")}`,
-                        );
-                        fileInput.value = "";
-                        return;
-                    }
-
-                    UIHelper.disableButton(btn, "Subiendo...");
-
-                    Swal.fire({
-                        title: "Importando gastos...",
-                        text: "Analizando archivo y procesando registros",
-                        allowOutsideClick: false,
-                        didOpen: () => Swal.showLoading(),
-                    });
-
-                    const formData = new FormData();
-                    formData.append("file", file);
-
-                    try {
-                        // Usamos la ruta del controlador que creamos anteriormente
-                        const { data } = await axios.post(
-                            `${baseUrl}/import`,
-                            formData,
-                            {
-                                headers: {
-                                    "Content-Type": "multipart/form-data",
-                                },
-                            },
-                        );
-
-                        UIHelper.success(
-                            data.message || "Gastos importados con éxito",
-                        );
-                        setTimeout(() => window.location.reload(), 1500);
-                    } catch (error) {
-                        console.error(error);
-                        const msg =
-                            error.response?.data?.error ||
-                            "Error al importar gastos";
-                        Swal.fire("Error", msg, "error");
-                    } finally {
-                        UIHelper.enableButton(btn);
-                    }
-                };
-
-                fileInput.click();
             },
         },
 
