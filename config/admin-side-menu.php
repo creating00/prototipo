@@ -42,6 +42,14 @@ return [
             'href'  => 'web.expenses.index',
         ],
 
+        // PROVEEDORES
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-truck',
+            'label' => 'Proveedores',
+            'href'  => 'web.providers.index',
+        ],
+
         // PRODUCTOS
         [
             'type' => 'single',

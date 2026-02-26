@@ -9,9 +9,9 @@
             <x-adminlte.data-table tableId="providers-table" title="Gestión de Proveedores" :headers="$headers"
                 :rowData="$rowData" :hiddenFields="$hiddenFields" withActions="true">
 
-                @canResource('providers.view')
+                {{-- @canResource('providers.view')
                 <x-adminlte.button color="custom-jade" size="sm" icon="fas fa-archive" class="me-1 btn-view" />
-                @endcanResource
+                @endcanResource --}}
 
                 @canResource('providers.update')
                 <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
