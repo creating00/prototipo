@@ -28,12 +28,12 @@
                     </x-adminlte.button>
                     @endcanResource
 
-                    @canResource('provider_orders.create')
+                    {{-- @canResource('provider_orders.create')
                     <x-adminlte.button color="custom-emerald" icon="fas fa-building"
                         class="me-1 btn-header-new-order-provider">
                         Nuevo Pedido a Proveedor
                     </x-adminlte.button>
-                    @endcanResource
+                    @endcanResource --}}
                 </x-slot>
             </x-adminlte.data-table>
         </div>
