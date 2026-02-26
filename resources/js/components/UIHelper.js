@@ -53,4 +53,43 @@ export class UIHelper {
             timer: 5000,
         });
     }
+
+    /**
+     * Descarga archivos vía AJAX con manejo de UI
+     */
+    static async handleDownload(btn, event, defaultFilename = 'plantilla.xlsx') {
+        event.preventDefault();
+        
+        const url = btn.href;
+        const type = btn.dataset.type; 
+        const filename = type ? `plantilla_${type}.xlsx` : defaultFilename;
+
+        this.disableButton(btn, "Preparando...");
+
+        try {
+            const response = await axios({
+                url: url,
+                method: "GET",
+                responseType: "blob",
+            });
+
+            const blob = new Blob([response.data]);
+            const urlBlob = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            
+            link.href = urlBlob;
+            link.download = filename;
+            document.body.appendChild(link); // Mejor compatibilidad
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(urlBlob); // Liberar memoria
+
+            this.success("Descarga iniciada");
+        } catch (error) {
+            console.error("Error en descarga:", error);
+            this.error("El archivo no está disponible en el servidor.");
+        } finally {
+            this.enableButton(btn);
+        }
+    }
 }

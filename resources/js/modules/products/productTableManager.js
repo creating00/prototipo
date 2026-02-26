@@ -189,38 +189,8 @@ const TABLE_CONFIG = {
 
         downloadTemplate: {
             selector: ".btn-download-template",
-            handler: async (baseUrl, event) => {
-                event.preventDefault(); // Evitamos la descarga directa
-
-                const btn = event.currentTarget;
-                const url = btn.href;
-                const type = btn.dataset.type;
-
-                UIHelper.disableButton(btn, "Preparando...");
-
-                try {
-                    const response = await axios({
-                        url: url,
-                        method: "GET",
-                        responseType: "blob", // Importante para archivos
-                    });
-
-                    // Crear un link temporal para disparar la descarga
-                    const blob = new Blob([response.data]);
-                    const link = document.createElement("a");
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = `plantilla_${type}.xlsx`;
-                    link.click();
-
-                    UIHelper.success("Descarga iniciada");
-                } catch (error) {
-                    console.error("Error en descarga:", error);
-                    const msg =
-                        "La plantilla no está disponible en el servidor.";
-                    UIHelper.error(msg);
-                } finally {
-                    UIHelper.enableButton(btn);
-                }
+            handler: (baseUrl, event) => {
+                UIHelper.handleDownload(event.currentTarget, event);
             },
         },
     },

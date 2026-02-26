@@ -1,5 +1,6 @@
 import { TableManager } from "../../components/TableManager";
 import { deleteItem } from "../../utils/deleteHelper";
+import { UIHelper } from "../../components/UIHelper";
 
 // 1. Extraemos la URL base del componente Blade (ej: /web/expenses)
 const tableContainer = document.querySelector("[data-base-url]");
@@ -36,6 +37,85 @@ const TABLE_CONFIG = {
             selector: ".btn-header-new",
             handler: (baseUrl) => {
                 window.location.href = `${baseUrl}/create`;
+            },
+        },
+
+        importExpenses: {
+            selector: ".btn-header-import-expenses",
+            handler: (baseUrl) => {
+                const fileInput = document.getElementById(
+                    "import-expenses-excel-input",
+                );
+                const btn = document.querySelector(
+                    ".btn-header-import-expenses",
+                );
+
+                if (!fileInput) return;
+
+                fileInput.value = "";
+                fileInput.onchange = async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const allowed = ["xlsx", "xls", "csv"];
+                    const ext = file.name.split(".").pop().toLowerCase();
+
+                    if (!allowed.includes(ext)) {
+                        UIHelper.error(
+                            `Formato no válido. Use: ${allowed.join(", ")}`,
+                        );
+                        fileInput.value = "";
+                        return;
+                    }
+
+                    UIHelper.disableButton(btn, "Subiendo...");
+
+                    Swal.fire({
+                        title: "Importando gastos...",
+                        text: "Analizando archivo y procesando registros",
+                        allowOutsideClick: false,
+                        didOpen: () => Swal.showLoading(),
+                    });
+
+                    const formData = new FormData();
+                    formData.append("file", file);
+
+                    try {
+                        // Usamos la ruta del controlador que creamos anteriormente
+                        const { data } = await axios.post(
+                            `${baseUrl}/import`,
+                            formData,
+                            {
+                                headers: {
+                                    "Content-Type": "multipart/form-data",
+                                },
+                            },
+                        );
+
+                        UIHelper.success(
+                            data.message || "Gastos importados con éxito",
+                        );
+                        setTimeout(() => window.location.reload(), 1500);
+                    } catch (error) {
+                        console.error(error);
+                        const msg =
+                            error.response?.data?.error ||
+                            "Error al importar gastos";
+                        Swal.fire("Error", msg, "error");
+                    } finally {
+                        UIHelper.enableButton(btn);
+                    }
+                };
+
+                fileInput.click();
+            },
+        },
+
+        // Acción para descargar la plantilla
+        downloadTemplate: {
+            selector: ".btn-download-template",
+            handler: (baseUrl, event) => {
+                UIHelper.handleDownload(event.currentTarget, event);
             },
         },
     },

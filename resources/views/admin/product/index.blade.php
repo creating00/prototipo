@@ -11,32 +11,17 @@
         <x-adminlte.alert-manager />
 
         {{-- Sección de Plantillas --}}
-        <div class="row mb-3">
-            <div class="col-12">
-                <div class="card card-outline card-info">
-                    <div class="card-body p-2">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-info-circle text-info me-3 ms-2" style="font-size: 1.5rem;"></i>
-                            <div>
-                                <span class="fw-bold d-block">Centro de Importación</span>
-                                <span class="text-muted small">Descarga las plantillas base para asegurar el formato
-                                    correcto de tus datos.</span>
-                            </div>
-                            <div class="ms-auto d-flex gap-2 pe-2">
-                                <a href="{{ route('web.products.template') }}"
-                                    class="btn btn-sm btn-outline-primary btn-download-template" data-type="productos">
-                                    <i class="fas fa-download me-1"></i> Plantilla Productos
-                                </a>
-                                <a href="{{ route('web.providers.template') }}"
-                                    class="btn btn-sm btn-outline-primary btn-download-template" data-type="proveedores">
-                                    <i class="fas fa-download me-1"></i> Plantilla Proveedores
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <x-bootstrap.import-center>
+            <a href="{{ route('web.products.template') }}" class="btn btn-sm btn-outline-primary btn-download-template"
+                data-type="productos">
+                <i class="fas fa-download me-1"></i> Plantilla Productos
+            </a>
+
+            <a href="{{ route('web.providers.template') }}" class="btn btn-sm btn-outline-primary btn-download-template"
+                data-type="proveedores">
+                <i class="fas fa-download me-1"></i> Plantilla Proveedores
+            </a>
+        </x-bootstrap.import-center>
 
         <x-adminlte.data-table tableId="products-table" title="Gestión de Productos" :headers="$headers" :rowData="$rowData"
             :hiddenFields="$hiddenFields" withActions="true">

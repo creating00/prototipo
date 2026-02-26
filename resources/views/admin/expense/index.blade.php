@@ -5,6 +5,16 @@
 @section('content')
     <div class="container-fluid">
         <x-adminlte.alert-manager />
+        {{-- Sección de Plantillas de Gastos --}}
+        {{-- <x-bootstrap.import-center title="Centro de Importación de Gastos"
+            description="Utiliza la plantilla oficial para evitar errores en el procesamiento de tus comprobantes.">
+
+            <a href="{{ route('web.expenses.template') }}" class="btn btn-sm btn-outline-primary btn-download-template"
+                data-type="gastos">
+                <i class="fas fa-download me-1"></i> Descargar Plantilla Gastos
+            </a>
+        </x-bootstrap.import-center> --}}
+
         <div id="expenses-table-wrapper" data-current-branch-id="{{ $currentBranchId }}">
             <x-adminlte.data-table tableId="expenses-table" title="Gestión de Gastos" size="sm-expenses" :headers="$headers"
                 :rowData="$rowData" :hiddenFields="$hiddenFields" withActions="true">
@@ -24,9 +34,19 @@
                 {{-- Botón para crear nueva gasto --}}
                 <x-slot name="headerButtons">
                     @canResource('expenses.create')
+                    {{-- Botón de Importar --}}
+                    {{-- <x-adminlte.button color="success" icon="fas fa-file-import" class="me-1 btn-header-import-expenses">
+                        Importar Gastos
+                    </x-adminlte.button> --}}
+
+                    {{-- Botón de Nuevo Gasto --}}
                     <x-adminlte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-new">
                         Nuevo Gasto
                     </x-adminlte.button>
+
+                    {{-- Input oculto para la importación --}}
+                    <input type="file" id="import-expenses-excel-input" style="display: none;"
+                        accept=".xlsx, .xls, .csv">
                     @endcanResource
                 </x-slot>
 
@@ -35,7 +55,8 @@
                         <div class="d-flex flex-wrap align-items-center gap-3">
                             <div class="d-flex align-items-center gap-2">
                                 <x-bootstrap.select name="filter_branch" id="filter-branch" :options="$branches"
-                                    placeholder="Todas las Sucursales" class="form-select-sm d-none" container-class="mb-0" />
+                                    placeholder="Todas las Sucursales" class="form-select-sm d-none"
+                                    container-class="mb-0" />
                                 <x-bootstrap.select name="filter_payment" id="filter-payment" :options="\App\Enums\PaymentType::forSelect()"
                                     placeholder="Todos los Pagos" class="form-select-sm" container-class="mb-0" />
                             </div>
