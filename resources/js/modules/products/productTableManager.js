@@ -64,10 +64,13 @@ const TABLE_CONFIG = {
         importProviders: {
             selector: ".btn-header-import-providers",
             handler: (baseUrl, event) => {
+                const btn = event.currentTarget;
+                const importUrl = btn.dataset.importUrl;
+
                 UIHelper.handleImport(
-                    event.currentTarget,
+                    btn,
                     "import-providers-excel-input",
-                    `${baseUrl}/import`,
+                    importUrl,
                     "proveedores",
                 );
             },

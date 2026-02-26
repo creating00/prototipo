@@ -56,7 +56,8 @@
 
                 @canResource('providers.create')
                 {{-- Botón de Importar Proveedores --}}
-                <x-adminlte.button color="success" icon="fas fa-file-import" class="me-1 btn-header-import-providers">
+                <x-adminlte.button color="success" icon="fas fa-file-import" class="me-1 btn-header-import-providers"
+                    data-import-url="{{ route('web.providers.import') }}">
                     Importar Proveedores
                 </x-adminlte.button>
 

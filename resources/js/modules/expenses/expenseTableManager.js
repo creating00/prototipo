@@ -22,11 +22,11 @@ const TABLE_CONFIG = {
         delete: {
             selector: ".btn-delete",
             handler: (row, baseUrl) => {
-                const { id, description } = row.dataset;
-                // Usamos description o el campo que tengas mapeado en el Service
+                const { id, observation } = row.dataset;
+                console.log(row.dataset);
                 deleteItem(
                     `${baseUrl}/${id}`,
-                    `el gasto "${description || id}"`,
+                    `el gasto "${observation || id}"`,
                 );
             },
         },
