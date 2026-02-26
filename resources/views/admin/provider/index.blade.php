@@ -9,9 +9,9 @@
             <x-adminlte.data-table tableId="providers-table" title="Gestión de Proveedores" :headers="$headers"
                 :rowData="$rowData" :hiddenFields="$hiddenFields" withActions="true">
 
-                @canResource('providers.view')
+                {{-- @canResource('providers.view')
                 <x-adminlte.button color="custom-jade" size="sm" icon="fas fa-archive" class="me-1 btn-view" />
-                @endcanResource
+                @endcanResource --}}
 
                 @canResource('providers.update')
                 <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
@@ -28,12 +28,12 @@
                     </x-adminlte.button>
                     @endcanResource
 
-                    @canResource('provider_orders.create')
+                    {{-- @canResource('provider_orders.create')
                     <x-adminlte.button color="custom-emerald" icon="fas fa-building"
                         class="me-1 btn-header-new-order-provider">
                         Nuevo Pedido a Proveedor
                     </x-adminlte.button>
-                    @endcanResource
+                    @endcanResource --}}
                 </x-slot>
             </x-adminlte.data-table>
         </div>

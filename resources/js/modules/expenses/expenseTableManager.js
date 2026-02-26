@@ -1,5 +1,6 @@
 import { TableManager } from "../../components/TableManager";
 import { deleteItem } from "../../utils/deleteHelper";
+import { UIHelper } from "../../components/UIHelper";
 
 // 1. Extraemos la URL base del componente Blade (ej: /web/expenses)
 const tableContainer = document.querySelector("[data-base-url]");
@@ -21,11 +22,11 @@ const TABLE_CONFIG = {
         delete: {
             selector: ".btn-delete",
             handler: (row, baseUrl) => {
-                const { id, description } = row.dataset;
-                // Usamos description o el campo que tengas mapeado en el Service
+                const { id, observation } = row.dataset;
+                console.log(row.dataset);
                 deleteItem(
                     `${baseUrl}/${id}`,
-                    `el gasto "${description || id}"`,
+                    `el gasto "${observation || id}"`,
                 );
             },
         },
@@ -36,6 +37,26 @@ const TABLE_CONFIG = {
             selector: ".btn-header-new",
             handler: (baseUrl) => {
                 window.location.href = `${baseUrl}/create`;
+            },
+        },
+
+        importExpenses: {
+            selector: ".btn-header-import-expenses",
+            handler: (baseUrl, event) => {
+                UIHelper.handleImport(
+                    event.currentTarget,
+                    "import-expenses-excel-input",
+                    `${baseUrl}/import`,
+                    "gastos",
+                );
+            },
+        },
+
+        // Acción para descargar la plantilla
+        downloadTemplate: {
+            selector: ".btn-download-template",
+            handler: (baseUrl, event) => {
+                UIHelper.handleDownload(event.currentTarget, event);
             },
         },
     },

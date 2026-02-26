@@ -4,7 +4,24 @@
 
 @section('content')
     <div class="container-fluid">
+        {{-- Inputs ocultos --}}
+        <input type="file" id="import-excel-input" style="display: none;" accept=".xlsx, .xls, .csv">
+        <input type="file" id="import-providers-excel-input" style="display: none;" accept=".xlsx, .xls, .csv">
+
         <x-adminlte.alert-manager />
+
+        {{-- Sección de Plantillas --}}
+        <x-bootstrap.import-center>
+            <a href="{{ route('web.products.template') }}" class="btn btn-sm btn-outline-primary btn-download-template"
+                data-type="productos">
+                <i class="fas fa-download me-1"></i> Plantilla Productos
+            </a>
+
+            <a href="{{ route('web.providers.template') }}" class="btn btn-sm btn-outline-primary btn-download-template"
+                data-type="proveedores">
+                <i class="fas fa-download me-1"></i> Plantilla Proveedores
+            </a>
+        </x-bootstrap.import-center>
 
         <x-adminlte.data-table tableId="products-table" title="Gestión de Productos" :headers="$headers" :rowData="$rowData"
             :hiddenFields="$hiddenFields" withActions="true">
@@ -27,12 +44,23 @@
             {{-- Botones de cabecera --}}
             <x-slot name="headerButtons">
                 @canResource('products.create')
+                {{-- Botón de Importar --}}
+                <x-adminlte.button color="success" icon="fas fa-file-import" class="me-1 btn-header-import">
+                    Importar Productos
+                </x-adminlte.button>
+
                 <x-adminlte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-new">
                     Nuevo Producto
                 </x-adminlte.button>
                 @endcanResource
 
                 @canResource('providers.create')
+                {{-- Botón de Importar Proveedores --}}
+                <x-adminlte.button color="success" icon="fas fa-file-import" class="me-1 btn-header-import-providers"
+                    data-import-url="{{ route('web.providers.import') }}">
+                    Importar Proveedores
+                </x-adminlte.button>
+
                 <x-adminlte.button color="custom-dark-blue" icon="fas fa-plus" class="me-1 btn-header-new-provider">
                     Nuevo Proveedor
                 </x-adminlte.button>

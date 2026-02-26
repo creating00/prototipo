@@ -1,6 +1,7 @@
 import { TableManager } from "../../components/TableManager";
 import { deleteItem } from "../../utils/deleteHelper";
 import { ModalSuccessWatcher } from "../../helpers/ModalSuccessWatcher";
+import { UIHelper } from "../../components/UIHelper";
 
 const TABLE_CONFIG = {
     tableId: "products-table",
@@ -46,6 +47,39 @@ const TABLE_CONFIG = {
 
                     modal.show();
                 }
+            },
+        },
+        importExcel: {
+            selector: ".btn-header-import",
+            handler: (baseUrl, event) => {
+                UIHelper.handleImport(
+                    event.currentTarget,
+                    "import-excel-input",
+                    `${baseUrl}/import`,
+                    "productos",
+                );
+            },
+        },
+
+        importProviders: {
+            selector: ".btn-header-import-providers",
+            handler: (baseUrl, event) => {
+                const btn = event.currentTarget;
+                const importUrl = btn.dataset.importUrl;
+
+                UIHelper.handleImport(
+                    btn,
+                    "import-providers-excel-input",
+                    importUrl,
+                    "proveedores",
+                );
+            },
+        },
+
+        downloadTemplate: {
+            selector: ".btn-download-template",
+            handler: (baseUrl, event) => {
+                UIHelper.handleDownload(event.currentTarget, event);
             },
         },
     },
