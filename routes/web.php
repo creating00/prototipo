@@ -7,6 +7,8 @@ use App\Http\Controllers\{
     HomeController,
     SaleReceiptController,
 };
+use App\Http\Controllers\Api\ProductImportController;
+use App\Http\Controllers\Api\ProviderImportController;
 use App\Http\Controllers\Web\{
     BranchWebController,
     CategoryWebController,
@@ -46,6 +48,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::prefix('web')->group(function () {
+        Route::get('products/template', [ProductImportController::class, 'downloadTemplate'])->name('web.products.template');
+        Route::get('providers/template', [ProviderImportController::class, 'downloadTemplate'])->name('web.providers.template');
+        Route::post('products/import', [ProductImportController::class, 'import'])->name('web.products.import');
+        Route::post('providers/import', [ProviderImportController::class, 'import'])->name('web.providers.import');
+
         webResource('categories', CategoryWebController::class);
         webResource('branches', BranchWebController::class);
         webResource('products', ProductWebController::class);

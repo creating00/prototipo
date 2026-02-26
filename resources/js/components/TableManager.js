@@ -29,7 +29,7 @@ export class TableManager {
             Object.entries(rowActions).map(([key, action]) => [
                 action.selector.replace(".", ""),
                 (row) => action.handler(row, config.baseUrl),
-            ])
+            ]),
         );
 
         return new DataTableActionsManager(config.tableId, rowActionsMap);
@@ -40,16 +40,18 @@ export class TableManager {
 
         Object.values(headerActions).forEach(
             ({ selector, message, handler }) => {
-                const button = document.querySelector(selector);
-                button?.addEventListener("click", (e) => {
-                    e.preventDefault();
-                    if (handler) {
-                        handler(config.baseUrl);
-                    } else {
-                        alert(message);
-                    }
+                const buttons = document.querySelectorAll(selector);
+                buttons.forEach((button) => {
+                    button.addEventListener("click", (e) => {
+                        if (handler) {
+                            handler(config.baseUrl, e);
+                        } else if (message) {
+                            e.preventDefault();
+                            alert(message);
+                        }
+                    });
                 });
-            }
+            },
         );
     }
 }
