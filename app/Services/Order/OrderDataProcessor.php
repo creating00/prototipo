@@ -69,7 +69,7 @@ class OrderDataProcessor
             throw new \Exception('No se proporcionó información de cliente');
         }
 
-        $client = $this->clientService->findOrCreate($data['client']);
+        $client = $this->clientService->findOrCreate($data['client'], $data['branch_id']);
         $data['customer_id'] = $client->id;
         $data['customer_type'] = Client::class;
         $data['user_id'] = $this->getDefaultEcommerceUser()->id;

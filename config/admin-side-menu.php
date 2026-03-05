@@ -57,6 +57,13 @@ return [
             'label' => 'Productos',
             'href'  => 'web.products.index',
         ],
+        // CATEGORIAS
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-tags',
+            'label' => 'Categorias',
+            'href'  => 'web.categories.index',
+        ],
 
         // CLIENTES
         [

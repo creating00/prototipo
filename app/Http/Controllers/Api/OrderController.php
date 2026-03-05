@@ -6,6 +6,7 @@ use App\Http\Controllers\BaseOrderController;
 use Illuminate\Http\Request;
 use App\Enums\OrderSource;
 use App\Models\Client;
+use App\Services\CurrencyExchangeService;
 use App\Traits\AuthTrait;
 
 class OrderController extends BaseOrderController
@@ -13,13 +14,16 @@ class OrderController extends BaseOrderController
     use AuthTrait;
 
     protected $clientService;
+    protected $currencyService;
 
     public function __construct(
         \App\Services\OrderService $orderService,
-        \App\Services\ClientService $clientService
+        \App\Services\ClientService $clientService,
+        CurrencyExchangeService $currencyService
     ) {
         parent::__construct($orderService);
         $this->clientService = $clientService;
+        $this->currencyService = $currencyService;
     }
 
     public function index()
@@ -55,6 +59,8 @@ class OrderController extends BaseOrderController
             $data = $request->all();
             $data['source'] = OrderSource::Ecommerce->value;
 
+            $data['exchange_rate'] = $this->currencyService->getCurrentDollarRate('venta');
+
             $data['items'] = array_map(function ($item) {
                 return array_merge([
                     'currency' => \App\Enums\CurrencyType::ARS->value,
@@ -74,9 +80,15 @@ class OrderController extends BaseOrderController
                     ], 422);
                 }
 
-                // Si es invitado (viene 'client'), lo creamos o buscamos antes de pasar al service de órdenes
                 if (!isset($data['client_id']) && isset($data['client'])) {
-                    $client = $this->clientService->findOrCreate($data['client']);
+
+                    $branchId = $data['branch_id'] ?? null;
+
+                    if (!$branchId) {
+                        return response()->json(['error' => 'branch_id is required to create a client'], 422);
+                    }
+
+                    $client = $this->clientService->findOrCreate($data['client'], $branchId);
                     $data['client_id'] = $client->id;
                 }
             }
