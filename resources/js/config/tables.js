@@ -12,6 +12,18 @@ export const TABLE_CONFIGS = {
         options: {
             pageLength: 10,
             ordering: true,
+            columnDefs: [
+                {
+                    targets: 0, // La columna del checkbox
+                    orderable: false,
+                    searchable: false,
+                    className: "dt-center",
+                },
+                {
+                    targets: "_all",
+                    className: "dt-center",
+                },
+            ],
         },
     },
 
@@ -20,6 +32,18 @@ export const TABLE_CONFIGS = {
         options: {
             pageLength: 5,
             ordering: false,
+            columnDefs: [
+                {
+                    targets: 0, // La columna del checkbox
+                    orderable: false,
+                    searchable: false,
+                    className: "dt-center",
+                },
+                {
+                    targets: "_all",
+                    className: "dt-center",
+                },
+            ],
         },
     },
 

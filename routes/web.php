@@ -52,7 +52,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('products/template', [ProductImportController::class, 'downloadTemplate'])->name('web.products.template');
         Route::get('providers/template', [ProviderImportController::class, 'downloadTemplate'])->name('web.providers.template');
         Route::get('expenses/template', [ExpenseImportController::class, 'downloadTemplate'])->name('web.expenses.template');
-        
+
+        Route::delete('products/bulk-delete', [ProductWebController::class, 'bulkDestroy'])
+            ->name('web.products.bulk-delete');
+
         Route::post('products/import', [ProductImportController::class, 'import'])->name('web.products.import');
         Route::post('providers/import', [ProviderImportController::class, 'import'])->name('web.providers.import');
         Route::post('expenses/import', [ExpenseImportController::class, 'import'])->name('web.expenses.import');

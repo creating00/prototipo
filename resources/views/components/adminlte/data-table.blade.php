@@ -26,33 +26,60 @@
     <div class="card-body">
         <div @class(['table-responsive' => $responsive])>
             <table id="{{ $tableId }}" class="{{ $getTableClass() }}">
+
                 <thead>
                     <tr>
+
+                        {{-- SELECT ALL --}}
+                        @if ($selectable ?? false)
+                            <th style="width:40px;" class="text-center">
+                                <input type="checkbox" class="select-all-checkbox">
+                            </th>
+                        @endif
+
+                        {{-- HEADERS --}}
                         @foreach ($headers as $header)
                             <th>{{ $header }}</th>
                         @endforeach
+
+                        {{-- ACTIONS --}}
                         @if ($withActions)
                             <th class="text-center">Acciones</th>
                         @endif
+
                     </tr>
                 </thead>
+
                 <tbody>
                     @foreach ($rows as $index => $row)
-                        <tr data-row-index="{{ $index }}"
+                        <tr data-row-index="{{ $index }}" data-row-id="{{ $getRowData($index)['id'] ?? '' }}"
                             @foreach ($getRowData($index) as $key => $value)
                                 data-{{ $key }}="{{ $value }}" @endforeach>
+
+                            {{-- ROW CHECKBOX --}}
+                            @if ($selectable ?? false)
+                                <td class="text-center">
+                                    <input type="checkbox" class="row-checkbox"
+                                        value="{{ $getRowData($index)['id'] ?? '' }}">
+                                </td>
+                            @endif
+
+                            {{-- CELDAS --}}
                             @foreach ($row as $cell)
                                 <td>{!! $cell !!}</td>
                             @endforeach
 
+                            {{-- ACTIONS --}}
                             @if ($withActions)
                                 <td class="text-center">
                                     {{ $actions ?? $slot }}
                                 </td>
                             @endif
+
                         </tr>
                     @endforeach
                 </tbody>
+
             </table>
         </div>
     </div>
