@@ -18,6 +18,7 @@ class DataTable extends Component
     public bool $withActions;
     public array $rowData;
     public array $hiddenFields;
+    public bool $selectable;
 
     public function __construct(
         string $tableId,
@@ -27,6 +28,7 @@ class DataTable extends Component
         Collection|array $rowData = [],
         bool $responsive = true,
         $withActions = false,
+        bool $selectable = false,
         array $hiddenFields = []
     ) {
         $this->tableId = $tableId;
@@ -36,6 +38,7 @@ class DataTable extends Component
         $this->rowData = $rowData instanceof Collection ? $rowData->toArray() : $rowData;
         $this->responsive = $responsive;
         $this->withActions = filter_var($withActions, FILTER_VALIDATE_BOOLEAN);
+        $this->selectable = $selectable;
         $this->hiddenFields = $hiddenFields ?: $this->detectHiddenFields($rowData);
 
         $this->rows = $this->generateRowsFromRowData();

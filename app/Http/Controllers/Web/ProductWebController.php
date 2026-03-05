@@ -14,6 +14,7 @@ use App\Traits\AuthTrait;
 use App\ViewModels\ProductFormData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class ProductWebController extends BaseProductController
 {
@@ -203,6 +204,51 @@ class ProductWebController extends BaseProductController
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', $e->getMessage());
+        }
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        // Autorización masiva (se asume que si puede borrar uno, puede borrar varios)
+        $this->authorize('delete', Product::class);
+
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se seleccionaron productos para eliminar.'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $branchId = $this->currentBranchId();
+            $deletedCount = 0;
+
+            foreach ($ids as $id) {
+                $product = $this->productService->getById($id);
+                if ($product) {
+                    $this->productService->delete($product, $branchId);
+                    $deletedCount++;
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Se han procesado {$deletedCount} productos correctamente."
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Error en eliminación masiva de productos: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Ocurrió un error al intentar eliminar los productos seleccionados.'
+            ], 500);
         }
     }
 }

@@ -155,4 +155,67 @@ export class UIHelper {
 
         fileInput.click();
     }
+
+    static async handleBulkDelete(
+        btn,
+        endpoint,
+        ids,
+        manager,
+        resourceName = "registros",
+    ) {
+        if (!ids || ids.length === 0) return;
+
+        const confirmed = await Swal.fire({
+            title: "¿Estás seguro?",
+            text: `Se eliminarán ${ids.length} ${resourceName} seleccionados.`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            confirmButtonText: "Sí, eliminar",
+            cancelButtonText: "Cancelar",
+        });
+
+        if (!confirmed.isConfirmed) return;
+
+        this.disableButton(btn, "Eliminando...");
+
+        // Mostrar Loading
+        Swal.fire({
+            title: `Eliminando ${resourceName}...`,
+            text: "Procesando la solicitud",
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+        });
+
+        try {
+            const { data } = await axios.post(endpoint, {
+                ids: ids,
+                _method: "DELETE",
+            });
+
+            // IMPORTANTE: Primero disparamos el success (Toast)
+            this.success(
+                data.message || `${resourceName} eliminados con éxito`,
+            );
+
+            // Usamos la misma lógica que en handleImport:
+            // Esperamos un tiempo prudente y refrescamos la página.
+            setTimeout(() => {
+                if (manager && typeof manager.reload === "function") {
+                    manager.reload();
+                } else {
+                    window.location.reload();
+                }
+            }, 1500);
+        } catch (error) {
+            console.error("Bulk delete error:", error);
+            const msg =
+                error.response?.data?.message ||
+                `Error al eliminar ${resourceName}`;
+
+            // Si hay error, quitamos el loading y mostramos el error
+            Swal.fire("Error", msg, "error");
+            this.enableButton(btn);
+        }
+    }
 }

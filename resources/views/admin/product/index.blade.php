@@ -24,7 +24,7 @@
         </x-bootstrap.import-center>
 
         <x-adminlte.data-table tableId="products-table" title="Gestión de Productos" :headers="$headers" :rowData="$rowData"
-            :hiddenFields="$hiddenFields" withActions="true">
+            :hiddenFields="$hiddenFields" withActions="true" selectable="true">
 
             {{-- Botones por fila --}}
             <x-slot name="actions">
@@ -43,6 +43,11 @@
 
             {{-- Botones de cabecera --}}
             <x-slot name="headerButtons">
+                <x-adminlte.button id="btn-bulk-delete" color="danger" icon="fas fa-trash" class="d-none me-1"
+                    data-bulk-target="#products-table">
+                    Eliminar Seleccionados
+                </x-adminlte.button>
+
                 @canResource('products.create')
                 {{-- Botón de Importar --}}
                 <x-adminlte.button color="success" icon="fas fa-file-import" class="me-1 btn-header-import">
