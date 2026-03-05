@@ -28,7 +28,20 @@ class ProductsImport implements ToModel, WithHeadingRow
 
     public function model(array $row)
     {
+        $row = array_combine(
+            array_map(fn($key) => trim($key), array_keys($row)),
+            array_values($row)
+        );
+
         if (!isset($row['codigo']) || empty($row['codigo'])) return null;
+
+        if (empty($row['nombre'])) {
+            // Opción A: Ignorar fila si no hay nombre
+            // return null; 
+
+            // Opción B: Usar el código como nombre temporal si falta
+            $row['nombre'] = 'Prod-' . $row['codigo'];
+        }
 
         $categoryId = $this->resolveCategory($row['categoria'] ?? null);
         $dynamicPrices = $this->processPrices($row);
@@ -38,7 +51,7 @@ class ProductsImport implements ToModel, WithHeadingRow
 
         $data = [
             'code'                => (string)$row['codigo'],
-            'name'                => $row['nombre'] ?? 'Sin nombre',
+            'name'                => trim($row['nombre']),
             'description'         => $row['descripcion'] ?? null,
             'category_id'         => $categoryId,
             'branch_id'           => $this->branchId,
