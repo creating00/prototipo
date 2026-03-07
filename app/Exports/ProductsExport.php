@@ -123,9 +123,14 @@ class ProductsExport implements FromCollection, WithMapping, WithHeadings, Shoul
         ];
 
         foreach ($types as $type) {
-            $priceNode = $branchData ? $branchData->prices->where('type', $type->value)->first() : null;
+            // Buscamos el precio que coincida con el tipo
+            $priceNode = $branchData
+                ? $branchData->prices->where('type', $type)->first()
+                : null;
+
             $data[] = $priceNode ? $priceNode->amount : 0;
-            $data[] = $priceNode ? ($priceNode->currency == CurrencyType::USD->value ? 'USD' : 'ARS') : 'ARS';
+
+            $data[] = $priceNode ? $priceNode->currency->code() : 'ARS';
         }
 
         $data[] = $product->providers->pluck('tax_id')->filter()->implode(',');
