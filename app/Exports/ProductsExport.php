@@ -123,13 +123,19 @@ class ProductsExport implements FromCollection, WithMapping, WithHeadings, Shoul
         ];
 
         foreach ($types as $type) {
+            // Buscamos el precio. Usamos 'firstWhere' para mayor claridad.
             $priceNode = $branchData
-                ? $branchData->prices->where('type', $type)->first()
+                ? $branchData->prices->firstWhere('type', $type)
                 : null;
 
-            // Si no existe el nodo, el precio queda en null/vacio y la moneda también
-            $data[] = $priceNode ? $priceNode->amount : null;
-            $data[] = $priceNode ? $priceNode->currency->code() : null;
+            if ($priceNode) {
+                $data[] = $priceNode->amount;
+                $data[] = $priceNode->currency->code();
+            } else {
+                // Forzamos que ambos campos sean null (vacíos en Excel)
+                $data[] = null;
+                $data[] = null;
+            }
         }
 
         $data[] = $product->providers->pluck('tax_id')->filter()->implode(',');
