@@ -45,4 +45,12 @@ class ProviderImportController extends Controller
         }
         return response()->download($path, 'plantilla_importacion_proveedores.xlsx');
     }
+
+    public function export()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\ProvidersExport(),
+            'proveedores_actualizados.xlsx'
+        );
+    }
 }
