@@ -10,17 +10,43 @@
 
         <x-adminlte.alert-manager />
 
-        {{-- Sección de Plantillas --}}
-        <x-bootstrap.import-center>
-            <a href="{{ route('web.products.template') }}" class="btn btn-sm btn-outline-primary btn-download-template"
-                data-type="productos">
-                <i class="fas fa-download me-1"></i> Plantilla Productos
-            </a>
+        {{-- Uso del componente con secciones agrupadas --}}
+        <x-bootstrap.import-center title="Gestión de Datos"
+            description="Descarga plantillas, exporta o importa productos y proveedores masivamente.">
 
-            <a href="{{ route('web.providers.template') }}" class="btn btn-sm btn-outline-primary btn-download-template"
-                data-type="proveedores">
-                <i class="fas fa-download me-1"></i> Plantilla Proveedores
-            </a>
+            {{-- Grupo: Plantillas --}}
+            <x-slot name="templates">
+                <a href="{{ route('web.products.template') }}" class="btn btn-sm btn-outline-primary btn-download-template"
+                    data-type="productos">
+                    <i class="fas fa-download me-1"></i> Productos
+                </a>
+                <a href="{{ route('web.providers.template') }}" class="btn btn-sm btn-outline-primary btn-download-template"
+                    data-type="proveedores">
+                    <i class="fas fa-download me-1"></i> Proveedores
+                </a>
+            </x-slot>
+
+            {{-- Grupo: Exportar --}}
+            <x-slot name="exports">
+                <a href="{{ route('web.products.export') }}" class="btn btn-sm btn-outline-success">
+                    <i class="fas fa-file-export me-1"></i> Productos
+                </a>
+                <a href="{{ route('web.providers.export') }}" class="btn btn-sm btn-outline-success">
+                    <i class="fas fa-file-export me-1"></i> Proveedores
+                </a>
+            </x-slot>
+
+            {{-- Grupo: Importar --}}
+            <x-slot name="imports">
+                <button class="btn btn-sm btn-success btn-header-import">
+                    <i class="fas fa-file-import me-1"></i> Productos
+                </button>
+                <button class="btn btn-sm btn-success btn-header-import-providers"
+                    data-import-url="{{ route('web.providers.import') }}">
+                    <i class="fas fa-file-import me-1"></i> Proveedores
+                </button>
+            </x-slot>
+
         </x-bootstrap.import-center>
 
         <x-adminlte.data-table tableId="products-table" title="Gestión de Productos" :headers="$headers" :rowData="$rowData"
@@ -50,9 +76,9 @@
 
                 @canResource('products.create')
                 {{-- Botón de Importar --}}
-                <x-adminlte.button color="success" icon="fas fa-file-import" class="me-1 btn-header-import">
+                {{-- <x-adminlte.button color="success" icon="fas fa-file-import" class="me-1 btn-header-import">
                     Importar Productos
-                </x-adminlte.button>
+                </x-adminlte.button> --}}
 
                 <x-adminlte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-new">
                     Nuevo Producto
@@ -61,10 +87,10 @@
 
                 @canResource('providers.create')
                 {{-- Botón de Importar Proveedores --}}
-                <x-adminlte.button color="success" icon="fas fa-file-import" class="me-1 btn-header-import-providers"
+                {{-- <x-adminlte.button color="success" icon="fas fa-file-import" class="me-1 btn-header-import-providers"
                     data-import-url="{{ route('web.providers.import') }}">
                     Importar Proveedores
-                </x-adminlte.button>
+                </x-adminlte.button> --}}
 
                 <x-adminlte.button color="custom-dark-blue" icon="fas fa-plus" class="me-1 btn-header-new-provider">
                     Nuevo Proveedor

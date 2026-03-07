@@ -56,6 +56,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('products/bulk-delete', [ProductWebController::class, 'bulkDestroy'])
             ->name('web.products.bulk-delete');
 
+        Route::get('products/export', [ProductImportController::class, 'export'])->name('web.products.export');
+        Route::get('providers/export', [ProviderImportController::class, 'export'])->name('web.providers.export');
+
         Route::post('products/import', [ProductImportController::class, 'import'])->name('web.products.import');
         Route::post('providers/import', [ProviderImportController::class, 'import'])->name('web.providers.import');
         Route::post('expenses/import', [ExpenseImportController::class, 'import'])->name('web.expenses.import');

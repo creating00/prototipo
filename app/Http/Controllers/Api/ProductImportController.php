@@ -7,6 +7,7 @@ use App\Imports\ProductsImport;
 use App\Traits\AuthTrait;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProductsExport;
 use Illuminate\Support\Facades\Log;
 
 class ProductImportController extends Controller
@@ -56,5 +57,15 @@ class ProductImportController extends Controller
             return abort(404, 'La plantilla no existe en el servidor.');
         }
         return response()->download($path, 'plantilla_importacion_productos.xlsx');
+    }
+
+    public function export()
+    {
+        $branchId = $this->currentBranchId();
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new ProductsExport($branchId),
+            'productos_actualizados.xlsx'
+        );
     }
 }
