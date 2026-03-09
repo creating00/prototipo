@@ -13,16 +13,17 @@
             </div>
         @endforeach --}}
         <div class="col-12">
-            <div class="text-center py-5">
+            <div class="text-center py-2">
                 <h1 class="sistema-gestion mb-2">
                     Sistema de Gestión
                 </h1>
-                <h2 class="tecnonauta mb-3">
+                {{-- <h2 class="tecnonauta mb-3">
                     TECNONAUTA
                 </h2>
                 <p class="subtitulo-servicio">
                     Servicio Técnico
-                </p>
+                </p> --}}
+                <img src="{{ asset('assets/img/logo.webp') }}" alt="TECNONAUTA" class="img-fluid logo-dashboard">
             </div>
         </div>
     </div>
@@ -31,13 +32,22 @@
 @push('styles')
     <style>
         .sistema-gestion {
-            font-family: 'Arial Black', 'Arial Bold', sans-serif;
-            font-size: 3.5rem;
-            font-weight: 900;
-            color: #2c3e50;
-            letter-spacing: 3px;
+            font-family: 'Arial Black', 'Arial Bold', Arial, Helvetica, sans-serif;
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: #5a6c7d;
+            letter-spacing: 4px;
             text-transform: uppercase;
-            margin-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .sistema-gestion::after {
+            content: "";
+            display: block;
+            width: 120px;
+            height: 2px;
+            margin: 12px auto 0;
+            background: linear-gradient(to right, transparent, #95a5a6, transparent);
         }
 
         .tecnonauta {
@@ -88,6 +98,13 @@
             width: 60%;
             height: 2px;
             background: linear-gradient(to right, transparent, #95a5a6, transparent);
+        }
+
+        .logo-dashboard {
+            max-width: 480px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.35));
         }
 
         @media (max-width: 768px) {

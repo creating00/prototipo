@@ -4,10 +4,11 @@
         <!--begin::Brand Link-->
         <a href="{{ route('dashboard') }}" class="brand-link">
             <!--begin::Brand Image-->
-            <img src="{{ asset('assets/img/logo.webp') }}" alt="AdminLTE Logo" class="brand-image opacity-75 shadow" />
+            <img src="{{ asset('assets/img/logo.webp') }}" alt="TECNONAUTA Logo" class="brand-image mb-2"
+                style="max-height:45px;" />
             <!--end::Brand Image-->
             <!--begin::Brand Text-->
-            <span class="brand-text fw-light">{{ config('app.name') }}</span>
+            {{-- <span class="brand-text fw-light">{{ config('app.name') }}</span> --}}
             <!--end::Brand Text-->
         </a>
         <!--end::Brand Link-->
