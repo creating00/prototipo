@@ -27,6 +27,10 @@ class Product extends Model
 
     protected array $branchCache = [];
 
+    protected $casts = [
+        'status' => \App\Enums\ProductStatus::class,
+    ];
+
     /*
     |--------------------------------------------------------------------------
     | Relationships

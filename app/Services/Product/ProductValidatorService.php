@@ -2,7 +2,9 @@
 
 namespace App\Services\Product;
 
+use App\Enums\ProductStatus;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\ValidationException;
 
 class ProductValidatorService
@@ -19,7 +21,7 @@ class ProductValidatorService
             'branch_id' => 'required|exists:branches,id',
             'stock' => 'required|integer|min:0',
             'low_stock_threshold' => 'nullable|integer|min:0',
-            'status' => 'required|integer|in:1,2,3',
+            'status' => ['required', new Enum(ProductStatus::class)],
 
             // Precio de Compra
             'purchase_price_amount' => 'required|numeric|min:0',
