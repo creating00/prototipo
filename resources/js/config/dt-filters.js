@@ -135,9 +135,37 @@ export function setupExpenseFilters(api) {
 }
 
 export function updateSalesFooter(api) {
+    // Obtenemos el valor del filtro de pago actual
+    const selectedPaymentFilter =
+        document.getElementById("filter-payment")?.value;
+
     updateGenericFooter(api, (row, totals) => {
-        totals.ars += Number(row.getAttribute("data-total_ars") || 0);
-        totals.usd += Number(row.getAttribute("data-total_usd") || 0);
+        const paymentsJson = row.getAttribute("data-payments_detailed");
+
+        if (paymentsJson) {
+            const payments = JSON.parse(paymentsJson);
+
+            payments.forEach((p) => {
+                // Si no hay filtro, sumamos todo.
+                // Si hay filtro, solo sumamos si el tipo de pago coincide.
+                if (
+                    !selectedPaymentFilter ||
+                    p.type.toString() === selectedPaymentFilter
+                ) {
+                    if (p.currency === 1) {
+                        // ARS
+                        totals.ars += p.amount;
+                    } else if (p.currency === 2) {
+                        // USD
+                        totals.usd += p.amount;
+                    }
+                }
+            });
+        } else {
+            // Fallback por si acaso no existe el atributo nuevo
+            totals.ars += Number(row.getAttribute("data-total_ars") || 0);
+            totals.usd += Number(row.getAttribute("data-total_usd") || 0);
+        }
     });
 }
 

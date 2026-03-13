@@ -30,24 +30,22 @@ export default class PaymentManager {
                 "pay_in_dollars",
             )?.checked;
             const rate = this._getFloat("exchange_rate_blue") || 1;
-            const isDualEnabled = this.dom.el(
-                "dualCheck",
-                "enable_dual_payment",
-            )?.checked;
 
-            // 1. Obtener montos recibidos
-            let r1 = this._getFloat("amount_received_1_modal");
-            let r2 = this._getFloat("amount_received_2_modal");
+            // 1. Obtener montos de los 3 nuevos inputs
+            const cash = this._getFloat("amount_received_cash");
+            const transfer = this._getFloat("amount_received_transfer");
+            const card = this._getFloat("amount_received_card");
 
-            // Solo convertir a pesos si NO es modo dual
-            // En modo dual, los valores modales YA están en pesos
-            if (isDollarMode && !isDualEnabled) {
-                r1 = r1 * rate;
+            this._handleInputsLock(cash, transfer, card);
+
+            // 2. Sumar total recibido (asumimos que los inputs ya están en la moneda que indica el modo)
+            let totalReceivedArs = cash + transfer + card;
+
+            if (isDollarMode) {
+                totalReceivedArs = totalReceivedArs * rate;
             }
 
-            const totalReceivedArs = r1 + r2;
-
-            // 2. El calculador siempre opera en Pesos (Moneda Base)
+            // 3. Operar con el calculador
             const result = PaymentCalculator.calculate(
                 this.state.saleTotal,
                 totalReceivedArs,
@@ -57,7 +55,7 @@ export default class PaymentManager {
             const balanceArs = parseFloat(result.balance) || 0;
             const symbol = isDollarMode ? "U$D" : "$";
 
-            // 3. Conversión para visualización
+            // 4. Conversiones para visualización
             const displayTotal = isDollarMode
                 ? this.state.saleTotal / rate
                 : this.state.saleTotal;
@@ -65,41 +63,120 @@ export default class PaymentManager {
                 ? balanceArs / rate
                 : balanceArs;
             const displayChange = isDollarMode ? changeArs / rate : changeArs;
-            const displayR1 = isDollarMode ? r1 / rate : r1;
-            const displayR2 = isDollarMode ? r2 / rate : r2;
 
-            // 4. Actualizar UI con todos los datos calculados
+            // 5. Actualizar UI
             this.ui.updateSummaryDisplay({
                 displayTotal,
                 displayBalance,
                 displayChange,
-                displayR1,
-                displayR2,
+                displayR1: 0, // Podemos enviar 0 o el total según pida tu UIUpdater
+                displayR2: 0,
                 totalReceivedArs,
                 changeArs,
                 balanceArs,
-                isDualEnabled,
+                isDualEnabled:
+                    (cash > 0 && (transfer > 0 || card > 0)) ||
+                    (transfer > 0 && card > 0),
                 symbol,
             });
 
-            // 5. Actualizar etiquetas de tipo de pago si es dual
-            if (isDualEnabled) {
-                this.methodHandler.updatePaymentTypeLabels();
-            }
+            // 6. Sincronizar con campos Hidden para el Backend
+            this._syncHiddensForBackend(cash, transfer, card);
 
-            // 6. Actualizar campos ocultos
+            // 7. Actualizar campos ocultos de totales y badges
             this.ui.updateHiddenFields(displayChange, displayBalance);
 
-            // 7. Actualizar badges de estado
             const status = PaymentCalculator.getStatus(
                 this.state.saleTotal,
                 totalReceivedArs,
                 changeArs,
                 balanceArs,
             );
-            const badgeHtml = `<span class="badge bg-${status.class}">${status.label}</span>`;
-            this.ui.updatePaymentStatusBadges(badgeHtml);
+            this.ui.updatePaymentStatusBadges(
+                `<span class="badge bg-${status.class}">${status.label}</span>`,
+            );
         });
+    }
+
+    /**
+     * Mapea los montos a la estructura que espera el backend
+     */
+    _syncHiddensForBackend(cash, transfer, card) {
+        const isDollarMode = this.dom.el(
+            "payDollars",
+            "pay_in_dollars",
+        )?.checked;
+        const rate = this._getFloat("exchange_rate_blue") || 1;
+
+        // 1. Calcular el Total según la Moneda para 'hidden_totals'
+        // El backend espera: {"1": total_ars} o {"2": total_usd}
+        const totalReceived = cash + transfer + card;
+        const totalsData = {};
+
+        if (isDollarMode) {
+            // Llave 2 = USD (según tu indicación de moneda)
+            totalsData[2] = totalReceived;
+        } else {
+            // Llave 1 = ARS
+            totalsData[1] = totalReceived;
+        }
+
+        const totalsHidden = document.getElementById("hidden_totals");
+        if (totalsHidden) {
+            totalsHidden.value = JSON.stringify(totalsData);
+        }
+
+        // 2. Mantener la lógica de pagos individuales para el desglose (Legacy)
+        const legacyData = {
+            cash: { amount: cash, type: 1 },
+            card: {
+                amount: card,
+                type: 2,
+                id: this.dom.el("bank_id_card", "bank_id_card")?.value,
+                model: "App\\Models\\Bank",
+            },
+            transfer: {
+                amount: transfer,
+                type: 3,
+                id: this.dom.el(
+                    "bank_account_id_transfer",
+                    "bank_account_id_transfer",
+                )?.value,
+                model: "App\\Models\\BankAccount",
+            },
+        };
+
+        this._fillLegacyHiddens(legacyData);
+    }
+
+    _fillLegacyHiddens(data) {
+        // Filtramos solo los que tienen monto > 0
+        const active = Object.values(data).filter((p) => p.amount > 0);
+
+        // Pago 1
+        if (active[0]) {
+            this._setVal("hidden_payment_type", active[0].type);
+            this._setVal("hidden_amount_received", active[0].amount);
+            this._setVal("hidden_payment_method_id", active[0].id || "");
+            this._setVal("hidden_payment_method_type", active[0].model || "");
+        }
+
+        // Pago 2
+        if (active[1]) {
+            this._setVal("hidden_payment_type_2", active[1].type);
+            this._setVal("hidden_amount_received_2", active[1].amount);
+            this._setVal("hidden_payment_method_id_2", active[1].id || "");
+            this._setVal("hidden_payment_method_type_2", active[1].model || "");
+            this._setVal("hidden_enable_dual_payment", 1);
+        } else {
+            this._setVal("hidden_enable_dual_payment", 0);
+            this._setVal("hidden_amount_received_2", 0);
+        }
+    }
+
+    _setVal(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
     }
 
     /**
@@ -193,5 +270,40 @@ export default class PaymentManager {
 
     _dispatchEvent(eventName, detail) {
         document.dispatchEvent(new CustomEvent(eventName, { detail }));
+    }
+
+    /**
+     * Bloquea el tercer input si ya hay dos con valores
+     */
+    _handleInputsLock(cash, transfer, card) {
+        const inputs = [
+            { id: "amount_received_cash", val: cash },
+            { id: "amount_received_transfer", val: transfer },
+            { id: "amount_received_card", val: card },
+        ];
+
+        const activeInputs = inputs.filter((i) => i.val > 0);
+
+        if (activeInputs.length >= 2) {
+            // Bloquear los que están en 0
+            inputs.forEach((i) => {
+                const el = document.getElementById(i.id);
+                if (i.val === 0 && el) {
+                    el.readOnly = true;
+                    el.parentElement.classList.add("bg-light"); // Feedback visual
+                    el.placeholder = "Máximo 2 métodos";
+                }
+            });
+        } else {
+            // Desbloquear todos
+            inputs.forEach((i) => {
+                const el = document.getElementById(i.id);
+                if (el) {
+                    el.readOnly = false;
+                    el.parentElement.classList.remove("bg-light");
+                    el.placeholder = "Monto";
+                }
+            });
+        }
     }
 }

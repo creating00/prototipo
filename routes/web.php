@@ -28,6 +28,7 @@ use App\Http\Controllers\Web\{
     BankAccountWebController,
     BankWebController,
     PriceModificationWebController,
+    PromotionWebController,
     RepairAmountWebController
 };
 use App\Models\Sale;
@@ -77,6 +78,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         webResource('repair-amounts', RepairAmountWebController::class);
         webResource('banks', BankWebController::class);
         webResource('bank-accounts', BankAccountWebController::class);
+        webResource('promotions', PromotionWebController::class);
 
         Route::get('/audits', [PriceModificationWebController::class, 'index'])
             ->name('web.price-modifications.index');

@@ -107,11 +107,11 @@
                 <h3 class="card-title">Totales y Pago</h3>
 
                 <div class="card-tools">
-                    <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
+                    {{-- <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
                         data-bs-target="#modalSalePayment" data-focus-target="#amount_received">
                         <i class="fas fa-edit"></i> Editar
                         <span class="kbd-shortcut">F10</span>
-                    </button>
+                    </button> --}}
                 </div>
             </div>
 

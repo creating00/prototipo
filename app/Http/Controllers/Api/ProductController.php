@@ -84,7 +84,7 @@ class ProductController extends BaseProductController
                 'salePrice'      => $finalPrice,
                 'currency'       => $currency,
                 'item'           => null,
-                'allowEditPrice' => ($context === 'sale'),
+                'allowEditPrice' => ($context === 'saleX'),
             ])->render(),
         ]);
     }
@@ -213,7 +213,7 @@ class ProductController extends BaseProductController
     public function destroy(Product $product)
     {
         try {
-            $this->productService->delete($product);
+            $this->productService->delete($product, 1);
 
             return response()->json(['message' => 'Product deleted'], 200);
         } catch (\Exception $e) {

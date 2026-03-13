@@ -78,6 +78,9 @@ class PermissionSeeder extends Seeder
         
         //Cuentas Bancarias
         'bank_accounts' => ['view', 'create', 'update', 'delete'],
+
+        // Promociones
+        'promotions' => ['view', 'create', 'update', 'delete'],
     ];
 
     // Roles con permisos definidos (puede moverse a config/roles.php)
