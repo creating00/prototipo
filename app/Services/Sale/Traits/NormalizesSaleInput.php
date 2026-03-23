@@ -9,24 +9,28 @@ trait NormalizesSaleInput
      */
     protected function resolveAndAdjustTotals(array $data, array &$totals): float
     {
-        // Forzamos que los valores sean numéricos antes de sumar
+        // 1. Suma de lo que viene en el JSON de totales
         $totalSum = (float) array_sum(array_map('floatval', $totals));
 
-        // Obtenemos el valor crudo
+        // 2. Tomamos el monto del primer pago (Legacy field)
         $inputAmount = $data['amount_received'] ?? null;
 
-        // Caso 1: Pago completo
-        // Ahora entra si es null, si es 0, o si es la cadena "0.00"
+        // Caso 1: Si no hay monto recibido o es 0, asumimos pago exacto
         if (is_null($inputAmount) || (float)$inputAmount === 0.0) {
             return $totalSum;
         }
 
         $inputAmount = (float) $inputAmount;
 
-        // Caso 2: Salida rápida / Descuento manual
-        if ($inputAmount > 0 && $inputAmount < $totalSum) {
+        // Caso 2: Ajuste de total (Descuento manual)
+        // Solo ajustamos si el monto recibido es MENOR al total 
+        // Y NO es una venta dual (en dual la suma de ambos pagos debe dar el total)
+        $isDual = isset($data['enable_dual_payment']) && (int)$data['enable_dual_payment'] === 1;
+
+        if (!$isDual && $inputAmount > 0 && $inputAmount < ($totalSum - 0.01)) {
             $currencyKey = array_key_first($totals);
             if ($currencyKey) {
+                // Solo sobreescribimos si el usuario realmente cambió el monto a pagar
                 $totals[$currencyKey] = $inputAmount;
             }
         }

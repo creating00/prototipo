@@ -10,26 +10,18 @@ trait HandlesSalePayments
     protected function processPayments(Sale $sale, array $data, array $totals, callable $addPaymentCallback): void
     {
         $isDual = isset($data['enable_dual_payment']) && (int)$data['enable_dual_payment'] === 1;
-        $totalToPay = array_sum(array_map('floatval', $totals));
 
-        // Determinar moneda del pago
-        // Si es dual, forzamos ARS. Si es simple, verificamos si la venta está en USD.
-        $paymentCurrency = CurrencyType::ARS;
+        // Detectar la moneda de la venta desde el JSON de totals
+        $paymentCurrency = isset($totals[CurrencyType::USD->value])
+            ? CurrencyType::USD
+            : CurrencyType::ARS;
 
-        if (!$isDual) {
-            $paymentCurrency = isset($totals[CurrencyType::USD->value])
-                ? CurrencyType::USD
-                : CurrencyType::ARS;
-        }
-
-        // Pago 1
-        if (!empty($data['amount_received'])) {
-            $amount1 = $isDual ? (float)$data['amount_received'] : min((float)$data['amount_received'], $totalToPay);
-
+        // --- PAGO 1 (Campos estándar de tu Blade) ---
+        if (!empty($data['amount_received']) && (float)$data['amount_received'] > 0) {
             $addPaymentCallback($sale, $this->buildPaymentData([
                 'payment_type'        => $data['payment_type'],
-                'amount'              => $amount1,
-                'currency'            => $paymentCurrency, // Usar la moneda detectada
+                'amount'              => (float)$data['amount_received'],
+                'currency'            => $paymentCurrency,
                 'bank_id'             => $data['payment_method_id'] ?? null,
                 'bank_account_id'     => $data['payment_method_id'] ?? null,
                 'payment_method_type' => $data['payment_method_type'] ?? null,
@@ -37,15 +29,15 @@ trait HandlesSalePayments
             ]));
         }
 
-        // Pago 2 (Siempre ARS según tu requerimiento actual)
-        if ($isDual && !empty($data['amount_received_2'])) {
+        // --- PAGO 2 (Campos estándar de tu Blade) ---
+        if ($isDual && !empty($data['amount_received_2']) && (float)$data['amount_received_2'] > 0) {
             $addPaymentCallback($sale, $this->buildPaymentData([
                 'payment_type'        => $data['payment_type_2'],
                 'amount'              => (float)$data['amount_received_2'],
-                'currency'            => CurrencyType::ARS, // Forzado a ARS
+                'currency'            => $paymentCurrency, // Mantenemos la moneda de la venta
                 'bank_id'             => $data['payment_method_id_2'] ?? null,
                 'bank_account_id'     => $data['payment_method_id_2'] ?? null,
-                'payment_method_type' => $data['payment_method_type_2'] ?? null,
+                'payment_method_type' => $data['hidden_payment_method_type_2'] ?? null,
                 'payment_notes'       => $data['payment_notes'] ?? null,
             ]));
         }

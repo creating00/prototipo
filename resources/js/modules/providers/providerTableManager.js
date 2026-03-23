@@ -3,7 +3,9 @@ import { deleteItem } from "../../utils/deleteHelper";
 
 const tableContainer = document.querySelector("[data-provider-order-url]");
 
-const provicerOrderUrl = tableContainer ? tableContainer.dataset.providerOrderUrl : "";
+const provicerOrderUrl = tableContainer
+    ? tableContainer.dataset.providerOrderUrl
+    : "";
 
 const TABLE_CONFIG = {
     tableId: "providers-table",
@@ -28,10 +30,13 @@ const TABLE_CONFIG = {
         delete: {
             selector: ".btn-delete",
             handler: (row, baseUrl) => {
-                const { id, name } = row.dataset;
+                const { id, business_name } = row.dataset;
 
                 // Eliminación dinámica con mensaje corregido
-                deleteItem(`${baseUrl}/${id}`, `el proveedor "${name}"`);
+                deleteItem(
+                    `${baseUrl}/${id}`,
+                    `el proveedor "${business_name}"`,
+                );
             },
         },
     },

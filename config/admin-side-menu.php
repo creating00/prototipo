@@ -42,12 +42,27 @@ return [
             'href'  => 'web.expenses.index',
         ],
 
+        // PROVEEDORES
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-truck',
+            'label' => 'Proveedores',
+            'href'  => 'web.providers.index',
+        ],
+
         // PRODUCTOS
         [
             'type' => 'single',
             'icon' => 'bi bi-box-seam',
             'label' => 'Productos',
             'href'  => 'web.products.index',
+        ],
+        // CATEGORIAS
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-tags',
+            'label' => 'Categorias',
+            'href'  => 'web.categories.index',
         ],
 
         // CLIENTES

@@ -41,13 +41,13 @@
 
     {{-- @include('admin.product.partials._modal_product_search') --}}
     @include('admin.client.partials._modal-create')
-    @include('admin.sales.partials._modal-payment', [
+    {{-- @include('admin.sales.partials._modal-payment', [
         'saleDate' => $currentSaleDate,
         'customerType' => $customerType,
         'pago1' => $pago1,
         'pago2' => $pago2,
         'isDual' => $isDual,
-    ])
+    ]) --}}
 
 @endsection
 

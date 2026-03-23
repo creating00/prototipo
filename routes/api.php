@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\ProviderProductController;
 use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\ProfileApiController;
+use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\ProvinceController;
 use Illuminate\Support\Facades\Cache;
 
@@ -38,6 +39,7 @@ Route::prefix('inventory')->group(function () {
     Route::get('by-code/{code}', [ProductController::class, 'findByCode']);
 });
 Route::apiResource('products', ProductController::class);
+Route::apiResource('promotions', PromotionController::class);
 
 Route::get('providers/search', [ProviderController::class, 'search'])->name('providers.search');
 Route::get('providers/list-basic', [ProviderController::class, 'listBasic'])->name('providers.list-basic');

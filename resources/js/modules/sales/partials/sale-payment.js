@@ -131,98 +131,54 @@ class SalePayment {
     }
 
     initialLoad() {
-        const subtotal = this.dom.getFloat("subtotal_amount");
+        // Solo cargamos el total inicial y ejecutamos el primer cálculo
         const currentTotal = this.dom.getFloat("total_amount");
         this.state.saleTotal = currentTotal;
 
-        this.dispatchEvent("sale:subtotalUpdated", { subtotal });
+        // Si es reparación, ajustar UI
+        this.detectSaleType();
 
-        const paymentType = this.dom.el(
-            "payType",
-            'select[name="payment_type_visible"]',
-        );
-        if (paymentType) {
-            this.methodHandler.updateMethodVisibility(paymentType.value, "");
-            this.methodHandler.updateMethodVisibility(paymentType.value, "1");
-        }
-
-        const modalType2 = this.dom.el("modalType2", "payment_type_2_modal");
-        if (modalType2) {
-            this.methodHandler.updateMethodVisibility(modalType2.value, "2");
-        }
-
-        const dualCheck = this.dom.el("dualCheck", "enable_dual_payment");
-        if (dualCheck) {
-            this.dualHandler.toggleDualPayment(dualCheck.checked);
-        }
-
-        this.paymentManager.updateTotalsHiddenFields(this.state.saleTotal);
-        this.syncManager.syncRepairAmount();
+        // Calcular inicialmente para que el bloqueo de inputs (_handleInputsLock)
+        // se active si ya vienen pagos desde la base de datos (Edit mode)
         this.paymentManager.calculate();
+        this.paymentManager.updateTotalsHiddenFields(this.state.saleTotal);
     }
 
     bindEvents() {
-        // 1. Sincronización Bidireccional (Vista <-> Modal 1)
-        this.syncManager.bindSync(
-            this.dom.el("amtRcv", "amount_received"),
-            this.dom.el("modal1", "amount_received_1_modal"),
-            "input",
-        );
-        this.syncManager.bindSync(
-            this.dom.el("payTypeVis", "payment_type_visible"),
-            this.dom.el("modalType1", "payment_type_1_modal"),
-            "change",
-            true,
-        );
-        this.syncManager.bindSync(
-            this.dom.el("bankVis", "bank_id_visible"),
-            this.dom.el("modalBank1", "bank_id_1_modal"),
-            "change",
-            true,
-        );
-        this.syncManager.bindSync(
-            this.dom.el("accVis", "bank_account_id_visible"),
-            this.dom.el("modalAcc1", "bank_account_id_1_modal"),
-            "change",
-            true,
-        );
-
-        // 2. Visibilidad y Polimorfismo
-        this.on("payTypeVis", "payment_type_visible", "change", (e) => {
-            this.methodHandler.updateMethodVisibility(e.target.value, "");
-        });
-
-        this.on("modalType1", "payment_type_1_modal", "change", (e) => {
-            this.methodHandler.updateMethodVisibility(e.target.value, "1");
-            this.dualHandler.checkDualLabels();
-        });
-
-        this.on("modalType2", "payment_type_2_modal", "change", (e) => {
-            this.methodHandler.updateMethodVisibility(e.target.value, "2");
-            this.dualHandler.checkDualLabels();
-        });
-
-        // 3. Pago Doble
-        this.on("dualCheck", "enable_dual_payment", "change", (e) =>
-            this.dualHandler.toggleDualPayment(e.target.checked),
-        );
-
-        // 4. Cálculos
+        // 1. Inputs principales de montos (Efectivo, Transferencia, Tarjeta)
         [
-            "amount_received",
-            "amount_received_1_modal",
-            "amount_received_2_modal",
-            "exchange_rate_blue",
+            "amount_received_cash",
+            "amount_received_transfer",
+            "amount_received_card",
         ].forEach((id) => {
             this.on(id, id, "input", () => {
                 this.paymentManager.calculate();
-                this.paymentManager.updateTotalsHiddenFields(
-                    this.state.saleTotal,
-                );
             });
         });
 
-        // 5. Cambios de tipo y descuentos
+        // 2. Selectores de Entidades (Bancos y Cuentas)
+        this.on("bank_id_card", "bank_id_card", "change", () =>
+            this.paymentManager.calculate(),
+        );
+
+        this.on(
+            "bank_account_id_transfer",
+            "bank_account_id_transfer",
+            "change",
+            () => this.paymentManager.calculate(),
+        );
+
+        // 3. Configuración de Moneda y Tasa
+        this.on("exchange_rate_blue", "exchange_rate_blue", "input", () => {
+            this.paymentManager.calculate();
+            this.paymentManager.updateTotalsHiddenFields(this.state.saleTotal);
+        });
+
+        this.on("payDollars", "pay_in_dollars", "change", () => {
+            this.paymentManager.updateTotalsHiddenFields(this.state.saleTotal);
+        });
+
+        // 4. Lógica de Venta y Descuentos
         this.on("saleType", "sale_type", "change", (e) =>
             this.paymentManager.handleSaleTypeChange(
                 e.target.value,
@@ -238,11 +194,7 @@ class SalePayment {
             this.paymentManager.applyManualDiscount(),
         );
 
-        this.on("payDollars", "pay_in_dollars", "change", () =>
-            this.paymentManager.updateTotalsHiddenFields(this.state.saleTotal),
-        );
-
-        // 6. Custom Events
+        // 5. Eventos de Sistema / Globales
         document.addEventListener("sale:subtotalUpdated", () =>
             this.paymentManager.applyManualDiscount(),
         );

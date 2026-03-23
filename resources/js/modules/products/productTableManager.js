@@ -1,6 +1,8 @@
 import { TableManager } from "../../components/TableManager";
-import { deleteItem } from "../../utils/deleteHelper";
+import { deleteItem, deleteBulkItems } from "../../utils/deleteHelper";
 import { ModalSuccessWatcher } from "../../helpers/ModalSuccessWatcher";
+import { UIHelper } from "../../components/UIHelper";
+//import { DataTableManager } from "../../components/DataTableManager";
 
 const TABLE_CONFIG = {
     tableId: "products-table",
@@ -46,6 +48,63 @@ const TABLE_CONFIG = {
 
                     modal.show();
                 }
+            },
+        },
+        importExcel: {
+            selector: ".btn-header-import",
+            handler: (baseUrl, event) => {
+                UIHelper.handleImport(
+                    event.currentTarget,
+                    "import-excel-input",
+                    `${baseUrl}/import`,
+                    "productos",
+                );
+            },
+        },
+
+        importProviders: {
+            selector: ".btn-header-import-providers",
+            handler: (baseUrl, event) => {
+                const btn = event.currentTarget;
+                const importUrl = btn.dataset.importUrl;
+
+                UIHelper.handleImport(
+                    btn,
+                    "import-providers-excel-input",
+                    importUrl,
+                    "proveedores",
+                );
+            },
+        },
+
+        downloadTemplate: {
+            selector: ".btn-download-template",
+            handler: (baseUrl, event) => {
+                UIHelper.handleDownload(event.currentTarget, event);
+            },
+        },
+
+        bulkDelete: {
+            selector: "#btn-bulk-delete",
+            handler: (baseUrl, event) => {
+                event.preventDefault();
+
+                const tableElement = document.getElementById(
+                    TABLE_CONFIG.tableId,
+                );
+                const manager = DataTableManager.getInstance(tableElement);
+                if (!manager) return;
+
+                const ids = manager.getSelectedIds();
+                if (ids.length === 0) return;
+
+                UIHelper.handleBulkDelete(
+                    event.currentTarget,
+                    `${baseUrl}/bulk-delete`,
+                    ids,
+                    manager,
+                    "productos",
+                );
             },
         },
     },

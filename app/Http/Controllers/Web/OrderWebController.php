@@ -53,7 +53,8 @@ class OrderWebController extends BaseOrderController
             'total_usd',
             'requires_invoice_raw',
             'exchange_rate',
-            'sale_id'
+            'sale_id',
+            'payments_detailed'
         ];
 
         return view('admin.order.index', compact(

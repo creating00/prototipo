@@ -40,7 +40,8 @@ class SaleWebController extends BaseSaleController
             'total_ars',
             'total_usd',
             'requires_invoice_raw',
-            'exchange_rate'
+            'exchange_rate',
+            'payments_detailed'
         ];
 
         return view('admin.sales.index', compact('sales', 'rowData', 'headers', 'hiddenFields'));

@@ -7,6 +7,9 @@ use App\Http\Controllers\{
     HomeController,
     SaleReceiptController,
 };
+use App\Http\Controllers\Api\ExpenseImportController;
+use App\Http\Controllers\Api\ProductImportController;
+use App\Http\Controllers\Api\ProviderImportController;
 use App\Http\Controllers\Web\{
     BranchWebController,
     CategoryWebController,
@@ -25,6 +28,7 @@ use App\Http\Controllers\Web\{
     BankAccountWebController,
     BankWebController,
     PriceModificationWebController,
+    PromotionWebController,
     RepairAmountWebController
 };
 use App\Models\Sale;
@@ -46,6 +50,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::prefix('web')->group(function () {
+        Route::get('products/template', [ProductImportController::class, 'downloadTemplate'])->name('web.products.template');
+        Route::get('providers/template', [ProviderImportController::class, 'downloadTemplate'])->name('web.providers.template');
+        Route::get('expenses/template', [ExpenseImportController::class, 'downloadTemplate'])->name('web.expenses.template');
+
+        Route::delete('products/bulk-delete', [ProductWebController::class, 'bulkDestroy'])
+            ->name('web.products.bulk-delete');
+
+        Route::get('products/export', [ProductImportController::class, 'export'])->name('web.products.export');
+        Route::get('providers/export', [ProviderImportController::class, 'export'])->name('web.providers.export');
+
+        Route::post('products/import', [ProductImportController::class, 'import'])->name('web.products.import');
+        Route::post('providers/import', [ProviderImportController::class, 'import'])->name('web.providers.import');
+        Route::post('expenses/import', [ExpenseImportController::class, 'import'])->name('web.expenses.import');
+
         webResource('categories', CategoryWebController::class);
         webResource('branches', BranchWebController::class);
         webResource('products', ProductWebController::class);
@@ -60,6 +78,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         webResource('repair-amounts', RepairAmountWebController::class);
         webResource('banks', BankWebController::class);
         webResource('bank-accounts', BankAccountWebController::class);
+        webResource('promotions', PromotionWebController::class);
 
         Route::get('/audits', [PriceModificationWebController::class, 'index'])
             ->name('web.price-modifications.index');

@@ -7,7 +7,7 @@
 @endpush
 
 @section('content')
-    {{-- BLOQUE DE FILTROS REFACTORIZADO --}}
+    {{-- BLOQUE DE FILTROS --}}
     <x-adminlte.card title="Filtros de Reporte" type="white">
         <x-slot:tools>
             <a href="{{ route('web.analytics.index') }}" class="btn btn-sm btn-outline-secondary">

@@ -1,11 +1,14 @@
 <footer class="app-footer">
     <!--begin::To the end-->
-    <div class="float-end d-none d-sm-inline">TecnoNauta System</div>
+    <div class="float-end d-none d-sm-inline">
+        {{ config('app.name') }} System
+        ({{ app()->environment('production') ? 'Producción' : 'Testing' }})
+    </div>
     <!--end::To the end-->
     <!--begin::Copyright-->
     <strong>
         Copyright &copy; 2014-2026&nbsp;
-        <a href="https://adminlte.io" class="text-decoration-none">CreatingSoft</a>.
+        <a href="https://creatingfactory.com/" class="text-decoration-none">CreatingSoft</a>.
     </strong>
     Todos los derechos Rerservados
     <!--end::Copyright-->

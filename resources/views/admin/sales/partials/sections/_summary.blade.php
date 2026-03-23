@@ -2,7 +2,7 @@
 <div class="row g-3 align-items-start">
 
     {{-- COLUMNA IZQUIERDA --}}
-    <div class="col-md-6">
+    <div class="col-md-8">
         <div class="d-flex align-items-center gap-2 mb-1">
             <div class="flex-grow-1">
                 <x-bootstrap.compact-input id="sale_date" name="sale_date_visible" type="date" label="Fecha"
@@ -15,46 +15,75 @@
             </div>
         </div>
 
-        {{-- Contenedor para Pago Único --}}
-        <div id="wrapper_single_payment">
-            <div class="mb-1">
-                <div class="compact-select-wrapper">
-                    <label class="compact-select-label">Tipo de Pago</label>
-                    <x-adminlte.select id="payment_type_visible" name="payment_type_visible" label="" :options="$paymentOptions" :value="old('payment_type', $pago1->payment_type->value ?? 1)"
-                        :showPlaceholder="false" />
-                </div>
-            </div>
+        {{-- Contenedor de Pagos Desglosados --}}
+        <div id="wrapper_payments_breakdown" class="row g-2 mb-3">
 
-            {{-- Contenedor Banco (Tarjeta) --}}
-            <div class="mb-1 d-none" id="container_payment_method_bank">
-                <div class="compact-select-wrapper">
-                    <label class="compact-select-label">Banco</label>
-                    <x-adminlte.select id="bank_id_visible" name="bank_id_visible" data-type="App\Models\Bank" {{-- Atributo para JS --}}
-                        :options="$banks" :value="old(
-                            'payment_method_id',
-                            $pago1 && $pago1->payment_method_type == 'App\Models\Bank' ? $pago1->payment_method_id : '',
+            {{-- Efectivo --}}
+            <div class="col-md-4" id="group_payment_cash">
+                <div class="border rounded p-2 h-100 bg-white" style="border-top: 3px solid #28a745 !important;">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-money-bill-wave text-success me-2"></i>
+                        <label
+                            class="text-label mb-0"><strong>{{ \App\Enums\PaymentType::Cash->label() }}</strong></label>
+                    </div>
+                    <x-bootstrap.compact-input id="amount_received_cash" name="amount_received_cash" type="number"
+                        label="Monto" step="0.01" prefix="$" :value="old(
+                            'amount_received_cash',
+                            $sale?->payments->where('payment_type', 1)->first()?->amount,
                         )" />
                 </div>
             </div>
 
-            {{-- Contenedor Cuenta (Transferencia) --}}
-            <div class="mb-1 d-none" id="container_payment_method_account">
-                <div class="compact-select-wrapper">
-                    <label class="compact-select-label">Cuenta de Destino</label>
-                    <x-adminlte.select id="bank_account_id_visible" name="bank_account_id_visible" data-type="App\Models\BankAccount"
-                        {{-- Atributo para JS --}} :options="$bankAccounts" :value="old(
-                            'payment_method_id',
-                            $pago1 && $pago1->payment_method_type == 'App\Models\BankAccount'
-                                ? $pago1->payment_method_id
-                                : '',
+            {{-- Transferencia --}}
+            <div class="col-md-4" id="group_payment_transfer">
+                <div class="border rounded p-2 h-100 bg-white" style="border-top: 3px solid #17a2b8 !important;">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-university text-info me-2"></i>
+                        <label
+                            class="text-label mb-0"><strong>{{ \App\Enums\PaymentType::Transfer->label() }}</strong></label>
+                    </div>
+
+                    <div class="compact-select-wrapper mb-2">
+                        <label class="small text-muted" style="font-size: 0.7rem;">Cuenta Destino</label>
+                        <x-adminlte.select id="bank_account_id_transfer" name="bank_account_id_transfer"
+                            data-type="App\Models\BankAccount" :options="$bankAccounts" :value="old(
+                                'bank_account_id_transfer',
+                                $sale?->payments->where('payment_type', 3)->first()?->payment_method_id,
+                            )" />
+                    </div>
+
+                    <x-bootstrap.compact-input id="amount_received_transfer" name="amount_received_transfer"
+                        type="number" label="Monto" step="0.01" prefix="$" :value="old(
+                            'amount_received_transfer',
+                            $sale?->payments->where('payment_type', 3)->first()?->amount,
                         )" />
                 </div>
             </div>
 
-            <div>
-                <x-bootstrap.compact-input id="amount_received" name="amount_received_visible" type="number"
-                    label="Monto Recibido" step="0.01" prefix="$"
-                    value="{{ old('amount_received', $pago1->amount ?? ($sale->amount_received ?? '')) }}" />
+            {{-- Tarjeta --}}
+            <div class="col-md-4" id="group_payment_card">
+                <div class="border rounded p-2 h-100 bg-white" style="border-top: 3px solid #6f42c1 !important;">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-credit-card text-purple me-2" style="color: #6f42c1;"></i>
+                        <label
+                            class="text-label mb-0"><strong>{{ \App\Enums\PaymentType::Card->label() }}</strong></label>
+                    </div>
+
+                    <div class="compact-select-wrapper mb-2">
+                        <label class="small text-muted" style="font-size: 0.7rem;">Banco</label>
+                        <x-adminlte.select id="bank_id_card" name="bank_id_card" data-type="App\Models\Bank"
+                            :options="$banks" :value="old(
+                                'bank_id_card',
+                                $sale?->payments->where('payment_type', 2)->first()?->payment_method_id,
+                            )" />
+                    </div>
+
+                    <x-bootstrap.compact-input id="amount_received_card" name="amount_received_card" type="number"
+                        label="Monto" step="0.01" prefix="$" :value="old(
+                            'amount_received_card',
+                            $sale?->payments->where('payment_type', 2)->first()?->amount,
+                        )" />
+                </div>
             </div>
         </div>
 
@@ -76,7 +105,7 @@
     </div>
 
     {{-- COLUMNA DERECHA --}}
-    <div class="col-md-6">
+    <div class="col-md-4">
 
         <div class="d-flex justify-content-between align-items-center mb-1 p-2 bg-light rounded border">
             <small class="text-muted fw-bold text-uppercase">Cotización USD Blue</small>

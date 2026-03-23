@@ -93,32 +93,62 @@ trait DataTableFormatter
     {
         $phone = $this->cleanPhoneNumber($model->customer?->phone);
         $customerName = $this->resolveCustomerName($model);
-        $totals = $model->totals ?? [];
 
-        $totalArs = $totals[CurrencyType::ARS->value] ?? 0;
-        $totalUsd = $totals[CurrencyType::USD->value] ?? 0;
+        // --- Lógica de Detección: ¿Usamos pagos reales o totales declarados? ---
+        $hasPayments = isset($model->payments) && $model->payments->isNotEmpty();
 
-        $formattedTotals = collect($totals)
-            ->map(function ($amount, $currencyId) {
+        if ($hasPayments) {
+            // Comportamiento para SALE: Basado en pagos reales
+            $formattedTotals = $model->payments->map(function ($payment) {
+                $currency = $payment->currency instanceof CurrencyType
+                    ? $payment->currency
+                    : CurrencyType::tryFrom((int)$payment->currency);
+                return $this->formatCurrency((float) $payment->amount, $currency);
+            })->implode('<br>');
+
+            $totalArs = $model->payments->filter(fn($p) => $p->currency === CurrencyType::ARS)->sum('amount');
+            $totalUsd = $model->payments->filter(fn($p) => $p->currency === CurrencyType::USD)->sum('amount');
+
+            $paymentsDetailed = $model->payments->map(fn($p) => [
+                'type'     => $p->payment_type->value,
+                'currency' => $p->currency instanceof CurrencyType ? $p->currency->value : (int)$p->currency,
+                'amount'   => (float)$p->amount
+            ])->toJson();
+        } else {
+            // Comportamiento para ORDER: Basado en el array totals
+            $totals = $model->totals ?? [];
+            $formattedTotals = collect($totals)->map(function ($amount, $currencyId) {
                 $currency = CurrencyType::tryFrom((int) $currencyId);
                 return $this->formatCurrency((float) $amount, $currency);
-            })
-            ->implode('<br>');
+            })->implode('<br>');
 
+            $totalArs = $totals[CurrencyType::ARS->value] ?? 0;
+            $totalUsd = $totals[CurrencyType::USD->value] ?? 0;
+
+            // Para Order, creamos un detalle ficticio "Pendiente" para que el JS no falle
+            $paymentsDetailed = collect($totals)->map(fn($amount, $currencyId) => [
+                'type'     => 'pending',
+                'currency' => (int)$currencyId,
+                'amount'   => (float)$amount
+            ])->values()->toJson();
+        }
+
+        // --- HTML Común ---
         $requiresInvoiceHtml = $model->requires_invoice
             ? '<span class="badge bg-success">Sí</span>'
             : '<span class="badge bg-secondary">No</span>';
 
-        // Procesar múltiples pagos
-        $paymentTypeHtml = $model->payments->isNotEmpty()
+        // Para el payment_type en Order, si no hay pagos, mostramos "-" o un estado.
+        $paymentTypeHtml = $hasPayments
             ? $model->payments->map(function ($payment) {
                 return sprintf(
-                    '<span class="badge %s mb-1">%s</span>', // Añadido mb-1
+                    '<div class="mb-1"><span class="badge %s" data-search="%s">%s</span></div>',
                     $payment->payment_type->badgeClass(),
+                    $payment->payment_type->value,
                     $payment->payment_type->label()
                 );
-            })->implode('<br>')
-            : '-';
+            })->implode('')
+            : '<span class="text-muted">Pendiente</span>';
 
         return [
             'id'                   => $model->id,
@@ -137,31 +167,27 @@ trait DataTableFormatter
             'whatsapp-url'         => $phone ? $this->getWhatsAppLink($model, $phone) : null,
             'total_ars'            => $totalArs,
             'total_usd'            => $totalUsd,
-            'totals_json'          => json_encode($totals),
+            'totals_json'          => json_encode($model->totals),
+            'payments_detailed'    => $paymentsDetailed,
             'customer_name_raw'    => $customerName,
-            'exchange_rate' => $model->exchange_rate
+            'exchange_rate'        => $model->exchange_rate
         ];
     }
 
     protected function formatOrderForDataTable(Order $order, int $index): array
     {
-        // 1. Obtenemos la base común
         $row = $this->formatForDataTable($order, $index);
-
-        // 2. Agregamos el ID de la venta si existe
-        // Esto es lo que necesita el JS para el botón "imprimir"
         $row['sale_id'] = $order->sale?->id;
-
-        // 3. (Opcional) Si quieres añadir más lógica específica de Order aquí
-        // $row['otro_campo'] = ...
 
         return $row;
     }
 
     protected function formatSaleForDataTable(Sale $sale, int $index): array
     {
+        // 1. Obtenemos la base (ya trae pagos, totales y detalles para el footer)
         $row = $this->formatForDataTable($sale, $index);
 
+        // 2. Generamos el HTML del tipo de venta
         $saleTypeHtml = $sale->sale_type
             ? sprintf(
                 '<span class="badge %s" data-search="%s">%s</span>',
@@ -171,21 +197,8 @@ trait DataTableFormatter
             )
             : '';
 
-        // Mapeo con margen inferior para separar badges apilados
-        $paymentTypeHtml = $sale->payments->isNotEmpty()
-            ? $sale->payments->map(function ($payment) {
-                return sprintf(
-                    '<div class="mb-1"><span class="badge %s" data-search="%s">%s</span></div>',
-                    $payment->payment_type->badgeClass(),
-                    $payment->payment_type->value,
-                    $payment->payment_type->label()
-                );
-            })->implode('')
-            : '-';
-
-        $row['sale_type'] = $saleTypeHtml;
-        $row['payment_type'] = $paymentTypeHtml;
-
+        // 3. Insertamos 'sale_type' en la posición exacta para mantener el orden de columnas
+        // Cortamos el array: los primeros 4 elementos, insertamos el tipo, y pegamos el resto.
         return array_merge(
             array_slice($row, 0, 4, true),
             ['sale_type' => $saleTypeHtml],
