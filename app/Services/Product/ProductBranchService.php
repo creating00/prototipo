@@ -29,6 +29,39 @@ class ProductBranchService
         return $branch;
     }
 
+    public function updateOrCreateBranchData(Product $product, array $data): ProductBranch
+    {
+        // Buscamos el registro incluyendo los borrados (Soft Deletes)
+        $branch = $product->productBranches()
+            ->withTrashed()
+            ->where('branch_id', $data['branch_id'])
+            ->first();
+
+        if ($branch) {
+            if ($branch->trashed()) {
+                $branch->restore(); // Si estaba borrado, lo traemos de vuelta
+            }
+
+            $branch->update([
+                'stock'               => $data['stock'] ?? 0,
+                'low_stock_threshold' => $data['low_stock_threshold'] ?? 5,
+                'status'              => $this->resolveStatus($data),
+            ]);
+        } else {
+            // Si realmente no existe ni en la papelera, lo creamos
+            $branch = $product->productBranches()->create([
+                'branch_id'           => $data['branch_id'],
+                'stock'               => $data['stock'],
+                'low_stock_threshold' => $data['low_stock_threshold'] ?? 5,
+                'status'              => $this->resolveStatus($data),
+            ]);
+        }
+
+        $this->priceService->updatePricesForBranch($branch, $data);
+
+        return $branch;
+    }
+
     public function updateBranchDataForProduct(Product $product, array $data): ProductBranch
     {
         $branch = $product->productBranches()->updateOrCreate(
