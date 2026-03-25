@@ -46,7 +46,8 @@ class ProductService
             'category_id' => $validated['category_id'] ?? null,
         ]);
 
-        $this->branchService->createBranchDataForProduct($product, $validated);
+        //$this->branchService->createBranchDataForProduct($product, $validated);
+        $this->branchService->updateOrCreateBranchData($product, $validated);
 
         $this->syncProviders($product, $validated['providers'] ?? []);
 
