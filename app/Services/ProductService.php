@@ -111,7 +111,8 @@ class ProductService
         ]);
 
         if (isset($validated['branch_id'])) {
-            $this->branchService->updateBranchDataForProduct($product, $validated);
+            //$this->branchService->updateBranchDataForProduct($product, $validated);
+            $this->branchService->updateOrCreateBranchData($product, $validated);
         }
 
         // Sincronizar proveedores
