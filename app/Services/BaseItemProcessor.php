@@ -80,8 +80,12 @@ abstract class BaseItemProcessor
         $branchId = $model->branch_id;
 
         foreach ($model->items as $item) {
-            $product = $this->getLockedProduct($item->product_id);
-            $this->stockService->release($product, $item->quantity, $branchId);
+            // Pasamos false para que no explote si el producto ya no existe
+            $product = $this->getLockedProduct($item->product_id, false);
+
+            if ($product) {
+                $this->stockService->release($product, $item->quantity, $branchId);
+            }
         }
     }
 
@@ -125,14 +129,14 @@ abstract class BaseItemProcessor
 
     /**
      * Obtiene un producto bloqueado para escritura
-     * 
-     * @param int $productId ID del producto
-     * @return Product Producto bloqueado
+     * * @param int $productId ID del producto
+     * @param bool $fail Si debe lanzar excepción o devolver null
+     * @return Product|null
      */
-    final protected function getLockedProduct(int $productId): Product
+    final protected function getLockedProduct(int $productId, bool $fail = true): ?Product
     {
-        return Product::where('id', $productId)
-            ->lockForUpdate()
-            ->firstOrFail();
+        $query = Product::where('id', $productId)->lockForUpdate();
+
+        return $fail ? $query->firstOrFail() : $query->first();
     }
 }
