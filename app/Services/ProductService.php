@@ -199,6 +199,9 @@ class ProductService
             'productBranches' => $branchFilter
         ])
             ->whereHas('productBranches', $branchFilter)
+            ->whereHas('category', function ($query) {
+                $query->exceptTarget(\App\Enums\CategoryTarget::None);
+            })
             ->when($categoryId, fn($query) => $query->where('category_id', $categoryId))
             ->get();
 
