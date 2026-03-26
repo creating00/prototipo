@@ -13,6 +13,11 @@ class Category extends Model
     protected $fillable = [
         'name',
         'is_system',
+        'target',
+    ];
+
+    protected $casts = [
+        'target' => \App\Enums\CategoryTarget::class,
     ];
 
     public function products()

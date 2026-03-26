@@ -24,6 +24,11 @@ class CategoryService
         return Category::findOrFail($id);
     }
 
+    public function getProductCategories()
+    {
+        return Category::where('target', \App\Enums\CategoryTarget::Product)->get();
+    }
+
     public function updateCategory($id, array $data): Category
     {
         $category = $this->getCategoryById($id);
@@ -31,6 +36,13 @@ class CategoryService
 
         $category->update($validated);
         return $category->fresh();
+    }
+
+    public function updateTarget($id, int $targetValue): void
+    {
+        $category = $this->getCategoryById($id);
+        // El casting del modelo se encarga de convertir el int a Enum
+        $category->update(['target' => $targetValue]);
     }
 
     /**
@@ -79,18 +91,28 @@ class CategoryService
         return Category::with('products')->get();
     }
 
-    public function getAllCategoriesForDataTable()
+    public function getAllCategoriesForDataTable(): array
     {
-        $categories = $this->getAllCategories();
+        $targetCases = \App\Enums\CategoryTarget::cases();
 
-        return $categories->map(function ($category, $index) {
-            return [
-                'id' => $category->id,                    // Oculto pero disponible como data-id
-                'is_system' => $category->is_system ? 1 : 0,
-                'number' => $index + 1,                   // Número incremental visible
-                'name' => $category->name,                // Visible
-                'created_at' => $category->created_at->format('Y-m-d'), // Visible
-            ];
-        })->toArray();
+        return $this->getAllCategories()
+            ->map(fn($category, $index) => [
+                'id'         => $category->id,
+                'is_system'  => (int) $category->is_system,
+                'number'     => $index + 1,
+                'name'       => $category->name,
+                'target'     => $this->renderTargetRadios($category, $targetCases),
+                'created_at' => $category->created_at->format('Y-m-d'),
+            ])
+            ->toArray();
+    }
+
+    private function renderTargetRadios($category, array $cases): string
+    {
+        return view('components.category-target-radios', [
+            'cases'        => $cases,
+            'categoryId'   => $category->id,
+            'currentValue' => $category->target->value,
+        ])->render();
     }
 }
