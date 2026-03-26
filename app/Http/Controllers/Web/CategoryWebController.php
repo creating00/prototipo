@@ -80,11 +80,10 @@ class CategoryWebController extends BaseCategoryController
 
     public function updateTarget(Request $request, $id)
     {
-        // 1. Buscar la categoría y autorizar (importante mantener la seguridad)
+        // 1. Única consulta a la DB
         $category = $this->categoryService->getCategoryById($id, false);
         $this->authorize('update', $category);
 
-        // 2. Validar que el target sea un valor válido del Enum
         $request->validate([
             'target' => [
                 'required',
@@ -94,10 +93,9 @@ class CategoryWebController extends BaseCategoryController
         ]);
 
         try {
-            // 3. Llamar al service
-            $this->categoryService->updateTarget($id, (int) $request->target);
+            // 3. Pasamos el objeto $category directamente
+            $this->categoryService->updateTarget($category, (int) $request->target);
 
-            // 4. Responder JSON para el AJAX
             return response()->json([
                 'success' => true,
                 'message' => 'Destino actualizado correctamente'
