@@ -15,16 +15,26 @@ class CategoryService
         return Category::create($validated);
     }
 
-    public function getAllCategories(): Collection
+    public function getAllCategories(bool $excludeNone = true): Collection
     {
-        return Category::exceptTarget(\App\Enums\CategoryTarget::None)
-            ->orderBy('name')
-            ->get();
+        $query = Category::select('id', 'name', 'target', 'is_system', 'created_at');
+
+        if ($excludeNone) {
+            $query->exceptTarget(\App\Enums\CategoryTarget::None);
+        }
+
+        return $query->orderBy('name')->get();
     }
 
-    public function getCategoryById($id): Category
+    public function getCategoryById(int $id, bool $excludeNone = true): Category
     {
-        return Category::findOrFail($id);
+        $query = Category::select('id', 'name', 'target', 'is_system');
+
+        if ($excludeNone) {
+            $query->exceptTarget(\App\Enums\CategoryTarget::None);
+        }
+
+        return $query->findOrFail($id);
     }
 
     public function getProductCategories()
@@ -32,13 +42,17 @@ class CategoryService
         return Category::where('target', \App\Enums\CategoryTarget::Product)->get();
     }
 
-    public function updateCategory($id, array $data): Category
+    public function updateCategory(Category|int $category, array $data): Category
     {
-        $category = $this->getCategoryById($id);
+        $category = $category instanceof Category
+            ? $category
+            : $this->getCategoryById($category, false);
+
         $validated = $this->validateCategoryData($data, $category->id);
 
         $category->update($validated);
-        return $category->fresh();
+
+        return $category;
     }
 
     public function updateTarget($id, int $targetValue): void
@@ -98,7 +112,7 @@ class CategoryService
     {
         $targetCases = \App\Enums\CategoryTarget::cases();
 
-        return $this->getAllCategories()
+        return $this->getAllCategories(false)
             ->map(fn($category, $index) => [
                 'id'         => $category->id,
                 'is_system'  => (int) $category->is_system,

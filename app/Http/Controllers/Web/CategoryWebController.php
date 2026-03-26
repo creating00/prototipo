@@ -13,7 +13,7 @@ class CategoryWebController extends BaseCategoryController
     {
         $this->authorize('viewAny', Category::class);
         $rowData = $this->categoryService->getAllCategoriesForDataTable();
-        $categories = $this->categoryService->getAllCategories();
+        $categories = $this->categoryService->getAllCategories(false);
 
         $headers = ['#', 'Nombre', 'Tipo / Destino', 'Creado en:'];
         $hiddenFields = ['id', 'is_system'];
@@ -43,7 +43,7 @@ class CategoryWebController extends BaseCategoryController
 
     public function edit($id)
     {
-        $category = $this->categoryService->getCategoryById($id);
+        $category = $this->categoryService->getCategoryById($id, false);
         $this->authorize('update', $category);
 
         return view('admin.category.edit', compact('category'));
@@ -51,10 +51,10 @@ class CategoryWebController extends BaseCategoryController
 
     public function update(Request $request, $id)
     {
-        $category = $this->categoryService->getCategoryById($id);
+        $category = $this->categoryService->getCategoryById($id, false);
         $this->authorize('update', $category);
         try {
-            $this->categoryService->updateCategory($id, $request->all());
+            $this->categoryService->updateCategory($category, $request->all());
             return redirect()->route('web.categories.index')
                 ->with('success', 'Categoría actualizada exitosamente');
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -66,7 +66,7 @@ class CategoryWebController extends BaseCategoryController
 
     public function destroy($id)
     {
-        $category = $this->categoryService->getCategoryById($id);
+        $category = $this->categoryService->getCategoryById($id, false);
         $this->authorize('delete', $category);
         try {
             $this->categoryService->deleteCategory($id);
@@ -81,7 +81,7 @@ class CategoryWebController extends BaseCategoryController
     public function updateTarget(Request $request, $id)
     {
         // 1. Buscar la categoría y autorizar (importante mantener la seguridad)
-        $category = $this->categoryService->getCategoryById($id);
+        $category = $this->categoryService->getCategoryById($id, false);
         $this->authorize('update', $category);
 
         // 2. Validar que el target sea un valor válido del Enum
