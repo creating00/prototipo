@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Category;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
 
 class CategoryService
@@ -14,9 +15,11 @@ class CategoryService
         return Category::create($validated);
     }
 
-    public function getAllCategories()
+    public function getAllCategories(): Collection
     {
-        return Category::orderBy('name')->get();
+        return Category::exceptTarget(\App\Enums\CategoryTarget::None)
+            ->orderBy('name')
+            ->get();
     }
 
     public function getCategoryById($id): Category
