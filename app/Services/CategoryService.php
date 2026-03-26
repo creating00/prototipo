@@ -33,17 +33,30 @@ class CategoryService
         return $category->fresh();
     }
 
+    /**
+     * Deletes a category using soft delete.
+     *
+     * - System categories cannot be deleted.
+     * - Related products are detached (category_id set to null).
+     * - The deletion is logical (Soft Delete), not physical.
+     *
+     * @param int $id
+     * @return array
+     * @throws \Exception
+     */
     public function deleteCategory($id): array
     {
         $category = $this->getCategoryById($id);
 
-        // Verificar si tiene productos asociados
-        if ($category->products()->count() > 0) {
-            throw new \Exception('Cannot delete a category with associated products', 400);
+        if ($category->is_system) {
+            throw new \Exception('System categories cannot be deleted', 403);
         }
 
+        $category->products()->update(['category_id' => null]);
+
         $category->delete();
-        return ['message' => 'Category deleted'];
+
+        return ['message' => 'Category deleted successfully'];
     }
 
     public function validateCategoryData(array $data, $ignoreId = null): array
