@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Category;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
 
 class CategoryService
@@ -14,36 +15,77 @@ class CategoryService
         return Category::create($validated);
     }
 
-    public function getAllCategories()
+    public function getAllCategories(bool $excludeNone = true): Collection
     {
-        return Category::orderBy('name')->get();
+        $query = Category::select('id', 'name', 'target', 'is_system', 'created_at');
+
+        if ($excludeNone) {
+            $query->exceptTarget(\App\Enums\CategoryTarget::None);
+        }
+
+        return $query->orderBy('name')->get();
     }
 
-    public function getCategoryById($id): Category
+    public function getCategoryById(int $id, bool $excludeNone = true): Category
     {
-        return Category::findOrFail($id);
+        $query = Category::select('id', 'name', 'target', 'is_system');
+
+        if ($excludeNone) {
+            $query->exceptTarget(\App\Enums\CategoryTarget::None);
+        }
+
+        return $query->findOrFail($id);
     }
 
-    public function updateCategory($id, array $data): Category
+    public function getProductCategories()
     {
-        $category = $this->getCategoryById($id);
+        return Category::where('target', \App\Enums\CategoryTarget::Product)->get();
+    }
+
+    public function updateCategory(Category|int $category, array $data): Category
+    {
+        $category = $category instanceof Category
+            ? $category
+            : $this->getCategoryById($category, false);
+
         $validated = $this->validateCategoryData($data, $category->id);
 
         $category->update($validated);
-        return $category->fresh();
+
+        return $category;
     }
 
+    public function updateTarget($id, int $targetValue): void
+    {
+        $category = $this->getCategoryById($id);
+        // El casting del modelo se encarga de convertir el int a Enum
+        $category->update(['target' => $targetValue]);
+    }
+
+    /**
+     * Deletes a category using soft delete.
+     *
+     * - System categories cannot be deleted.
+     * - Related products are detached (category_id set to null).
+     * - The deletion is logical (Soft Delete), not physical.
+     *
+     * @param int $id
+     * @return array
+     * @throws \Exception
+     */
     public function deleteCategory($id): array
     {
         $category = $this->getCategoryById($id);
 
-        // Verificar si tiene productos asociados
-        if ($category->products()->count() > 0) {
-            throw new \Exception('Cannot delete a category with associated products', 400);
+        if ($category->is_system) {
+            throw new \Exception('System categories cannot be deleted', 403);
         }
 
+        $category->products()->update(['category_id' => null]);
+
         $category->delete();
-        return ['message' => 'Category deleted'];
+
+        return ['message' => 'Category deleted successfully'];
     }
 
     public function validateCategoryData(array $data, $ignoreId = null): array
@@ -66,18 +108,28 @@ class CategoryService
         return Category::with('products')->get();
     }
 
-    public function getAllCategoriesForDataTable()
+    public function getAllCategoriesForDataTable(): array
     {
-        $categories = $this->getAllCategories();
+        $targetCases = \App\Enums\CategoryTarget::cases();
 
-        return $categories->map(function ($category, $index) {
-            return [
-                'id' => $category->id,                    // Oculto pero disponible como data-id
-                'is_system' => $category->is_system ? 1 : 0,
-                'number' => $index + 1,                   // Número incremental visible
-                'name' => $category->name,                // Visible
-                'created_at' => $category->created_at->format('Y-m-d'), // Visible
-            ];
-        })->toArray();
+        return $this->getAllCategories(false)
+            ->map(fn($category, $index) => [
+                'id'         => $category->id,
+                'is_system'  => (int) $category->is_system,
+                'number'     => $index + 1,
+                'name'       => $category->name,
+                'target'     => $this->renderTargetRadios($category, $targetCases),
+                'created_at' => $category->created_at->format('Y-m-d'),
+            ])
+            ->toArray();
+    }
+
+    private function renderTargetRadios($category, array $cases): string
+    {
+        return view('components.category-target-radios', [
+            'cases'        => $cases,
+            'categoryId'   => $category->id,
+            'currentValue' => $category->target->value,
+        ])->render();
     }
 }

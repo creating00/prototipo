@@ -42,9 +42,9 @@ class OrderItemProcessor extends BaseItemProcessor
         }
     }
 
-    protected function getProductPrice(Product $product, int $branchId): float
+    protected function getProductPrice(Product $product, Model $model): float
     {
-        $unitPrice = $product->salePrice($branchId);
+        $unitPrice = $product->salePrice($model->branch_id);
 
         if (!$unitPrice) {
             throw new \Exception("No se encontró un precio de venta para {$product->name} en esta sucursal.");

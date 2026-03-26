@@ -136,7 +136,6 @@
                     </tr>
                 </thead>
                 <tbody>
-
                     @php $subtotal = 0; @endphp
 
                     @foreach ($sale->items as $item)
@@ -144,6 +143,14 @@
                         <tr>
                             <td>
                                 {{ $item->quantity }}x {{ $item->descriptionForReceipt($sale) }}
+
+                                {{-- Muestra las notas si no son nulas --}}
+                                @if (!is_null($sale->notes))
+                                    <br>
+                                    <small style="display: block; color: #555;">
+                                        {{ $sale->notes }}
+                                    </small>
+                                @endif
                             </td>
                             <td class="text-right">
                                 @if ($sale->sale_type === \App\Enums\SaleType::Repair)
@@ -168,7 +175,6 @@
                             ) }}
                         </td>
                     </tr>
-
                 </tbody>
             </table>
         </div>

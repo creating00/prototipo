@@ -46,7 +46,8 @@ class ProductService
             'category_id' => $validated['category_id'] ?? null,
         ]);
 
-        $this->branchService->createBranchDataForProduct($product, $validated);
+        //$this->branchService->createBranchDataForProduct($product, $validated);
+        $this->branchService->updateOrCreateBranchData($product, $validated);
 
         $this->syncProviders($product, $validated['providers'] ?? []);
 
@@ -110,7 +111,8 @@ class ProductService
         ]);
 
         if (isset($validated['branch_id'])) {
-            $this->branchService->updateBranchDataForProduct($product, $validated);
+            //$this->branchService->updateBranchDataForProduct($product, $validated);
+            $this->branchService->updateOrCreateBranchData($product, $validated);
         }
 
         // Sincronizar proveedores
@@ -197,6 +199,9 @@ class ProductService
             'productBranches' => $branchFilter
         ])
             ->whereHas('productBranches', $branchFilter)
+            ->whereHas('category', function ($query) {
+                $query->exceptTarget(\App\Enums\CategoryTarget::None);
+            })
             ->when($categoryId, fn($query) => $query->where('category_id', $categoryId))
             ->get();
 

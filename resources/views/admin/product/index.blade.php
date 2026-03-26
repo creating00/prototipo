@@ -11,6 +11,7 @@
         <x-adminlte.alert-manager />
 
         {{-- Uso del componente con secciones agrupadas --}}
+        @canResource('products.create')
         <x-bootstrap.import-center title="Gestión de Datos"
             description="Descarga plantillas, exporta o importa productos y proveedores masivamente.">
 
@@ -48,6 +49,7 @@
             </x-slot>
 
         </x-bootstrap.import-center>
+        @endcanResource
 
         <x-adminlte.data-table tableId="products-table" title="Gestión de Productos" :headers="$headers" :rowData="$rowData"
             :hiddenFields="$hiddenFields" withActions="true" selectable="true">

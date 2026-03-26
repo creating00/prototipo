@@ -12,7 +12,6 @@ class InvoiceController extends Controller
 {
     public function generate($paymentId)
     {
-        // Carga relaciones segun modelos proporcionados
         $payment = Payment::with([
             'paymentable.items.product.category',
             'paymentable.branch',
