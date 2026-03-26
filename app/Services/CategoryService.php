@@ -55,10 +55,12 @@ class CategoryService
         return $category;
     }
 
-    public function updateTarget($id, int $targetValue): void
+    public function updateTarget(Category|int $category, int $targetValue): void
     {
-        $category = $this->getCategoryById($id);
-        // El casting del modelo se encarga de convertir el int a Enum
+        $category = $category instanceof Category
+            ? $category
+            : $this->getCategoryById($category, false);
+
         $category->update(['target' => $targetValue]);
     }
 
