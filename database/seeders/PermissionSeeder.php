@@ -81,6 +81,7 @@ class PermissionSeeder extends Seeder
 
         // Promociones
         'promotions' => ['view', 'create', 'update', 'delete'],
+        'promotion_images' => ['view', 'create', 'update', 'delete'],
     ];
 
     // Roles con permisos definidos (puede moverse a config/roles.php)

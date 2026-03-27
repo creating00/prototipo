@@ -73,6 +73,15 @@ return [
             'href'  => 'web.clients.index',
         ],
 
+        //PROMOCIONES
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-megaphone-fill',
+            'color' => 'text-neon-green',
+            'label' => 'Promociones',
+            'href'  => 'web.promotions.index',
+        ],
+
         // SUCURSALES
         [
             'type' => 'single',

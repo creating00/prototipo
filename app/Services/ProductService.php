@@ -180,9 +180,16 @@ class ProductService
         return Product::with(['category', 'ratings', 'productBranches.prices'])->get();
     }
 
-    public function getAllForSummary(?int $branchId = null, ?int $categoryId = null): Collection
+    /**
+     * Get all products formatted for summary, filtered by branch, category, and target.
+     *
+     * @param int|null $branchId
+     * @param int|null $categoryId
+     * @param int|null $target
+     * @return \Illuminate\Support\Collection
+     */
+    public function getAllForSummary(?int $branchId = null, ?int $categoryId = null, ?int $target = null): Collection
     {
-        // Closure para filtrar productBranches según stock y branchId opcional
         $branchFilter = function ($query) use ($branchId) {
             $query->where('stock', '>', 0);
 
@@ -199,8 +206,12 @@ class ProductService
             'productBranches' => $branchFilter
         ])
             ->whereHas('productBranches', $branchFilter)
-            ->whereHas('category', function ($query) {
+            ->whereHas('category', function ($query) use ($target) {
                 $query->exceptTarget(\App\Enums\CategoryTarget::None);
+
+                if ($target) {
+                    $query->where('target', $target);
+                }
             })
             ->when($categoryId, fn($query) => $query->where('category_id', $categoryId))
             ->get();
