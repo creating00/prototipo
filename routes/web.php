@@ -64,6 +64,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('providers/import', [ProviderImportController::class, 'import'])->name('web.providers.import');
         Route::post('expenses/import', [ExpenseImportController::class, 'import'])->name('web.expenses.import');
 
+        Route::patch('categories/{category}/update-target', [CategoryWebController::class, 'updateTarget'])
+            ->name('categories.update-target');
+
         webResource('categories', CategoryWebController::class);
         webResource('branches', BranchWebController::class);
         webResource('products', ProductWebController::class);

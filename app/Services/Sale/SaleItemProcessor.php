@@ -34,7 +34,8 @@ class SaleItemProcessor extends BaseItemProcessor
         array $rawItem
     ): void {
 
-        $originalPrice = $this->getProductPrice($product, $model->branch_id);
+        //dd($model);
+        $originalPrice = $this->getProductPrice($product, $model);
 
         $this->auditService->recordModification([
             'branch_id'      => $model->branch_id,
@@ -64,14 +65,20 @@ class SaleItemProcessor extends BaseItemProcessor
         }
     }
 
-    protected function getProductPrice(Product $product, int $branchId): float
+    protected function getProductPrice(Product $product, Model $model): float
     {
-        $unitPrice = $product->salePrice($branchId);
+        // Determinamos el precio según el tipo de venta
+        $unitPrice = match ($model->sale_type) {
+            \App\Enums\SaleType::Repair => $product->repairPrice($model->branch_id),
+            \App\Enums\SaleType::Sale   => $product->salePrice($model->branch_id),
+            default                     => null,
+        };
 
         if (!$unitPrice) {
-            throw new \Exception("No se encontró un precio de venta para {$product->name} en la sucursal {$branchId}");
+            $typeName = $model->sale_type->label();
+            throw new \Exception("No se encontró un precio de {$typeName} para {$product->name} en la sucursal {$model->branch_id}");
         }
 
-        return $unitPrice;
+        return (float) $unitPrice;
     }
 }

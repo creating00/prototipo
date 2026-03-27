@@ -125,7 +125,7 @@ abstract class BaseItemProcessor
      * @return float Precio de venta
      * @throws \Exception Si no se encuentra el precio
      */
-    abstract protected function getProductPrice(Product $product, int $branchId): float;
+    abstract protected function getProductPrice(Product $product, Model $model): float;
 
     /**
      * Obtiene un producto bloqueado para escritura
