@@ -77,7 +77,7 @@ class CategoryService
      */
     public function deleteCategory($id): array
     {
-        $category = $this->getCategoryById($id);
+        $category = $this->getCategoryById($id, false);
 
         if ($category->is_system) {
             throw new \Exception('System categories cannot be deleted', 403);
