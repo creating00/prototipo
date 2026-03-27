@@ -4,23 +4,37 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\BaseProductController;
 use App\Models\Product;
+use App\Enums\CategoryTarget;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rule;
 
 class ProductController extends BaseProductController
 {
+    /**
+     * Display a listing of products filtered by request parameters.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function index(Request $request)
     {
         $validated = $request->validate([
-            'branchId' => 'nullable|integer',
+            'branchId'   => 'nullable|integer',
             'categoryId' => 'nullable|integer',
+            'target'     => [
+                'nullable',
+                'integer',
+                Rule::enum(CategoryTarget::class)
+            ],
         ]);
 
-        $branchId = $validated['branchId'] ?? null; // obtiene ?branchId=1
-        $categoryId = $validated['categoryId'] ?? null;
-
         return response()->json(
-            $this->productService->getAllForSummary($branchId, $categoryId)
+            $this->productService->getAllForSummary(
+                $validated['branchId'] ?? null,
+                $validated['categoryId'] ?? null,
+                $validated['target'] ?? null
+            )
         );
     }
 
