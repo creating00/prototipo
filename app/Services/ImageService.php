@@ -9,11 +9,11 @@ use Exception;
 
 class ImageService
 {
-    public function processAndStoreImage(UploadedFile $imageFile, string $productCode): ?string
+    public function processAndStoreImage(UploadedFile $imageFile, string $prefix, string $folder = 'products'): ?string
     {
         try {
-            $fileName = 'product_' . $productCode . '_' . time() . '.webp';
-            $filePath = 'products/' . $fileName;
+            $fileName = $prefix . '_' . time() . '.webp';
+            $filePath = $folder . '/' . $fileName;
             $fullPath = storage_path('app/public/' . $filePath);
 
             Storage::disk('public')->makeDirectory('products');

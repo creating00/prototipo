@@ -28,6 +28,7 @@ use App\Http\Controllers\Web\{
     BankAccountWebController,
     BankWebController,
     PriceModificationWebController,
+    PromotionImageWebController,
     PromotionWebController,
     RepairAmountWebController
 };
@@ -67,6 +68,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('categories/{category}/update-target', [CategoryWebController::class, 'updateTarget'])
             ->name('categories.update-target');
 
+        Route::post('promotions/{promotion}/toggle-status', [PromotionImageWebController::class, 'toggleStatus'])
+            ->name('web.promotions.toggle-status');
+
+        Route::delete('promotions/bulk-delete', [PromotionImageWebController::class, 'bulkDestroy'])
+            ->name('web.promotions.bulk-delete');
+
         webResource('categories', CategoryWebController::class);
         webResource('branches', BranchWebController::class);
         webResource('products', ProductWebController::class);
@@ -81,7 +88,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         webResource('repair-amounts', RepairAmountWebController::class);
         webResource('banks', BankWebController::class);
         webResource('bank-accounts', BankAccountWebController::class);
-        webResource('promotions', PromotionWebController::class);
+        //webResource('promotions', PromotionWebController::class);
+        webResource('promotions', PromotionImageWebController::class);
 
         Route::get('/audits', [PriceModificationWebController::class, 'index'])
             ->name('web.price-modifications.index');
