@@ -27,16 +27,4 @@ class PromotionImage extends Model
     {
         return $this->belongsTo(Branch::class);
     }
-
-    /**
-     * Hook para eliminar el archivo físico al borrar el registro.
-     */
-    protected static function booted(): void
-    {
-        static::deleted(function (PromotionImage $promotionImage) {
-            if ($promotionImage->image_path && Storage::disk('public')->exists($promotionImage->image_path)) {
-                Storage::disk('public')->delete($promotionImage->image_path);
-            }
-        });
-    }
 }

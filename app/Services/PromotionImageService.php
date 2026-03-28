@@ -105,12 +105,14 @@ class PromotionImageService
     }
 
     /**
-     * Elimina el registro. 
-     * Nota: El archivo físico se borra vía el 'booted' del Modelo que hicimos antes.
+     * Elimina el registro y el archivo físico usando ImageService.
      */
     public function delete($id): bool
     {
         $item = PromotionImage::findOrFail($id);
+
+        $this->imageService->deleteImageIfLocal($item->image_path);
+
         return $item->delete();
     }
 
