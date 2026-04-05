@@ -77,7 +77,7 @@ class SaleService
             return [
                 'id'         => $item->id,
                 'number'     => $index + 1,
-                'product'    => $item->product->name,
+                'product'    => $item->product?->name ?? '<span class="text-muted fst-italic">Producto eliminado</span>',
                 'quantity'   => $item->quantity,
                 'unit_price' => '$' . number_format($item->unit_price, 2, ',', '.'),
                 'subtotal'   => '$' . number_format($item->subtotal, 2, ',', '.'),
@@ -154,7 +154,7 @@ class SaleService
                 'html' => view('admin.order.partials._item_row', [
                     'product'   => $item->product,
                     'item'      => $item,
-                    'stock'     => $item->product->getStock($order->branch_id),
+                    'stock'     => $item->product ? $item->product->getStock($order->branch_id) : 0,
                     'salePrice' => $item->unit_price,
                     'allowEditPrice' => true,
                 ])->render(),

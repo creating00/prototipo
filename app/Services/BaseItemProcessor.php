@@ -45,7 +45,7 @@ abstract class BaseItemProcessor
                 $this->stockService->reserve($product, $quantity, $branchId);
             }
 
-            $unitPrice = $item['unit_price'] ?? $this->getProductPrice($product, $branchId);
+            $unitPrice = $item['unit_price'] ?? $this->getProductPrice($product, $model);
             $subtotal = $unitPrice * $quantity;
 
             $totals[$currency] = ($totals[$currency] ?? 0) + $subtotal;

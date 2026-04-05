@@ -145,6 +145,7 @@ class OrderController extends BaseOrderController
 
     public function destroy($id)
     {
+        
         try {
             return response()->json(
                 $this->orderService->deleteOrder($id)
@@ -153,6 +154,29 @@ class OrderController extends BaseOrderController
             return response()->json([
                 'error' => $e->getMessage()
             ], $e->getCode() ?: 400);
+        }
+    }
+
+    public function cancel($id)
+    {
+        try {
+            $order = $this->orderService->getOrderById($id);
+            // $this->authorize('cancel', $order);
+
+            $result = $this->orderService->cancelOrder($id);
+
+            return response()->json([
+                'success' => true,
+                'message' => $result['message']
+            ], 200);
+        } catch (\Exception $e) {
+            // Manejo de código de estado HTTP
+            $statusCode = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo cancelar la orden: ' . $e->getMessage()
+            ], $statusCode);
         }
     }
 

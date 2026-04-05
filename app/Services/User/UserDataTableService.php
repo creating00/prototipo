@@ -15,6 +15,7 @@ class UserDataTableService
     public function getAllUsersForDataTable(): array
     {
         $users = User::with(['branch'])
+            ->where('email', '!=', 'ecommerce@system.com')
             ->orderByDesc('created_at')
             ->get();
 

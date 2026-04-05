@@ -53,8 +53,50 @@
         <div id="orders-container" data-base-url="{{ route('web.orders.index') }}"
             data-sale-url="{{ route('web.sales.index') }}" data-api-url="/api/orders">
             {{-- DataTable de Pedidos --}}
-            <x-adminlte.data-table tableId="orders-table" title="Gestión de Pedidos" :headers="$headers" :rowData="$rowData"
+            <x-adminlte.data-table tableId="orders-table" title="Gestión de Pedidos" size="sm-orders" :headers="$headers" :rowData="$rowData"
                 :hiddenFields="$hiddenFields" withActions="true">
+
+                <x-slot name="body">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div class="d-flex flex-wrap align-items-center gap-3">
+
+                            <div class="d-flex align-items-center gap-2">
+                                <x-bootstrap.select name="filter_status" id="filter-status" :options="\App\Enums\OrderStatus::forSelect()"
+                                    placeholder="Todos los Estados" class="form-select-sm" container-class="mb-0" />
+
+                                <x-bootstrap.select name="filter_source" id="filter-source" :options="\App\Enums\OrderSource::forSelect()"
+                                    placeholder="Todos los Orígenes" class="form-select-sm" container-class="mb-0" />
+                            </div>
+
+                            <div class="vr d-none d-lg-block" style="height: 20px; opacity: 0.2;"></div>
+
+                            <div class="position-relative">
+                                <input type="text" id="filter-month" class="form-control form-control-sm bg-white ps-4"
+                                    style="min-width: 150px;" placeholder="Seleccionar mes" readonly>
+                                <i class="bi bi-calendar3 position-absolute start-2 top-50 translate-middle-y text-muted"
+                                    style="left: 10px; font-size: 0.8rem; pointer-events: none;"></i>
+                            </div>
+
+                            <button type="button" id="btn-reset-filters"
+                                class="btn btn-link btn-sm text-decoration-none p-0 text-muted">
+                                <i class="bi bi-x-circle"></i> Limpiar
+                            </button>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-3 border-start ps-3">
+                            <div class="text-end">
+                                <div class="small text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Total ARS
+                                </div>
+                                <span id="total-ars" class="fw-bold text-success fs-5">$ 0,00</span>
+                            </div>
+                            <div class="text-end">
+                                <div class="small text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Total USD
+                                </div>
+                                <span id="total-usd" class="fw-bold text-primary fs-5">U$D 0,00</span>
+                            </div>
+                        </div>
+                    </div>
+                </x-slot>
 
                 {{-- Botones en cada fila --}}
                 <x-slot name="actions">

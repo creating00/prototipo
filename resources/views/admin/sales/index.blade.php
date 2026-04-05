@@ -8,7 +8,7 @@
         {{-- Alerts --}}
         <x-adminlte.alert-manager />
 
-        {{-- Métricas opcionales (solo si envías $cards desde el controlador) --}}
+        {{-- Métricas opcionales --}}
         @isset($cards)
             <div class="row mb-4">
                 @foreach ($cards as $card)
