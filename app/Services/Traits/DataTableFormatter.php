@@ -176,10 +176,41 @@ trait DataTableFormatter
 
     protected function formatOrderForDataTable(Order $order, int $index): array
     {
-        $row = $this->formatForDataTable($order, $index);
-        $row['sale_id'] = $order->sale?->id;
+        $baseRow = $this->formatForDataTable($order, $index);
 
-        return $row;
+        $sourceLabel = is_object($order->source) ? $order->source->label() : $order->source;
+        $sourceRaw   = is_object($order->source) ? $order->source->value : $order->source;
+
+        return [
+            // --- 1. CELDAS VISIBLES (El orden aquí ES el orden de las columnas) ---
+            'number'     => $baseRow['number'],
+            'branch'     => $baseRow['branch'],
+            'customer'   => $baseRow['customer'],
+            'total'      => $baseRow['total'],
+            'source'     => '<span class="badge bg-info">' . $sourceLabel . '</span>',
+            'status'     => $baseRow['status'],
+            'created_at' => $baseRow['created_at'],
+
+            // --- 2. ATRIBUTOS DE FILA ---
+            '_row_attributes' => [
+                'id'                   => $baseRow['id'],
+                'status_raw'           => $baseRow['status_raw'],
+                'source_raw'           => $sourceRaw,
+                'phone'                => $baseRow['phone'],
+                'whatsapp-url'         => $baseRow['whatsapp-url'],
+                'customer_type'        => $baseRow['customer_type'],
+                'payment_type'         => $baseRow['payment_type'],
+                'requires_invoice'     => $baseRow['requires_invoice'],
+                'requires_invoice_raw' => $baseRow['requires_invoice_raw'],
+                'total_ars'            => $baseRow['total_ars'],
+                'total_usd'            => $baseRow['total_usd'],
+                'totals_json'          => $baseRow['totals_json'],
+                'payments_detailed'    => $baseRow['payments_detailed'],
+                'customer_name_raw'    => $baseRow['customer_name_raw'],
+                'exchange_rate'        => $baseRow['exchange_rate'],
+                'sale_id'              => $order->sale?->id,
+            ]
+        ];
     }
 
     protected function formatSaleForDataTable(Sale $sale, int $index): array

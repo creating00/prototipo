@@ -7,14 +7,15 @@
     $colorClass = "bg-{$currentCurrency->color()} text-white";
 @endphp
 
-<tr data-id="{{ $product->id }}" data-code="{{ $product->code }}">
+{{-- Usar nullsafe para evitar error en id y code --}}
+<tr data-id="{{ $product?->id ?? $item?->product_id }}" data-code="{{ $product?->code ?? 'N/A' }}">
     <td>
-        <span class="text-muted small d-block text-truncate" style="max-width: 200px;" title="{{ $product->name }}">
-            {{ $product->name }}
+        <span class="text-muted small d-block text-truncate" style="max-width: 200px;"
+            title="{{ $product?->name ?? 'Producto eliminado' }}">
+            {{ $product?->name ?? 'Producto eliminado' }}
         </span>
-        <input type="hidden" name="items[INDEX][product_id]" value="{{ $product->id }}">
+        <input type="hidden" name="items[INDEX][product_id]" value="{{ $product?->id ?? $item?->product_id }}">
         <input type="hidden" name="items[INDEX][currency]" value="{{ $currentCurrency->value }}">
-
     </td>
 
     <td>

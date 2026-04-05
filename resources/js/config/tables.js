@@ -4,6 +4,8 @@ import {
     updateSalesFooter,
     setupExpenseFilters,
     updateExpenseFooter,
+    setupOrderFilters,
+    updateOrderFooter
 } from "./dt-filters";
 
 export const TABLE_CONFIGS = {
@@ -76,6 +78,23 @@ export const TABLE_CONFIGS = {
             },
             drawCallback: function () {
                 updateSalesFooter(this.api());
+            },
+        },
+    },
+
+    ORDERS: {
+        selector: ".datatable-sm-orders",
+        options: {
+            pageLength: 10,
+            ordering: true,
+            columnDefs: [{ targets: "_all", className: "dt-center" }],
+            initComplete: function () {
+                const api = this.api();
+                setupOrderFilters(api);
+                updateOrderFooter(api);
+            },
+            drawCallback: function () {
+                updateOrderFooter(this.api());
             },
         },
     },
