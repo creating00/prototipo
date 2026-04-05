@@ -77,7 +77,7 @@ class OrderService
                 'html' => view('admin.order.partials._item_row', [
                     'product'   => $item->product,
                     'item'      => $item,
-                    'stock'     => $item->product->getStock($order->branch_id),
+                    'stock'     => $item->product ? $item->product->getStock($order->branch_id) : 0,
                     'salePrice' => $item->unit_price,
                 ])->render(),
             ];
@@ -136,11 +136,37 @@ class OrderService
         }
 
         return DB::transaction(function () use ($order) {
-            $this->itemProcessor->releaseStock($order);
+            // Omitir liberación de stock si la orden ya fue cancelada
+            if ($order->status !== \App\Enums\OrderStatus::Cancelled) {
+                $this->itemProcessor->releaseStock($order);
+            }
+
             $order->items()->delete();
             $order->delete();
 
             return ['message' => 'Order deleted'];
+        });
+    }
+
+    public function cancelOrder($id): array
+    {
+        $order = $this->getOrderById($id);
+
+        // Evitar procesar si ya está cancelada
+        if ($order->status === OrderStatus::Cancelled) {
+            throw new \Exception('La orden ya se encuentra cancelada.', 400);
+        }
+
+        return DB::transaction(function () use ($order) {
+            // 1. Revertir el stock
+            $this->itemProcessor->releaseStock($order);
+
+            // 2. Actualizar el estado usando el Enum
+            $order->update([
+                'status' => OrderStatus::Cancelled
+            ]);
+
+            return ['message' => 'Order cancelled successfully'];
         });
     }
 
@@ -276,7 +302,7 @@ class OrderService
             return [
                 'id'         => $item->id,
                 'number'     => $index + 1,
-                'product'    => $item->product->name,
+                'product'    => $item->product?->name ?? '<span class="text-muted fst-italic">Producto eliminado</span>',
                 'quantity'   => $item->quantity,
                 'unit_price' => $this->formatCurrency(
                     $item->unit_price,

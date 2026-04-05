@@ -4,7 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 
-class BanksAccountPolicy extends BasePolicy
+class BankAccountPolicy extends BasePolicy
 {
     protected string $resource = 'banks';
 

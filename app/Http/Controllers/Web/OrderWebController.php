@@ -38,10 +38,11 @@ class OrderWebController extends BaseOrderController
             ->get()
             ->pluck('full_description', 'id');
 
-        $headers = ['#', 'Sucursal', 'Cliente', 'Total', 'Estado', 'Creado en:'];
+        $headers = ['#', 'Sucursal', 'Cliente', 'Total', 'Origen', 'Estado', 'Creado en:'];
         $hiddenFields = [
             'id',
             'status_raw',
+            'source_raw',
             'phone',
             'whatsapp-url',
             'customer_type',
@@ -264,23 +265,31 @@ class OrderWebController extends BaseOrderController
         $customer_type = $order->customer_type;
         $branchService = app(BranchService::class);
 
-        $branches = collect([
-            $branchService->getUserBranch($order->customer_id)
-        ]);
-
-        // Inicializamos variables nulas para evitar el error "Undefined variable"
+        // Inicializamos variables vacías/nulas
+        $branches = collect();
         $originBranch = null;
         $destinationBranches = collect();
         $statusOptions = [];
 
         if ($customer_type === 'App\Models\Branch') {
-            // 2. Sucursales que pueden ser "Proveedoras"
-            // Deben ser todas excepto la sucursal que está pidiendo (customer_id)
+            // --- 1. LÓGICA PARA SUCURSALES (COMPRAS INTERNAS) ---
+            $branches = collect([
+                $branchService->getUserBranch($order->customer_id)
+            ]);
+
+            // Sucursales Proveedoras (Todas excepto la que pide)
             $destinationBranches = collect($branchService->getAllBranchesExcept($order->customer_id));
 
             $originBranch = $branchService->getUserBranch($order->branch_id);
             $statusOptions = OrderStatus::forInternalOrder();
         } else {
+            // --- 2. LÓGICA PARA CLIENTES (VENTAS) ---
+            $branchIdToUse = $order->branch_id ?? $userBranchId;
+
+            $branches = collect([
+                $branchService->getUserBranch($branchIdToUse)
+            ]);
+
             $statusOptions = OrderStatus::forSale();
         }
 
@@ -290,7 +299,7 @@ class OrderWebController extends BaseOrderController
             'customer_type'       => $customer_type,
             'existingOrderItems'  => $this->orderService->buildOrderItemsHtml($order),
             'branches'            => $branches,
-            // 'branches'            => $branchService->getAllBranches(),
+            'currentBranchId'     => $userBranchId,
             'categories'          => app(CategoryService::class)->getAllCategories(),
             'clients'             => app(ClientService::class)->getAllClients($userBranchId),
             'statusOptions'       => $statusOptions,
@@ -340,18 +349,16 @@ class OrderWebController extends BaseOrderController
 
     public function destroy($id)
     {
-        $order = $this->orderService->getOrderById($id);
-        $this->authorize('cancel', $order);
         try {
-            // 1. Buscamos el pedido antes de borrarlo para conocer su flujo (Venta o Compra)
             $order = $this->orderService->getOrderById($id);
 
-            // 2. Determinamos la ruta de redirección basada en el tipo de cliente
-            $redirectRoute = ($order->customer_type === 'App\Models\Branch')
+            $this->authorize('delete', $order);
+
+            // Determinar ruta de redirección
+            $redirectRoute = ($order->customer_type === \App\Models\Branch::class)
                 ? 'web.orders.purchases'
                 : 'web.orders.index';
 
-            // 3. Ejecutamos la eliminación
             $this->orderService->deleteOrder($id);
 
             return redirect()
@@ -361,6 +368,29 @@ class OrderWebController extends BaseOrderController
             return redirect()
                 ->back()
                 ->with('error', 'No se pudo eliminar la orden: ' . $e->getMessage());
+        }
+    }
+
+    public function cancel($id)
+    {
+        try {
+            $order = $this->orderService->getOrderById($id);
+
+            $this->authorize('cancel', $order);
+
+            $redirectRoute = ($order->customer_type === 'App\Models\Branch')
+                ? 'web.orders.purchases'
+                : 'web.orders.index';
+
+            $this->orderService->cancelOrder($id);
+
+            return redirect()
+                ->route($redirectRoute)
+                ->with('success', 'Orden cancelada exitosamente');
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'No se pudo cancelar la orden: ' . $e->getMessage());
         }
     }
 }

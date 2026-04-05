@@ -64,12 +64,19 @@ Route::prefix('providers/{provider}')->group(function () {
 
 Route::get('/clients/search', [ClientController::class, 'search']);
 Route::apiResource('clients', ClientController::class);
-// Rutas públicas para e-commerce (creación de órdenes)
-Route::post('orders/ecommerce', [OrderController::class, 'storeFromEcommerce']);
-Route::post('orders/{id}/convert', [OrderController::class, 'convert']);
 
+// Rutas públicas para e-commerce
+Route::post('orders/ecommerce', [OrderController::class, 'storeFromEcommerce']);
+
+// Acciones específicas sobre órdenes (requieren autenticación)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('orders', [OrderController::class, 'store']);
+    Route::post('orders/{id}/convert', [OrderController::class, 'convert']);
+    Route::post('orders/{id}/cancel', [OrderController::class, 'cancel']);
+});
+
+// Rutas CRUD estándar
 Route::apiResource('orders', OrderController::class)->except(['store']);
-Route::post('orders', [OrderController::class, 'store'])->middleware('auth:sanctum');
 
 Route::apiResource('sales', SaleController::class);
 Route::post('sales/{sale}/payments', [SalePaymentController::class, 'store']);

@@ -177,3 +177,63 @@ export function updateExpenseFooter(api) {
         else if (currency === "2") totals.usd += amount;
     });
 }
+
+export function setupOrderFilters(api) {
+    const filterTable = () => {
+        const status = document.getElementById("filter-status")?.value;
+        const source = document.getElementById("filter-source")?.value;
+        const month = document.getElementById("filter-month")?.value;
+
+        DataTable.ext.search.push((settings, data, dataIndex) => {
+            if (!settings.nTable.classList.contains("datatable-sm-orders")) {
+                return true;
+            }
+
+            const row = api.row(dataIndex).node();
+            if (!row) return true;
+
+            const ds = row.dataset;
+
+            // Filtro por Estado
+            if (status && ds.status_raw !== status) return false;
+
+            // Filtro por Origen
+            if (source && ds.source_raw !== source) return false;
+
+            // Filtro por Mes (asume formato YYYY-MM en el filtro y YYYY-MM-DD en data-created_at)
+            if (month && ds.created_at && !ds.created_at.startsWith(month)) {
+                return false;
+            }
+
+            return true;
+        });
+
+        api.draw();
+        DataTable.ext.search.pop();
+    };
+
+    const ids = ["filter-status", "filter-source"];
+    setupCommonUI(filterTable, ids);
+
+    ids.forEach((id) =>
+        document.getElementById(id)?.addEventListener("change", filterTable),
+    );
+}
+
+export function updateOrderFooter(api) {
+    updateGenericFooter(api, (row, totals) => {
+        const totalsJson = row.getAttribute("data-totals_detailed");
+
+        if (totalsJson) {
+            // Si pasas el array $casts de totales como JSON
+            const t = JSON.parse(totalsJson);
+            // Asume claves 1 para ARS y 2 para USD según CurrencyType Enum
+            totals.ars += Number(t["1"] || 0);
+            totals.usd += Number(t["2"] || 0);
+        } else {
+            // Fallback usando atributos individuales
+            totals.ars += Number(row.getAttribute("data-total_ars") || 0);
+            totals.usd += Number(row.getAttribute("data-total_usd") || 0);
+        }
+    });
+}

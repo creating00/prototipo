@@ -19,6 +19,7 @@ class DataTable extends Component
     public array $rowData;
     public array $hiddenFields;
     public bool $selectable;
+    public array $rowAttributes = [];
 
     public function __construct(
         string $tableId,
@@ -43,7 +44,7 @@ class DataTable extends Component
 
         $this->rows = $this->generateRowsFromRowData();
 
-        if (!in_array($this->size, ['main', 'sm', 'sm-sales', 'sm-expenses'])) {
+        if (!in_array($this->size, ['main', 'sm', 'sm-sales', 'sm-expenses', 'sm-orders'])) {
             $this->size = 'main';
         }
     }
@@ -67,20 +68,53 @@ class DataTable extends Component
 
     protected function generateRowsFromRowData(): array
     {
-        return array_map(function ($item) {
-            // Filtrar los campos ocultos para no mostrarlos en las celdas
+        $rows = [];
+        $this->rowAttributes = [];
+
+        foreach ($this->rowData as $index => $item) {
+            // 1. Extraer atributos dedicados a la fila (<tr>) si existen
+            $attributes = [];
+            if (isset($item['_row_attributes'])) {
+                $attributes = $item['_row_attributes'];
+                unset($item['_row_attributes']); // Quitarlo para que no sea una columna
+            }
+
+            // 2. Filtrar campos ocultos (para retrocompatibilidad con tu código actual)
             $visibleData = array_filter($item, function ($key) {
                 return !in_array($key, $this->hiddenFields);
             }, ARRAY_FILTER_USE_KEY);
 
-            // Procesar cada valor para manejar nulos/vacíos
+            // Guardar atributos tradicionales (los hidden fields) y los explícitos
+            foreach ($item as $key => $val) {
+                if (in_array($key, $this->hiddenFields) || array_key_exists($key, $attributes)) {
+                    // Si el valor es array/objeto, convertir a json/string para el atributo HTML
+                    $attributes[$key] = is_string($val) || is_numeric($val) ? $val : json_encode($val);
+                }
+            }
+
+            $this->rowAttributes[$index] = $attributes;
+
+            // 3. Procesar las celdas visibles
             $processedData = [];
             foreach ($visibleData as $key => $value) {
                 $processedData[$key] = $this->formatCellValue($value);
             }
 
-            return array_values($processedData);
-        }, $this->rowData);
+            $rows[] = array_values($processedData);
+        }
+
+        return $rows;
+    }
+
+    public function getAttributesHtml(int $index): string
+    {
+        if (!isset($this->rowAttributes[$index])) return '';
+
+        $html = '';
+        foreach ($this->rowAttributes[$index] as $key => $value) {
+            $html .= sprintf(' data-%s="%s"', e($key), e($value));
+        }
+        return $html;
     }
 
     protected function formatCellValue($value): string

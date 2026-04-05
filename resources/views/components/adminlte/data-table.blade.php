@@ -52,9 +52,8 @@
 
                 <tbody>
                     @foreach ($rows as $index => $row)
-                        <tr data-row-index="{{ $index }}" data-row-id="{{ $getRowData($index)['id'] ?? '' }}"
-                            @foreach ($getRowData($index) as $key => $value)
-                                data-{{ $key }}="{{ $value }}" @endforeach>
+                        {{-- Aquí aplicamos el método que genera todos los data-* automáticamente --}}
+                        <tr data-row-index="{{ $index }}" {!! $getAttributesHtml($index) !!}>
 
                             {{-- ROW CHECKBOX --}}
                             @if ($selectable ?? false)
