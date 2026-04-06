@@ -29,6 +29,26 @@ trait DataTableFormatter
         };
     }
 
+    protected function resolveCustomerNameRaw($model): string
+    {
+        if (!$model->customer) {
+            return '';
+        }
+
+        return match ($model->customer_type) {
+            \App\Models\Client::class => (
+                $model->customer->full_name ??
+                $model->customer->name ??
+                $model->customer->document ??
+                ''
+            ),
+
+            \App\Models\Branch::class => $model->customer->name ?? '',
+
+            default => '',
+        };
+    }
+
     protected function formatCurrency(float $amount, ?CurrencyType $currency = null, string $class = 'fw-bold'): string
     {
         $currency = $currency ?? CurrencyType::ARS;
@@ -93,6 +113,7 @@ trait DataTableFormatter
     {
         $phone = $this->cleanPhoneNumber($model->customer?->phone);
         $customerName = $this->resolveCustomerName($model);
+        $customerNameRaw = $this->resolveCustomerNameRaw($model);
 
         // --- Lógica de Detección: ¿Usamos pagos reales o totales declarados? ---
         $hasPayments = isset($model->payments) && $model->payments->isNotEmpty();
@@ -169,7 +190,7 @@ trait DataTableFormatter
             'total_usd'            => $totalUsd,
             'totals_json'          => json_encode($model->totals),
             'payments_detailed'    => $paymentsDetailed,
-            'customer_name_raw'    => $customerName,
+            'customer_name_raw'    => $customerNameRaw,
             'exchange_rate'        => $model->exchange_rate
         ];
     }
@@ -184,6 +205,7 @@ trait DataTableFormatter
         return [
             // --- 1. CELDAS VISIBLES (El orden aquí ES el orden de las columnas) ---
             'number'     => $baseRow['number'],
+            'Pedido' => '<span class="fw-bold">' . Order::formatOrderNumber($baseRow['id']) . '</span>',
             'branch'     => $baseRow['branch'],
             'customer'   => $baseRow['customer'],
             'total'      => $baseRow['total'],
@@ -206,7 +228,7 @@ trait DataTableFormatter
                 'total_usd'            => $baseRow['total_usd'],
                 'totals_json'          => $baseRow['totals_json'],
                 'payments_detailed'    => $baseRow['payments_detailed'],
-                'customer_name_raw'    => $baseRow['customer_name_raw'],
+                'customer_name'        => $baseRow['customer_name_raw'],
                 'exchange_rate'        => $baseRow['exchange_rate'],
                 'sale_id'              => $order->sale?->id,
             ]

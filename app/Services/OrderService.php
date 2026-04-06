@@ -10,11 +10,14 @@ use App\Models\Client;
 use App\Models\Order;
 use App\Models\OrderReception;
 use App\Models\Sale;
+use App\Models\User;
 use App\Services\Order\OrderDataProcessor;
 use App\Services\Order\OrderItemProcessor;
 use App\Services\Product\ProductStockService;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use App\Notifications\OrderStatusNotification;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\DB;
 use App\Services\Traits\DataTableFormatter;
 use App\Traits\AuthTrait;
@@ -50,15 +53,21 @@ class OrderService
     //         ->get();
     // }
 
-    public function getAllOrders()
+    public function getAllOrders($user = null)
     {
         $branchId = $this->currentBranchId();
 
         $query = Order::with(['branch', 'customer', 'user'])
             ->orderBy('created_at', 'desc');
 
+        // Filtro por sucursal (si aplica)
         if ($branchId) {
             $query->forBranch($branchId);
+        }
+
+        // Lógica de Rol: Si es Seller, solo ve pedidos de Clientes
+        if ($user && $user->hasRole('seller')) {
+            $query->forClientsOnly();
         }
 
         return $query->get();
@@ -96,6 +105,18 @@ class OrderService
             $order->update([
                 'totals' => $totals
             ]);
+
+            $order = $order->fresh(['items', 'customer']);
+
+            $itemsCount = $order->items->sum('quantity');
+            $customerName = $order->customer_name;
+
+            $message = "{$customerName} hizo un pedido de {$itemsCount} productos.";
+
+            $targetUsers = User::where('branch_id', $order->branch_id)->get();
+            if ($targetUsers->isNotEmpty()) {
+                Notification::send($targetUsers, new OrderStatusNotification($order, $message));
+            }
 
             return $order->fresh();
         });
@@ -284,9 +305,9 @@ class OrderService
         return $validator->validated();
     }
 
-    public function getAllOrdersForDataTable(): array
+    public function getAllOrdersForDataTable($user = null): array
     {
-        return $this->getAllOrders()->map(
+        return $this->getAllOrders($user)->map(
             fn($order, $index) => $this->formatOrderForDataTable($order, $index)
         )->toArray();
     }

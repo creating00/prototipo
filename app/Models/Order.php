@@ -159,4 +159,29 @@ class Order extends Model
             . "Detalle:\n{$itemsDetail}\n\n"
             . "*Total: {$totals}*";
     }
+
+    /**
+     * Formatea cualquier ID al estándar ORD-00000000
+     */
+    public static function formatOrderNumber(?int $id): string
+    {
+        return $id ? 'PED-' . str_pad((string) $id, 8, '0', STR_PAD_LEFT) : 'N/A';
+    }
+
+    /**
+     * Accessor para obtener el número de pedido formateado ($order->order_number)
+     */
+    public function getOrderNumberAttribute(): string
+    {
+        return self::formatOrderNumber($this->id);
+    }
+
+    /**
+     * Filtra pedidos que pertenecen a Clientes (excluye traslados entre sucursales)
+     */
+    public function scopeForClientsOnly($query)
+    {
+        // Asumiendo que tu modelo de cliente es App\Models\Client
+        return $query->where('customer_type', \App\Models\Client::class);
+    }
 }
