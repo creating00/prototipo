@@ -19,14 +19,14 @@ class OrderWebController extends BaseOrderController
 
     public function index(CurrencyExchangeService $exchangeService)
     {
-        if ($redirect = $this->redirectIfNotAdmin('web.orders.create-branch')) {
-            return $redirect;
-        }
+        // if ($redirect = $this->redirectIfNotAdmin('web.orders.create-branch')) {
+        //     return $redirect;
+        // }
 
         $this->authorize('viewAny', Order::class);
 
-        $rowData = $this->orderService->getAllOrdersForDataTable();
-        $orders = $this->orderService->getAllOrders();
+        $rowData = $this->orderService->getAllOrdersForDataTable($this->currentUser());
+        // $orders = $this->orderService->getAllOrders();
 
         $currentRate = $exchangeService->getCurrentDollarRate();
 
@@ -38,7 +38,7 @@ class OrderWebController extends BaseOrderController
             ->get()
             ->pluck('full_description', 'id');
 
-        $headers = ['#', 'Sucursal', 'Cliente', 'Total', 'Origen', 'Estado', 'Creado en:'];
+        $headers = ['#', 'Pedido', 'Sucursal', 'Cliente', 'Total', 'Canal', 'Estado', 'Creado en:'];
         $hiddenFields = [
             'id',
             'status_raw',
@@ -59,7 +59,7 @@ class OrderWebController extends BaseOrderController
         ];
 
         return view('admin.order.index', compact(
-            'orders',
+            // 'orders',
             'rowData',
             'headers',
             'hiddenFields',
@@ -100,9 +100,19 @@ class OrderWebController extends BaseOrderController
 
         $backUrl = route('web.orders.index');
 
+        $banks = \App\Models\Bank::query()
+            ->orderBy('name')
+            ->pluck('name', 'id');
+
+        $bankAccounts = \App\Models\BankAccount::with(['bank', 'user'])
+            ->get()
+            ->pluck('full_description', 'id');
+
         return view('admin.order.details', [
             'order'        => $order,
             'backUrl'      => $backUrl,
+            'banks'        => $banks,
+            'bankAccounts' => $bankAccounts,
             'rowData'      => $itemsData['rowData'],
             'headers'      => $itemsData['headers'],
             'hiddenFields' => $itemsData['hiddenFields'],

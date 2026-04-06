@@ -6,6 +6,7 @@ enum RoleLabel: string
 {
     case ADMIN  = 'admin';
     case SELLER = 'seller';
+    // case MANAGER = 'manager';
 
     /**
      * Label visible en la UI
@@ -14,7 +15,7 @@ enum RoleLabel: string
     {
         return match ($this) {
             self::ADMIN  => 'Administrador',
-            self::SELLER => 'Vendedor',
+            self::SELLER => 'Vendedor'
         };
     }
 

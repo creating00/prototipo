@@ -6,6 +6,7 @@ use App\Http\Controllers\BaseOrderController;
 use Illuminate\Http\Request;
 use App\Enums\OrderSource;
 use App\Models\Client;
+use App\Models\Order;
 use App\Services\CurrencyExchangeService;
 use App\Traits\AuthTrait;
 
@@ -106,6 +107,7 @@ class OrderController extends BaseOrderController
 
             return response()->json([
                 'id' => $order->id,
+                'order_num_format' => Order::formatOrderNumber($order->id),
                 'totals' => $order->totals,
                 'formatted_totals' => $order->formatted_totals,
                 'status' => $order->status,

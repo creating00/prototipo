@@ -104,11 +104,32 @@
                 <i class="fas fa-arrow-left me-1"></i> Volver al listado
             </a>
 
-            <button class="btn btn-info btn-print-order">
-                <i class="fas fa-print me-1"></i> Imprimir Pedido
-            </button>
+            <div>
+                {{-- Caso 1: Si ya está convertido, mostramos el botón de imprimir --}}
+                @if ($order->status === \App\Enums\OrderStatus::ConvertedToSale && $order->sale_id)
+                    <x-adminlte.button color="info" size="sm" icon="fas fa-print" class="btn-print"
+                        title="Imprimir Comprobante" data-id="{{ $order->id }}" {{-- Forzamos a que sea un string o null para que el JS no se rompa --}}
+                        data-sale_id="{{ $order->sale_id ?? '' }}">
+                        Imprimir Comprobante
+                    </x-adminlte.button>
+
+                    {{-- Caso 2: Si NO está cancelado y NO está convertido, mostramos el de convertir --}}
+                @elseif ($order->status !== \App\Enums\OrderStatus::Cancelled)
+                    <x-adminlte.button color="success" size="sm" icon="fas fa-file-invoice-dollar"
+                        class="me-1 btn-convert" title="Convertir a Venta" data-id="{{ $order->id }}"
+                        data-totals_json="{{ json_encode($order->totals) }}"
+                        data-customer_name="{{ $order->customer_name }}" data-customer_type="{{ $order->customer_type }}"
+                        data-exchange_rate="{{ $order->exchange_rate }}" data-api-url="{{ route('web.orders.index') }}">
+                        Convertir a Venta
+                    </x-adminlte.button>
+                @endif
+
+                {{-- Caso 3: Si está Cancelled, no entra en ninguno de los anteriores y no muestra nada --}}
+            </div>
         </div>
     </div>
+    @include('admin.order.partials._convert_to_sale_modal')
+    @include('admin.sales.partials._modal-print')
 @endsection
 
 @push('scripts')

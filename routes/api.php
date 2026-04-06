@@ -71,7 +71,6 @@ Route::post('orders/ecommerce', [OrderController::class, 'storeFromEcommerce']);
 // Acciones específicas sobre órdenes (requieren autenticación)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('orders', [OrderController::class, 'store']);
-    Route::post('orders/{id}/convert', [OrderController::class, 'convert']);
     Route::post('orders/{id}/cancel', [OrderController::class, 'cancel']);
 });
 
