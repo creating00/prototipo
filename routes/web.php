@@ -8,6 +8,7 @@ use App\Http\Controllers\{
     SaleReceiptController,
 };
 use App\Http\Controllers\Api\ExpenseImportController;
+use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductImportController;
 use App\Http\Controllers\Api\ProviderImportController;
 use App\Http\Controllers\Web\{
@@ -27,6 +28,7 @@ use App\Http\Controllers\Web\{
     AnalyticsWebController,
     BankAccountWebController,
     BankWebController,
+    NotificationWebController,
     PriceModificationWebController,
     PromotionImageWebController,
     PromotionWebController,
@@ -49,6 +51,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/', [ProfileController::class, 'update'])->name('update');
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
+
 
     Route::prefix('web')->group(function () {
         Route::get('products/template', [ProductImportController::class, 'downloadTemplate'])->name('web.products.template');
@@ -74,6 +77,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('promotions/bulk-delete', [PromotionImageWebController::class, 'bulkDestroy'])
             ->name('web.promotions.bulk-delete');
 
+        Route::post('orders/{id}/convert', [OrderController::class, 'convert']);
+
+        // 1. Marcar todas como leídas
+        Route::post('notifications/mark-all-read', [NotificationWebController::class, 'markAllAsRead'])
+            ->name('web.notifications.mark-all-read');
+
+        // 2. Marcar una específica como leída
+        Route::patch('notifications/{id}/mark-read', [NotificationWebController::class, 'markAsRead'])
+            ->name('web.notifications.mark-read');
+
+        Route::get('notifications/{id}/go', [NotificationWebController::class, 'readAndRedirect'])
+            ->name('web.notifications.read-and-redirect');
+
+        // 3. Ruta resource base
+        webResource('notifications', NotificationWebController::class);
+
         webResource('categories', CategoryWebController::class);
         webResource('branches', BranchWebController::class);
         webResource('products', ProductWebController::class);
@@ -90,6 +109,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         webResource('bank-accounts', BankAccountWebController::class);
         //webResource('promotions', PromotionWebController::class);
         webResource('promotions', PromotionImageWebController::class);
+        webResource('notifications', NotificationWebController::class);
 
         Route::get('/audits', [PriceModificationWebController::class, 'index'])
             ->name('web.price-modifications.index');

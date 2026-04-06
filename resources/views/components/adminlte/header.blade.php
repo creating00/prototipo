@@ -22,7 +22,7 @@
             {{-- <x-adminlte.dropdown-menu /> --}}
 
             <!-- Notifications Dropdown -->
-            {{-- <x-adminlte.notifications-dropdown /> --}}
+            <x-adminlte.notifications-dropdown />
 
             <!-- Fullscreen -->
             <li class="nav-item">

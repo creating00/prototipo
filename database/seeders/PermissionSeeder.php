@@ -38,7 +38,7 @@ class PermissionSeeder extends Seeder
         'providers' => ['view', 'create', 'update', 'delete'],
 
         // Órdenes internas
-        'orders' => ['view', 'view_own', 'create_client', 'create_branch', 'update', 'approve', 'cancel', 'print'],
+        'orders' => ['view', 'view_own', 'view_money', 'create_client', 'create_branch', 'update', 'approve', 'cancel', 'print'],
         'order_items' => ['view', 'create', 'update', 'delete'],
 
         // Órdenes a proveedores
@@ -46,7 +46,7 @@ class PermissionSeeder extends Seeder
         'provider_order_items' => ['view', 'create', 'update', 'delete'],
 
         // Ventas
-        'sales' => ['view', 'create_client', 'create_branch', 'update', 'delete', 'cancel', 'print', 'refund'],
+        'sales' => ['view', 'create_client', 'create_branch', 'update', 'delete', 'cancel', 'print', 'refund', 'view_money'],
         'sale_items' => ['view', 'create', 'update', 'delete'],
 
         // Pagos
@@ -75,7 +75,7 @@ class PermissionSeeder extends Seeder
 
         //Bancos
         'banks' => ['view', 'create', 'update', 'delete'],
-        
+
         //Cuentas Bancarias
         'bank_accounts' => ['view', 'create', 'update', 'delete'],
 
@@ -86,12 +86,12 @@ class PermissionSeeder extends Seeder
 
     // Roles con permisos definidos (puede moverse a config/roles.php)
     private array $roles = [
-        'admin' => [],
         'seller' => [
+            'orders.view',
             'products.view',
             'clients.view',
             'clients.create',
-            // 'sales.view',
+            'sales.view',
             'sales.create_client',
             'sales.create_branch',
             'sales.print',
@@ -99,6 +99,36 @@ class PermissionSeeder extends Seeder
             'expenses.create'
         ]
     ];
+
+    /**
+     * Obtiene todos los permisos excepto los recursos o acciones específicas indicadas.
+     * * @param array $excludeResources Lista de recursos completos a excluir (ej: ['settings', 'analytics'])
+     * @param array $excludeActions Lista de permisos específicos (ej: ['sales.delete', 'users.reset_password'])
+     */
+    private function getPermissionsExcept(array $excludeResources = [], array $excludeActions = []): array
+    {
+        $filteredPermissions = [];
+
+        foreach ($this->permissionStructure as $resource => $actions) {
+            // Si el recurso completo está en la lista de exclusión, lo saltamos
+            if (in_array($resource, $excludeResources)) {
+                continue;
+            }
+
+            foreach ($actions as $action) {
+                $permissionName = "{$resource}.{$action}";
+
+                // Si la combinación recurso.acción está en la lista de exclusión, la saltamos
+                if (in_array($permissionName, $excludeActions)) {
+                    continue;
+                }
+
+                $filteredPermissions[] = $permissionName;
+            }
+        }
+
+        return $filteredPermissions;
+    }
 
     public function run(): void
     {
@@ -129,15 +159,60 @@ class PermissionSeeder extends Seeder
      */
     private function createRoles(): void
     {
-        foreach ($this->roles as $roleName => $permissions) {
-            $role = Role::firstOrCreate([
-                'name' => $roleName,
-                'guard_name' => 'web',
-            ]);
+        // Crear el Admin (Siempre activo)
+        $this->setupAdminRole();
 
-            if (!empty($permissions)) {
-                $role->syncPermissions($permissions);
-            }
+        // Crear el Manager (Comentado por petición del cliente)
+        // $this->setupManagerRole();
+
+        // Crear el Seller (Siempre activo)
+        $this->setupSellerRole();
+    }
+
+    /**
+     * Configura el rol de Administrador con acceso total.
+     */
+    private function setupAdminRole(): void
+    {
+        $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $admin->syncPermissions(Permission::all());
+    }
+
+    /**
+     * Configura el rol de Manager con exclusiones específicas.
+     * (Mantener como referencia o activar si el cliente lo solicita)
+     */
+    private function setupManagerRole(): void
+    {
+        $manager = Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'web']);
+
+        $excludeResources = [
+            'settings',
+            'analytics',
+            'price_modifications'
+        ];
+
+        $excludeActions = [
+            'sales.update',
+            'sales.delete',
+            'sales.refund',
+            'users.delete',
+            'expenses.delete'
+        ];
+
+        $permissions = $this->getPermissionsExcept($excludeResources, $excludeActions);
+        $manager->syncPermissions($permissions);
+    }
+
+    /**
+     * Configura el rol de Vendedor basado en el array manual.
+     */
+    private function setupSellerRole(): void
+    {
+        $seller = Role::firstOrCreate(['name' => 'seller', 'guard_name' => 'web']);
+
+        if (!empty($this->roles['seller'])) {
+            $seller->syncPermissions($this->roles['seller']);
         }
     }
 

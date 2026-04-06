@@ -53,8 +53,8 @@
         <div id="orders-container" data-base-url="{{ route('web.orders.index') }}"
             data-sale-url="{{ route('web.sales.index') }}" data-api-url="/api/orders">
             {{-- DataTable de Pedidos --}}
-            <x-adminlte.data-table tableId="orders-table" title="Gestión de Pedidos" size="sm-orders" :headers="$headers" :rowData="$rowData"
-                :hiddenFields="$hiddenFields" withActions="true">
+            <x-adminlte.data-table tableId="orders-table" title="Gestión de Pedidos" size="sm-orders" :headers="$headers"
+                :rowData="$rowData" :hiddenFields="$hiddenFields" withActions="true">
 
                 <x-slot name="body">
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
@@ -82,7 +82,7 @@
                                 <i class="bi bi-x-circle"></i> Limpiar
                             </button>
                         </div>
-
+                        @canResource('order.view_money')
                         <div class="d-flex align-items-center gap-3 border-start ps-3">
                             <div class="text-end">
                                 <div class="small text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Total ARS
@@ -95,6 +95,7 @@
                                 <span id="total-usd" class="fw-bold text-primary fs-5">U$D 0,00</span>
                             </div>
                         </div>
+                        @endcanResource
                     </div>
                 </x-slot>
 
@@ -119,7 +120,7 @@
                         @endcanResource
 
                         {{-- Convertir a venta --}}
-                        @canResource('sales.create')
+                        @canResource('sales.create_client')
                         <x-adminlte.button color="success" size="sm" icon="fas fa-file-invoice-dollar"
                             class="me-1 btn-convert" title="Convertir a Venta" />
                         @endcanResource

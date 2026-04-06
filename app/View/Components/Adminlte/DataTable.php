@@ -79,7 +79,7 @@ class DataTable extends Component
                 unset($item['_row_attributes']); // Quitarlo para que no sea una columna
             }
 
-            // 2. Filtrar campos ocultos (para retrocompatibilidad con tu código actual)
+            // 2. Filtrar campos ocultos 
             $visibleData = array_filter($item, function ($key) {
                 return !in_array($key, $this->hiddenFields);
             }, ARRAY_FILTER_USE_KEY);
