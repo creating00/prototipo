@@ -23,11 +23,10 @@ export async function fetchProduct(
     }
 
     const categoryId = getRepairCategoryId();
-    const url = new URL(
-        `/api/inventory/by-code/${code}`,
-        window.location.origin,
-    );
+    const url = new URL(`/api/inventory/by-code`, window.location.origin);
 
+    url.searchParams.append("code", code);
+    url.searchParams.append("branch_id", branchId);
     url.searchParams.append("branch_id", branchId);
     url.searchParams.append("context", context);
     url.searchParams.append("is_repair", isRepair ? "1" : "0");

@@ -52,8 +52,9 @@ class ProductController extends BaseProductController
     /**
      * Buscar producto por código y branch (API para órdenes)
      */
-    public function findByCode(string $code, Request $request)
+    public function findByCode(Request $request)
     {
+        $code = $request->get('code');
         $branchId   = $request->get('branch_id');
         $categoryId = $request->get('category_id');
         $isRepair   = $request->boolean('is_repair');

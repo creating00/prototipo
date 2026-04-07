@@ -4,6 +4,8 @@ namespace App\View\Components\Adminlte;
 
 use Illuminate\Support\Str;
 use Illuminate\View\Component;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class MenuBuilder extends Component
 {
@@ -12,26 +14,43 @@ class MenuBuilder extends Component
     public function __construct($items = null)
     {
         $raw = $items ?? config('admin-side-menu.items', []);
-
-        // Procesar recursivamente
         $this->items = $this->processItems($raw);
     }
 
     private function processItems(array $items)
     {
-        foreach ($items as &$item) {
+        $user = Auth::user();
+        $pendingOrdersCount = 0;
 
-            // Si el item tiene un href => lo convertimos
+        if ($user instanceof \App\Models\User && !is_null($user->branch_id)) {
+
+            // Eloquent ya aplica el filtro de Soft Deletes por defecto.
+            // Solo registros con deleted_at IS NULL serán contados.
+            $pendingOrdersCount = \App\Models\Order::where('branch_id', $user->branch_id)
+                ->where('status', \App\Enums\OrderStatus::Pending)
+                ->count();
+        }
+
+        foreach ($items as &$item) {
+            // Resolver Href
             if (isset($item['href'])) {
                 $item['href'] = $this->resolveHref($item['href']);
+
+                // Si es el Registro de Pedidos, inyectamos el conteo real de la DB
+                if ($item['href'] === route('web.orders.index') && $pendingOrdersCount > 0) {
+                    $item['badge'] = [
+                        'value' => $pendingOrdersCount,
+                        'class' => 'badge text-bg-danger'
+                    ];
+                }
             }
 
-            // Si el item tiene subitems => procesarlos
+            // Recursividad para subitems
             if (isset($item['subitems']) && is_array($item['subitems'])) {
                 $item['subitems'] = $this->processItems($item['subitems']);
             }
 
-            // Children (nested)
+            // Recursividad para children (nested)
             if (isset($item['children']) && is_array($item['children'])) {
                 $item['children'] = $this->processItems($item['children']);
             }
@@ -42,12 +61,9 @@ class MenuBuilder extends Component
 
     private function resolveHref($href)
     {
-        // URL absoluta o relativa => mantener
         if (Str::startsWith($href, ['http://', 'https://', '/', '#'])) {
             return $href;
         }
-
-        // Nombre de ruta => convertir
         return route($href);
     }
 

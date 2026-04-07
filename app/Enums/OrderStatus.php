@@ -49,6 +49,15 @@ enum OrderStatus: int
         ];
     }
 
+    public static function forOrder(): array
+    {
+        return [
+            self::Draft->value     => self::Draft->label(),
+            self::Pending->value   => self::Pending->label(),
+            self::ConvertedToSale->value => self::ConvertedToSale->label(),
+        ];
+    }
+
     public static function forSelect(): array
     {
         $options = [];
