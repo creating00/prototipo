@@ -4,12 +4,19 @@
     'label' => '',
     'active' => false,
     'color' => '',
+    'badge' => null,
 ])
 
 <li class="nav-item">
     <a href="{{ $href }}" class="nav-link {{ $active ? 'active' : '' }}">
-        {{-- Se agrega la variable $color a la clase del icono --}}
         <i class="nav-icon {{ $icon }} {{ $color }}"></i>
-        <p>{{ $label }}</p>
+        <p>
+            {{ $label }}
+            @if($badge)
+                <span class="right {{ $badge['class'] ?? 'badge text-bg-info' }}">
+                    {{ $badge['value'] }}
+                </span>
+            @endif
+        </p>
     </a>
 </li>

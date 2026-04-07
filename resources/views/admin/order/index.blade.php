@@ -61,7 +61,7 @@
                         <div class="d-flex flex-wrap align-items-center gap-3">
 
                             <div class="d-flex align-items-center gap-2">
-                                <x-bootstrap.select name="filter_status" id="filter-status" :options="\App\Enums\OrderStatus::forSelect()"
+                                <x-bootstrap.select name="filter_status" id="filter-status" :options="\App\Enums\OrderStatus::forOrder()"
                                     placeholder="Todos los Estados" class="form-select-sm" container-class="mb-0" />
 
                                 <x-bootstrap.select name="filter_source" id="filter-source" :options="\App\Enums\OrderSource::forSelect()"
