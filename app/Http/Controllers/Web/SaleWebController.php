@@ -6,116 +6,201 @@ use App\Enums\RepairType;
 use App\Enums\SaleStatus;
 use App\Enums\SaleType;
 use App\Http\Controllers\BaseSaleController;
+use App\Models\Sale;
 use App\Traits\AuthTrait;
+use App\Traits\CanHandleSalePrints;
 use Illuminate\Http\Request;
 
 class SaleWebController extends BaseSaleController
 {
     use AuthTrait;
+    use CanHandleSalePrints;
+
     public function index()
     {
+        // if ($redirect = $this->redirectIfNotAdmin('web.sales.create-client')) {
+        //     return $redirect;
+        // }
+
+        $this->authorize('viewAny', Sale::class);
+
         $rowData = $this->saleService->getAllSalesForDataTable();
+
         $sales = $this->saleService->getAllSales();
 
-        $headers = ['#', 'Sucursal', 'Cliente', 'Total', 'Estado', 'Creado en:'];
-        $hiddenFields = ['id'];
+        $headers = ['#', 'Sucursal', 'Cliente', 'Tipo', 'Pago', 'Total', 'Facturación', 'Estado', 'Creado en:'];
+        $hiddenFields = [
+            'id',
+            'status_raw',
+            'phone',
+            'whatsapp-url',
+            'customer_type',
+            'totals_json',
+            'customer_name_raw',
+            'total_ars',
+            'total_usd',
+            'requires_invoice_raw',
+            'exchange_rate',
+            'payments_detailed'
+        ];
 
         return view('admin.sales.index', compact('sales', 'rowData', 'headers', 'hiddenFields'));
     }
 
-    public function create()
+    public function show($id)
     {
-        // Crea una venta por defecto a un Cliente
-        $branches = app(\App\Services\BranchService::class)->getAllBranches();
-        $categories = app(\App\Services\CategoryService::class)->getAllCategories();
-        $clients = app(\App\Services\ClientService::class)->getAllClients();
-        $statusOptions = SaleStatus::forSelect();
+        $sale = $this->saleService->getSaleById($id);
+        $this->authorize('view', $sale);
 
-        $customer_type = 'App\Models\Client';
+        $itemsData = $this->saleService->getSaleItemsData($sale);
 
-        return view('admin.sales.create-client', compact(
-            'branches',
-            'categories',
-            'clients',
-            'statusOptions',
-            'customer_type',
-        ));
+        return view('admin.sales.details', [
+            'sale'         => $sale,
+            'backUrl'      => route('web.sales.index'),
+            'rowData'      => $itemsData['rowData'],
+            'headers'      => $itemsData['headers'],
+            'hiddenFields' => $itemsData['hiddenFields'],
+        ]);
+    }
+
+    private function getCommonFormData(string $customerType = 'App\Models\Client', $sale = null): array
+    {
+        $branchService = app(\App\Services\BranchService::class);
+        $categoryService = app(\App\Services\CategoryService::class);
+        $discountService = app(\App\Services\DiscountService::class);
+        $repairAmountService = app(\App\Services\RepairAmountService::class);
+        $userBranchId = $this->currentBranchId();
+
+        $isDollarSale = false;
+        if ($sale) {
+            $totals = is_array($sale->totals) ? $sale->totals : json_decode($sale->totals ?? '{}', true);
+            $isDollarSale = isset($totals[\App\Enums\CurrencyType::USD->value]);
+        }
+
+        $activeRepairAmounts = \App\Models\RepairAmount::query()
+            ->forBranch($userBranchId)
+            ->active()
+            ->get()
+            ->pluck('amount', 'repair_type.value') // [type_id => amount]
+            ->toArray();
+
+        // Opciones base de pago
+        $paymentOptions = [
+            \App\Enums\PaymentType::Cash->value => \App\Enums\PaymentType::Cash->label(),
+            \App\Enums\PaymentType::Transfer->value => \App\Enums\PaymentType::Transfer->label(),
+            \App\Enums\PaymentType::Card->value => \App\Enums\PaymentType::Card->label(),
+        ];
+
+        // Si es sucursal, restringimos solo a Transferencia
+        if ($customerType === 'App\Models\Branch') {
+            $paymentOptions = [
+                \App\Enums\PaymentType::Transfer->value => \App\Enums\PaymentType::Transfer->label(),
+            ];
+        }
+
+        $data = [
+            'isDollarSale'    => $isDollarSale,
+            'customer_type'   => $customerType,
+            'categories'      => $categoryService->getAllCategories(),
+            'statusOptions'   => SaleStatus::forSelect(),
+            'saleTypeOptions' => SaleType::forSelect(),
+            'repairTypes'     => RepairType::forSelect(),
+            'repairAmountsMap' => $activeRepairAmounts,
+            'saleDate'        => $sale
+                ? \Carbon\Carbon::parse($sale->sale_date)->format('Y-m-d')
+                : now()->format('Y-m-d'),
+            'paymentOptions'  => $paymentOptions,
+            'discountOptions' => $discountService->getForSelect(),
+            'discountMap'     => $discountService->getValueMap(),
+            'banks' => \App\Models\Bank::query()
+                ->orderBy('name')
+                ->pluck('name', 'id'),
+            'bankAccounts' => \App\Models\BankAccount::with(['bank', 'user'])
+                ->get()
+                ->pluck('full_description', 'id'),
+            'currentBranchId' =>  $userBranchId,
+        ];
+
+        if ($customerType === 'App\Models\Client') {
+            $clientService = app(\App\Services\ClientService::class);
+
+            $originBranch = $branchService->getUserBranch($userBranchId);
+            if (!$originBranch) {
+                abort(404, 'Sucursal de origen no encontrada.');
+            }
+
+            $data['branches'] = collect([$originBranch]);
+
+            $data['clients'] = $clientService->getAllClients($userBranchId);
+
+            $defaultDoc = config('app.default_client_document');
+            $data['defaultClientId'] = $data['clients']
+                ->where('document', $defaultDoc)
+                ->first()?->id;
+        } else {
+            $originBranch = $branchService->getUserBranch($userBranchId);
+
+            if (!$originBranch) {
+                abort(404, 'Sucursal de origen no encontrada.');
+            }
+
+            $data['originBranch'] = $originBranch;
+            $data['branches'] = $branchService->getAllBranches();
+            $data['destinationBranches'] = $branchService->getAllBranchesExcept($userBranchId);
+        }
+
+        return $data;
+    }
+
+    private function getCreateRoute(string $customerType): string
+    {
+        return $customerType === 'App\Models\Branch'
+            ? route('web.sales.create-branch')
+            : route('web.sales.create-client');
+    }
+
+    public function create(Request $request)
+    {
+        $typeParam = $request->get('type');
+        $type = $typeParam === 'branch' ? 'App\Models\Branch' : 'App\Models\Client';
+
+        $view = $type === 'App\Models\Branch' ? 'admin.sales.create-branch' : 'admin.sales.create-client';
+
+        return view($view, $this->getCommonFormData($type));
     }
 
     public function createClient()
     {
-        $branches = app(\App\Services\BranchService::class)->getAllBranches();
-        $categories = app(\App\Services\CategoryService::class)->getAllCategories();
-        $clientService = app(\App\Services\ClientService::class);
-        $clients = $clientService->getAllClients();
-        $defaultClientDocument = config('app.default_client_document');
-        $defaultClientId = $clients->where('document', $defaultClientDocument)->first()?->id;
-        $statusOptions = SaleStatus::forSelect();
-        $saleTypeOptions = SaleType::forSelect();
-        $repairTypes = RepairType::forSelect();
+        $this->authorize('createClient', Sale::class);
 
-        $customer_type = 'App\Models\Client';
-
-        $saleDate = now()->format('Y-m-d');
-
-        $paymentOptions = [
-            \App\Enums\PaymentType::Cash->value => \App\Enums\PaymentType::Cash->label(),
-            \App\Enums\PaymentType::Transfer->value => \App\Enums\PaymentType::Transfer->label(),
-        ];
-
-        return view('admin.sales.create-client', compact(
-            'customer_type',
-            'branches',
-            'categories',
-            'defaultClientId',
-            'clients',
-            'statusOptions',
-            'saleTypeOptions',
-            'saleDate',
-            'paymentOptions',
-            'repairTypes'
-        ));
+        return $this->create(new Request(['type' => 'client']));
     }
 
     public function createBranch()
     {
-        $userBranchId = $this->currentBranchId();
+        $this->authorize('createBranch', Sale::class);
 
-        $branchService = app(\App\Services\BranchService::class);
-
-        $originBranch = $branchService->getUserBranch($userBranchId);
-        $destinationBranches = $branchService->getAllBranchesExcept($userBranchId);
-
-        $categories = app(\App\Services\CategoryService::class)->getAllCategories();
-        $statusOptions = SaleStatus::forSelect();
-
-        $saleDate = now()->format('Y-m-d');
-
-        $paymentOptions = [
-            \App\Enums\PaymentType::Cash->value => \App\Enums\PaymentType::Cash->label(),
-            \App\Enums\PaymentType::Transfer->value => \App\Enums\PaymentType::Transfer->label(),
-        ];
-
-        $customer_type = 'App\Models\Branch';
-
-        return view('admin.sales.create-branch', compact(
-            'originBranch',
-            'destinationBranches',
-            'categories',
-            'statusOptions',
-            'customer_type',
-            'saleDate',
-            'paymentOptions'
-        ));
+        return $this->create(new Request(['type' => 'branch']));
     }
 
     public function store(Request $request)
     {
-        try {
-            $this->saleService->createSale($request->all());
+        if ($request->input('customer_type') === 'App\Models\Branch') {
+            $this->authorize('createBranch', Sale::class);
+        } else {
+            $this->authorize('createClient', Sale::class);
+        }
 
-            return redirect()
-                ->route('web.sales.index')
+        //dd($request->request);
+
+        try {
+            $sale = $this->saleService->createSale($request->all());
+
+            if ($receiptType = $request->input('receipt_type')) {
+                $this->triggerPrint($sale->id, $receiptType);
+            }
+
+            return redirect($this->getCreateRoute($request->input('customer_type')))
                 ->with('success', 'Venta creada exitosamente');
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()
@@ -128,24 +213,23 @@ class SaleWebController extends BaseSaleController
     public function edit($id)
     {
         $sale = $this->saleService->getSaleById($id);
+        $this->authorize('update', $sale);
 
-        $branches = app(\App\Services\BranchService::class)->getAllBranches();
-        $categories = app(\App\Services\CategoryService::class)->getAllCategories();
-        $clients = app(\App\Services\ClientService::class)->getAllClients();
+        $existingOrderItems = $this->saleService->buildOrderItemsHtml($sale);
 
-        $statusOptions = SaleStatus::forSelect();
-
-        return view('admin.sales.edit', compact(
-            'sale',
-            'branches',
-            'categories',
-            'clients',
-            'statusOptions'
+        return view('admin.sales.edit', array_merge(
+            $this->getCommonFormData($sale->customer_type, $sale),
+            compact('sale', 'existingOrderItems')
         ));
     }
 
     public function update(Request $request, $id)
     {
+        // dd($request->all());
+        $sale = $this->saleService->getSaleById($id);
+
+        $this->authorize('update', $sale);
+
         try {
             $this->saleService->updateSale($id, $request->all());
 
@@ -162,6 +246,10 @@ class SaleWebController extends BaseSaleController
 
     public function destroy($id)
     {
+        $sale = $this->saleService->getSaleById($id);
+
+        $this->authorize('destroy', $sale);
+
         try {
             $this->saleService->deleteSale($id);
 

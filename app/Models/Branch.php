@@ -14,6 +14,7 @@ class Branch extends Model
         'province_id',
         'name',
         'address',
+        'phone',
     ];
 
     public function province()
@@ -24,5 +25,25 @@ class Branch extends Model
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function ordersAsCustomer()
+    {
+        return $this->morphMany(Order::class, 'customer');
+    }
+
+    public function products()
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    public function getLogoPathAttribute(): string
+    {
+        return public_path('assets/img/logo.webp');
     }
 }

@@ -5,18 +5,30 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\BaseOrderController;
 use Illuminate\Http\Request;
 use App\Enums\OrderSource;
+use App\Models\Client;
+use App\Models\Order;
+use App\Services\CurrencyExchangeService;
+use App\Traits\AuthTrait;
 
 class OrderController extends BaseOrderController
 {
+    use AuthTrait;
+
+    protected $clientService;
+    protected $currencyService;
+
+    public function __construct(
+        \App\Services\OrderService $orderService,
+        \App\Services\ClientService $clientService,
+        CurrencyExchangeService $currencyService
+    ) {
+        parent::__construct($orderService);
+        $this->clientService = $clientService;
+        $this->currencyService = $currencyService;
+    }
+
     public function index()
     {
-        // Solo usuarios autenticados pueden ver todas las órdenes
-        if (!auth()->check()) {
-            return response()->json([
-                'error' => 'Authentication required to view orders'
-            ], 401);
-        }
-
         return response()->json(
             $this->orderService->getAllOrders()
         );
@@ -27,21 +39,18 @@ class OrderController extends BaseOrderController
         try {
             $data = $request->all();
 
-            // Validar que solo usuarios autenticados puedan crear órdenes Backoffice
-            if (!auth()->check()) {
-                return response()->json([
-                    'error' => 'Authentication required for Backoffice orders'
-                ], 401);
-            }
-
-            // Forzar source Backoffice para usuarios autenticados
+            // Forzar valores Backoffice
             $data['source'] = OrderSource::Backoffice->value;
-            $data['user_id'] = auth()->id();
+            $data['user_id'] = config('orders.system_user_id');
+            $data['customer_type'] = \App\Models\Branch::class;
 
             $order = $this->orderService->createOrder($data);
+
             return response()->json($order, 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['errors' => $e->errors()], 422);
+            return response()->json([
+                'errors' => $e->errors()
+            ], 422);
         }
     }
 
@@ -49,43 +58,70 @@ class OrderController extends BaseOrderController
     {
         try {
             $data = $request->all();
-
-            // Forzar el source a Ecommerce antes de pasar a OrderService
             $data['source'] = OrderSource::Ecommerce->value;
 
-            // Crear la orden usando OrderService
+            $data['exchange_rate'] = $this->currencyService->getCurrentDollarRate('venta');
+
+            $data['items'] = array_map(function ($item) {
+                return array_merge([
+                    'currency' => \App\Enums\CurrencyType::ARS->value,
+                ], $item);
+            }, $data['items']);
+
+            if (!isset($data['customer_type'])) {
+                return response()->json(['error' => 'customer_type is required'], 422);
+            }
+
+            // Validación lógica para Clientes
+            if ($data['customer_type'] === Client::class) {
+                // Si no hay ID y tampoco hay datos de cliente nuevo, error
+                if (!isset($data['client_id']) && !isset($data['client'])) {
+                    return response()->json([
+                        'error' => 'client_id or client data is required for client orders'
+                    ], 422);
+                }
+
+                if (!isset($data['client_id']) && isset($data['client'])) {
+
+                    $branchId = $data['branch_id'] ?? null;
+
+                    if (!$branchId) {
+                        return response()->json(['error' => 'branch_id is required to create a client'], 422);
+                    }
+
+                    $client = $this->clientService->findOrCreate($data['client'], $branchId);
+                    $data['client_id'] = $client->id;
+                }
+            }
+
+            // Validación para Sucursales (Transferencias)
+            if ($data['customer_type'] === \App\Models\Branch::class) {
+                if (!isset($data['branch_recipient_id'])) {
+                    return response()->json([
+                        'error' => 'branch_recipient_id is required for branch orders'
+                    ], 422);
+                }
+            }
+
             $order = $this->orderService->createOrder($data);
 
-            // Solo retornar los campos que te interesan
-            $response = [
+            return response()->json([
                 'id' => $order->id,
-                'branch_id' => $order->branch_id,
-                'customer_id' => $order->customer_id,
+                'order_num_format' => Order::formatOrderNumber($order->id),
+                'totals' => $order->totals,
+                'formatted_totals' => $order->formatted_totals,
                 'status' => $order->status,
-                'total_amount' => $order->total_amount,
-                'notes' => $order->notes,
                 'created_at' => $order->created_at,
-            ];
-
-            return response()->json($response, 201);
+            ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage()
-            ], $e->getCode() ?: 400);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
     public function show($id)
     {
-        // Solo usuarios autenticados pueden ver órdenes específicas
-        if (!auth()->check()) {
-            return response()->json([
-                'error' => 'Authentication required to view order details'
-            ], 401);
-        }
-
         return response()->json(
             $this->orderService->getOrderById($id)
         );
@@ -96,43 +132,89 @@ class OrderController extends BaseOrderController
         try {
             $data = $request->all();
 
-            // Prevenir cambios de source en actualizaciones
-            if (isset($data['source'])) {
-                unset($data['source']);
-            }
-
-            // Solo usuarios autenticados pueden actualizar órdenes
-            if (!auth()->check()) {
-                return response()->json([
-                    'error' => 'Authentication required to update orders'
-                ], 401);
-            }
+            // Nunca permitir cambiar el source
+            unset($data['source']);
 
             $order = $this->orderService->updateOrder($id, $data);
+
             return response()->json($order);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['errors' => $e->errors()], 422);
+            return response()->json([
+                'errors' => $e->errors()
+            ], 422);
         }
     }
 
     public function destroy($id)
     {
-        // Solo usuarios autenticados pueden eliminar órdenes
-        if (!auth()->check()) {
-            return response()->json([
-                'error' => 'Authentication required to delete orders'
-            ], 401);
-        }
-
+        
         try {
             return response()->json(
                 $this->orderService->deleteOrder($id)
             );
         } catch (\Exception $e) {
-            return response()->json(
-                ['error' => $e->getMessage()],
-                $e->getCode() ?: 400
-            );
+            return response()->json([
+                'error' => $e->getMessage()
+            ], $e->getCode() ?: 400);
+        }
+    }
+
+    public function cancel($id)
+    {
+        try {
+            $order = $this->orderService->getOrderById($id);
+            // $this->authorize('cancel', $order);
+
+            $result = $this->orderService->cancelOrder($id);
+
+            return response()->json([
+                'success' => true,
+                'message' => $result['message']
+            ], 200);
+        } catch (\Exception $e) {
+            // Manejo de código de estado HTTP
+            $statusCode = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo cancelar la orden: ' . $e->getMessage()
+            ], $statusCode);
+        }
+    }
+
+    /**
+     * Convierte una orden existente en una venta.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function convert(Request $request, $id)
+    {
+        try {
+            $options = $request->all();
+
+            if (!isset($options['user_id'])) {
+                $options['user_id'] = $this->userId() ?? config('orders.system_user_id');
+            }
+
+            $sale = $this->orderService->convertToSale($id, $options);
+
+            // Disparamos la impresión para que al recargar el Index se ejecute
+            if ($receiptType = $request->input('receipt_type')) {
+                session()->flash('print_receipt', [
+                    'type' => $receiptType,
+                    'sale_id' => $sale->id,
+                ]);
+            }
+
+            return response()->json([
+                'message' => 'Orden convertida exitosamente',
+                'sale_id' => $sale->id,
+                'print'   => session('print_receipt') // Lo enviamos por si el JS quiere usarlo ya
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
         }
     }
 }

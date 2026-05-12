@@ -1,5 +1,8 @@
 import { TableManager } from "../../components/TableManager";
-import { deleteItem } from "../../utils/deleteHelper";
+import { deleteItem, deleteBulkItems } from "../../utils/deleteHelper";
+import { ModalSuccessWatcher } from "../../helpers/ModalSuccessWatcher";
+import { UIHelper } from "../../components/UIHelper";
+//import { DataTableManager } from "../../components/DataTableManager";
 
 const TABLE_CONFIG = {
     tableId: "products-table",
@@ -26,6 +29,82 @@ const TABLE_CONFIG = {
             selector: ".btn-header-new",
             handler: (baseUrl) => {
                 window.location.href = `${baseUrl}/create`;
+            },
+        },
+        newProvider: {
+            selector: ".btn-header-new-provider",
+            handler: () => {
+                const modalId = "modalProvider";
+                const modalElement = document.getElementById(modalId);
+
+                if (modalElement) {
+                    const modal =
+                        bootstrap.Modal.getOrCreateInstance(modalElement);
+
+                    // Observamos el éxito del modal para refrescar la tabla
+                    ModalSuccessWatcher.watch(modalId, () => {
+                        window.location.reload();
+                    });
+
+                    modal.show();
+                }
+            },
+        },
+        importExcel: {
+            selector: ".btn-header-import",
+            handler: (baseUrl, event) => {
+                UIHelper.handleImport(
+                    event.currentTarget,
+                    "import-excel-input",
+                    `${baseUrl}/import`,
+                    "productos",
+                );
+            },
+        },
+
+        importProviders: {
+            selector: ".btn-header-import-providers",
+            handler: (baseUrl, event) => {
+                const btn = event.currentTarget;
+                const importUrl = btn.dataset.importUrl;
+
+                UIHelper.handleImport(
+                    btn,
+                    "import-providers-excel-input",
+                    importUrl,
+                    "proveedores",
+                );
+            },
+        },
+
+        downloadTemplate: {
+            selector: ".btn-download-template",
+            handler: (baseUrl, event) => {
+                UIHelper.handleDownload(event.currentTarget, event);
+            },
+        },
+
+        bulkDelete: {
+            selector: "#btn-bulk-delete",
+            handler: (baseUrl, event) => {
+                event.preventDefault();
+
+                const tableElement = document.getElementById(
+                    TABLE_CONFIG.tableId,
+                );
+                const manager = DataTableManager.getInstance(tableElement);
+                if (!manager) return;
+
+                const ids = manager.getSelectedIds();
+                if (ids.length === 0) return;
+
+                UIHelper.handleBulkDelete(
+                    event.currentTarget,
+                    `${baseUrl}/bulk-delete`,
+                    ids,
+                    manager,
+                    "productos",
+                );
             },
         },
     },

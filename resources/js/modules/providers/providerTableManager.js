@@ -1,9 +1,23 @@
 import { TableManager } from "../../components/TableManager";
 import { deleteItem } from "../../utils/deleteHelper";
 
+const tableContainer = document.querySelector("[data-provider-order-url]");
+
+const provicerOrderUrl = tableContainer
+    ? tableContainer.dataset.providerOrderUrl
+    : "";
+
 const TABLE_CONFIG = {
     tableId: "providers-table",
     rowActions: {
+        view: {
+            selector: ".btn-view",
+            handler: (row, baseUrl) => {
+                const { id } = row.dataset;
+                // Redirección dinámica: /web/orders/{id}/details
+                window.location.href = `${baseUrl}/${id}`;
+            },
+        },
         edit: {
             selector: ".btn-edit",
             handler: (row, baseUrl) => {
@@ -16,10 +30,13 @@ const TABLE_CONFIG = {
         delete: {
             selector: ".btn-delete",
             handler: (row, baseUrl) => {
-                const { id, name } = row.dataset;
+                const { id, business_name } = row.dataset;
 
                 // Eliminación dinámica con mensaje corregido
-                deleteItem(`${baseUrl}/${id}`, `el proveedor "${name}"`);
+                deleteItem(
+                    `${baseUrl}/${id}`,
+                    `el proveedor "${business_name}"`,
+                );
             },
         },
     },
@@ -29,6 +46,13 @@ const TABLE_CONFIG = {
             handler: (baseUrl) => {
                 // Ruta de creación dinámica
                 window.location.href = `${baseUrl}/create`;
+            },
+        },
+        newProviderOrder: {
+            selector: ".btn-header-new-order-provider",
+            handler: (baseUrl) => {
+                // Ruta dinámica: /web/orders/create-client
+                window.location.href = `${provicerOrderUrl}/create`;
             },
         },
     },

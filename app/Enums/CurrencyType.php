@@ -24,6 +24,14 @@ enum CurrencyType: int
         };
     }
 
+    public function color(): string
+    {
+        return match ($this) {
+            self::ARS => 'success',
+            self::USD => 'primary',
+        };
+    }
+
     public static function forSelect(): array
     {
         $options = [];

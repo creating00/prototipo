@@ -1,291 +1,271 @@
 // resources/js/modules/sales/partials/sale-payment.js
+
+import PaymentCalculator from "../services/PaymentCalculator";
+import FieldSyncer from "../services/FieldSyncer";
+import RepairUiManager from "../services/RepairUiManager";
 import { dispatchRepairCategoryChanged } from "@/helpers/repair-category-events";
 
-const SALE_TYPE = {
-    SALE: "1",
-    REPAIR: "2",
-};
+// Importar constantes
+import { SALE_TYPE, FIELDS_TO_SYNC } from "../constants/payment-constants";
 
-const salePayment = {
-    // Variables para almacenar el total de la venta
-    saleTotal: 0,
-    saleType: SALE_TYPE.SALE,
+// Importar módulos de pago
+import PaymentSyncManager from "../payment/PaymentSyncManager";
+import PaymentMethodHandler from "../payment/PaymentMethodHandler";
+import DualPaymentHandler from "../payment/DualPaymentHandler";
+import PaymentUIUpdater from "../payment/PaymentUIUpdater";
+import PaymentManager from "../payment/PaymentManager";
 
-    init: function () {
+/**
+ * Helper para manejo de DOM y cache
+ */
+class DOMHelper {
+    constructor() {
+        this._domCache = new Map();
+    }
+
+    el(id, selector) {
+        if (!this._domCache.has(id)) {
+            this._domCache.set(
+                id,
+                typeof selector === "string"
+                    ? document.getElementById(selector)
+                    : document.querySelector(selector),
+            );
+        }
+        return this._domCache.get(id);
+    }
+
+    setText(id, value) {
+        const el = this.el(id, id);
+        if (el) el.textContent = value;
+    }
+
+    setHTML(id, html) {
+        const el = this.el(id, id);
+        if (el) el.innerHTML = html;
+    }
+
+    toggle(element, show) {
+        if (!element) return;
+        element.classList.toggle("d-none", !show);
+    }
+
+    getFloat(id) {
+        const el = this.el(id, id);
+        return parseFloat(el?.value) || 0;
+    }
+}
+
+/**
+ * Helper para manejo de estado de sincronización
+ */
+class StateManager {
+    constructor() {
+        this.saleTotal = 0;
+        this.saleType = SALE_TYPE.SALE;
+        this.isSyncing = false;
+    }
+
+    withSync(callback) {
+        this.isSyncing = true;
+        try {
+            callback();
+        } finally {
+            this.isSyncing = false;
+        }
+    }
+}
+
+/**
+ * Clase principal SalePayment - Orquestador
+ */
+class SalePayment {
+    constructor() {
+        // Helpers
+        this.dom = new DOMHelper();
+        this.state = new StateManager();
+
+        // Módulos de pago
+        this.syncManager = new PaymentSyncManager(this.dom, this.state);
+        this.uiUpdater = new PaymentUIUpdater(this.dom);
+        this.methodHandler = new PaymentMethodHandler(
+            this.dom,
+            this.syncManager,
+        );
+        this.paymentManager = new PaymentManager(
+            this.dom,
+            this.state,
+            this.syncManager,
+            this.uiUpdater,
+            this.methodHandler,
+        );
+        this.dualHandler = new DualPaymentHandler(
+            this.dom,
+            this.methodHandler,
+            () => this.paymentManager.calculate(),
+        );
+
+        // Backward compatibility - exponer métodos del DOM helper
+        this.el = this.dom.el.bind(this.dom);
+        this.getFloat = this.dom.getFloat.bind(this.dom);
+        this.setText = this.dom.setText.bind(this.dom);
+        this.setHTML = this.dom.setHTML.bind(this.dom);
+        this.toggle = this.dom.toggle.bind(this.dom);
+    }
+
+    init() {
         this.detectSaleType();
         this.bindEvents();
-        dispatchRepairCategoryChanged(
-            this.saleType === SALE_TYPE.REPAIR
-                ? document.querySelector('select[name="repair_type_id"]')
-                      ?.value || null
-                : null
-        );
-        this.initializePaymentFields();
-        this.calculateChangeAndBalance();
-    },
+        FieldSyncer.sync(FIELDS_TO_SYNC);
+        this.initialLoad();
+    }
 
-    bindEvents: function () {
-        const repairTypeSelect =
-            document.getElementById("repair_type") ||
-            document.querySelector('select[name="repair_type_id"]');
+    detectSaleType() {
+        const select = this.dom.el("saleType", "sale_type");
+        if (select) {
+            this.state.saleType = select.value;
+            RepairUiManager.toggleFields(
+                this.state.saleType === SALE_TYPE.REPAIR,
+            );
+        }
+    }
 
-        if (repairTypeSelect) {
-            repairTypeSelect.addEventListener("change", (e) => {
-                dispatchRepairCategoryChanged(e.target.value || null);
+    initialLoad() {
+        // Solo cargamos el total inicial y ejecutamos el primer cálculo
+        const currentTotal = this.dom.getFloat("total_amount");
+        this.state.saleTotal = currentTotal;
+
+        // Si es reparación, ajustar UI
+        this.detectSaleType();
+
+        // Calcular inicialmente para que el bloqueo de inputs (_handleInputsLock)
+        // se active si ya vienen pagos desde la base de datos (Edit mode)
+        this.paymentManager.calculate();
+        this.paymentManager.updateTotalsHiddenFields(this.state.saleTotal);
+    }
+
+    bindEvents() {
+        // 1. Inputs principales de montos (Efectivo, Transferencia, Tarjeta)
+        [
+            "amount_received_cash",
+            "amount_received_transfer",
+            "amount_received_card",
+        ].forEach((id) => {
+            this.on(id, id, "input", () => {
+                this.paymentManager.calculate();
             });
-        }
-        const amountReceivedInput = document.getElementById("amount_received");
-        if (amountReceivedInput) {
-            ["input", "change"].forEach((event) =>
-                amountReceivedInput.addEventListener(event, () =>
-                    this.calculateChangeAndBalance()
-                )
-            );
-        }
-
-        const saleTypeSelect = document.querySelector(
-            'select[name="sale_type"]'
-        );
-        if (saleTypeSelect) {
-            saleTypeSelect.addEventListener("change", () =>
-                this.handleSaleTypeChange()
-            );
-        }
-
-        document.addEventListener("sale:totalUpdated", (event) => {
-            if (this.saleType !== SALE_TYPE.REPAIR) {
-                this.saleTotal = event.detail.total || 0;
-                this.calculateChangeAndBalance();
-            }
         });
-    },
 
-    detectSaleType: function () {
-        const saleTypeSelect = document.querySelector(
-            'select[name="sale_type"]'
-        );
-        if (!saleTypeSelect) return;
-
-        this.saleType = saleTypeSelect.value;
-        this.applySaleTypeUI();
-    },
-
-    handleSaleTypeChange: function () {
-        const saleTypeSelect = document.querySelector(
-            'select[name="sale_type"]'
-        );
-        if (!saleTypeSelect) return;
-
-        this.saleType = saleTypeSelect.value;
-        this.applySaleTypeUI();
-        this.calculateChangeAndBalance();
-    },
-
-    applySaleTypeUI: function () {
-        const saleTotalWrapper = document.getElementById("sale-total-wrapper");
-        const repairWrapper = document.getElementById("repair-amount-wrapper");
-        const repairInput = document.getElementById("repair_amount");
-        const repairTypeWrapper = document.getElementById(
-            "repair-type-wrapper"
+        // 2. Selectores de Entidades (Bancos y Cuentas)
+        this.on("bank_id_card", "bank_id_card", "change", () =>
+            this.paymentManager.calculate(),
         );
 
-        const isRepair = this.saleType === SALE_TYPE.REPAIR;
-
-        const repairTypeSelect = repairTypeWrapper?.querySelector("select");
-
-        if (isRepair) {
-            saleTotalWrapper?.classList.add("d-none");
-            repairWrapper?.classList.remove("d-none");
-            repairTypeWrapper?.classList.remove("d-none");
-
-            if (repairInput) {
-                repairInput.disabled = false;
-            }
-
-            if (repairTypeSelect) {
-                repairTypeSelect.disabled = false;
-            }
-
-            this.setSaleTotalFromRepair();
-        } else {
-            repairWrapper?.classList.add("d-none");
-            repairTypeWrapper?.classList.add("d-none");
-            saleTotalWrapper?.classList.remove("d-none");
-
-            if (repairInput) {
-                repairInput.disabled = true;
-                repairInput.value = "";
-            }
-
-            if (repairTypeSelect) {
-                repairTypeSelect.disabled = true;
-                repairTypeSelect.value = "";
-
-                if (repairTypeSelect._choices) {
-                    repairTypeSelect._choices.removeActiveItems();
-                    repairTypeSelect._choices.setChoiceByValue("");
-                }
-
-                if (this.saleType !== SALE_TYPE.REPAIR) {
-                    dispatchRepairCategoryChanged(null);
-                }
-            }
-
-            this.setSaleTotalFromSale();
-        }
-    },
-    setSaleTotalFromRepair: function () {
-        const repairInput = document.getElementById("repair_amount");
-        this.saleTotal = parseFloat(repairInput?.value) || 0;
-        this.calculateChangeAndBalance();
-    },
-
-    setSaleTotalFromSale: function () {
-        const totalField = document.getElementById("total_amount");
-        this.saleTotal = parseFloat(totalField?.value) || 0;
-        this.calculateChangeAndBalance();
-    },
-
-    initializePaymentFields: function () {
-        // Obtener el total inicial del campo total_amount
-        const totalField = document.getElementById("total_amount");
-        if (totalField) {
-            this.saleTotal = parseFloat(totalField.value) || 0;
-        }
-
-        // Inicializar campos de cambio y saldo (solo lectura)
-        const changeField = document.getElementById("change_returned");
-        const balanceField = document.getElementById("remaining_balance");
-
-        if (changeField) changeField.readOnly = true;
-        if (balanceField) balanceField.readOnly = true;
-    },
-
-    calculateChangeAndBalance: function () {
-        const amountReceivedInput = document.getElementById("amount_received");
-        const changeReturnedInput = document.getElementById("change_returned");
-        const remainingBalanceInput =
-            document.getElementById("remaining_balance");
-
-        if (
-            !amountReceivedInput ||
-            !changeReturnedInput ||
-            !remainingBalanceInput
-        )
-            return;
-
-        const amountReceived = parseFloat(amountReceivedInput.value) || 0;
-
-        // Calcular cambio devuelto (si amount_received > total)
-        const changeReturned = Math.max(0, amountReceived - this.saleTotal);
-        changeReturnedInput.value = changeReturned.toFixed(2);
-
-        // Calcular saldo pendiente (si total > amount_received)
-        const remainingBalance = Math.max(0, this.saleTotal - amountReceived);
-        remainingBalanceInput.value = remainingBalance.toFixed(2);
-
-        // Actualizar estado visual
-        this.updatePaymentStatusVisual(
-            remainingBalance,
-            changeReturned,
-            amountReceived
+        this.on(
+            "bank_account_id_transfer",
+            "bank_account_id_transfer",
+            "change",
+            () => this.paymentManager.calculate(),
         );
 
-        // Disparar evento para que otros componentes sepan que el pago cambió
-        this.dispatchPaymentUpdatedEvent(
-            amountReceived,
-            changeReturned,
-            remainingBalance
-        );
-    },
-
-    updatePaymentStatusVisual: function (
-        remainingBalance,
-        changeReturned,
-        amountReceived
-    ) {
-        const statusElement = document.getElementById(
-            "payment_status_indicator"
-        );
-        if (!statusElement) return;
-
-        let statusHtml = "";
-        let statusClass = "";
-
-        if (
-            remainingBalance === 0 &&
-            changeReturned === 0 &&
-            amountReceived > 0
-        ) {
-            statusHtml = "Pagado exacto";
-            statusClass = "success";
-        } else if (remainingBalance === 0 && changeReturned > 0) {
-            statusHtml = "Pagado con cambio";
-            statusClass = "info";
-        } else if (remainingBalance > 0 && amountReceived > 0) {
-            statusHtml = "Pago parcial";
-            statusClass = "warning";
-        } else if (remainingBalance > 0 && amountReceived === 0) {
-            statusHtml = "Pendiente de pago";
-            statusClass = "danger";
-        } else {
-            statusHtml = "Sin pago registrado";
-            statusClass = "secondary";
-        }
-
-        statusElement.innerHTML = `<span class="badge bg-${statusClass}">${statusHtml}</span>`;
-    },
-
-    handleCustomerTypeChange: function () {
-        const customerTypeSelect = document.querySelector(
-            'select[name="customer_type"]'
-        );
-        const amountReceivedInput = document.getElementById("amount_received");
-
-        if (!customerTypeSelect || !amountReceivedInput) return;
-
-        const customerType = customerTypeSelect.value;
-
-        // Para ventas entre sucursales, el pago podría ser diferido
-        if (customerType.includes("Branch")) {
-            amountReceivedInput.value = "0";
-            amountReceivedInput.readOnly = true;
-            amountReceivedInput.title =
-                "Para ventas entre sucursales, el pago se registra posteriormente";
-            amountReceivedInput.classList.add("bg-light");
-        } else {
-            amountReceivedInput.readOnly = false;
-            amountReceivedInput.title = "";
-            amountReceivedInput.classList.remove("bg-light");
-        }
-
-        this.calculateChangeAndBalance();
-    },
-
-    dispatchPaymentUpdatedEvent: function (
-        amountReceived,
-        changeReturned,
-        remainingBalance
-    ) {
-        const event = new CustomEvent("sale:paymentUpdated", {
-            detail: {
-                amountReceived: amountReceived,
-                changeReturned: changeReturned,
-                remainingBalance: remainingBalance,
-                saleTotal: this.saleTotal,
-            },
+        // 3. Configuración de Moneda y Tasa
+        this.on("exchange_rate_blue", "exchange_rate_blue", "input", () => {
+            this.paymentManager.calculate();
+            this.paymentManager.updateTotalsHiddenFields(this.state.saleTotal);
         });
-        document.dispatchEvent(event);
-    },
 
-    // Método público para que otros componentes actualicen el total
-    setSaleTotal: function (total) {
-        this.saleTotal = total || 0;
-        this.calculateChangeAndBalance();
-    },
-};
+        this.on("payDollars", "pay_in_dollars", "change", () => {
+            this.paymentManager.updateTotalsHiddenFields(this.state.saleTotal);
+        });
 
-// Hacer disponible globalmente para el atributo oninput
+        // 4. Lógica de Venta y Descuentos
+        this.on("saleType", "sale_type", "change", (e) =>
+            this.paymentManager.handleSaleTypeChange(
+                e.target.value,
+                RepairUiManager,
+            ),
+        );
+
+        this.on("repairType", "repair_type_id", "change", (e) =>
+            this.handleRepairTypeChange(e.target.value),
+        );
+
+        this.on("discount", "discount_amount_input", "input", () =>
+            this.paymentManager.applyManualDiscount(),
+        );
+
+        // 5. Eventos de Sistema / Globales
+        document.addEventListener("sale:subtotalUpdated", () =>
+            this.paymentManager.applyManualDiscount(),
+        );
+
+        document.addEventListener("sale:totalUpdated", (e) =>
+            this.paymentManager.setTotal(e.detail.total),
+        );
+    }
+
+    // Event binding helper
+    on(cacheKey, id, event, handler) {
+        const el = this.dom.el(cacheKey, id);
+        el?.addEventListener(event, handler);
+    }
+
+    // Métodos delegados al PaymentManager (para backward compatibility)
+    calculate() {
+        this.paymentManager.calculate();
+    }
+
+    setTotal(value) {
+        this.paymentManager.setTotal(value);
+    }
+
+    updateTotalsHiddenFields(total) {
+        this.paymentManager.updateTotalsHiddenFields(total);
+    }
+
+    // Métodos delegados al SyncManager
+    syncRepairAmount() {
+        this.syncManager.syncRepairAmount();
+    }
+
+    // Métodos delegados al MethodHandler
+    updateMethodVisibility(paymentType, suffix) {
+        this.methodHandler.updateMethodVisibility(paymentType, suffix);
+    }
+
+    // Métodos delegados al DualHandler
+    toggleDualPayment(enabled) {
+        this.dualHandler.toggleDualPayment(enabled);
+    }
+
+    // Métodos delegados al UIUpdater
+    updateTotalDisplay(total) {
+        this.uiUpdater.updateTotalDisplay(total);
+    }
+
+    // Otros métodos
+    handleRepairTypeChange(typeId) {
+        dispatchRepairCategoryChanged(typeId || null);
+    }
+
+    refreshTotalFromSource() {
+        this.paymentManager.refreshTotalFromSource();
+    }
+
+    dispatchEvent(eventName, detail) {
+        document.dispatchEvent(new CustomEvent(eventName, { detail }));
+    }
+
+    // Backward compatibility - exponer isSyncing y withSync
+    get isSyncing() {
+        return this.state.isSyncing;
+    }
+
+    withSync(callback) {
+        this.state.withSync(callback);
+    }
+}
+
+const salePayment = new SalePayment();
 window.salePayment = salePayment;
-
 export default salePayment;

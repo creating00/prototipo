@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\BaseProviderController;
+use App\Models\Provider;
 use Illuminate\Http\Request;
 
 class ProviderController extends BaseProviderController
@@ -10,6 +11,30 @@ class ProviderController extends BaseProviderController
     public function index()
     {
         $providers = $this->providerService->getAllProviders();
+        return response()->json($providers);
+    }
+
+    public function search(Request $request)
+    {
+        $query = $request->get('q');
+
+        // Buscamos por nombre de negocio o identificación fiscal
+        $providers = Provider::where('business_name', 'LIKE', "%{$query}%")
+            ->orWhere('tax_id', 'LIKE', "%{$query}%")
+            ->select('id', 'business_name', 'tax_id')
+            ->limit(10)
+            ->get();
+
+        return response()->json($providers);
+    }
+
+    public function listBasic()
+    {
+        // Retorna lista simplificada para el modal inicial
+        $providers = Provider::select('id', 'business_name', 'tax_id', 'phone')
+            ->orderBy('business_name')
+            ->get();
+
         return response()->json($providers);
     }
 
@@ -40,6 +65,16 @@ class ProviderController extends BaseProviderController
             return response()->json([
                 'errors' => $e->errors()
             ], 422);
+        }
+    }
+
+    public function getProducts(Provider $provider)
+    {
+        try {
+            $products = $this->providerService->getProviderProducts($provider->id);
+            return response()->json($products);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al cargar productos'], 500);
         }
     }
 

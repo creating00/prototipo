@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Services\SaleService;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 abstract class BaseSaleController extends Controller
 {
     protected SaleService $saleService;
+    use AuthorizesRequests;
 
     public function __construct(SaleService $saleService)
     {

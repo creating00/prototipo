@@ -8,12 +8,9 @@ use App\Services\Sale\SaleCreator;
 use App\Services\Sale\SaleUpdater;
 use App\Services\Sale\SaleDeleter;
 use App\Services\Sale\SalePaymentManager;
-use App\Services\Sale\SaleDataProcessor;
-use App\Services\Sale\SaleItemProcessor;
 use App\Models\Sale;
 use App\Traits\AuthTrait;
 use App\Services\Traits\DataTableFormatter;
-use App\Services\PaymentManager;
 use App\Services\Product\ProductStockService;
 
 class SaleService
@@ -53,19 +50,45 @@ class SaleService
 
     public function getSaleById($id)
     {
-        return Sale::with(['branch', 'items.product', 'customer'])
+        return Sale::with(['branch', 'items.product', 'discount', 'customer'])
             ->findOrFail($id);
     }
 
     public function getAllSalesForDataTable(): array
     {
-        $sales = Sale::with(['branch', 'customer'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $branchId = $this->currentBranchId();
 
-        return $sales->map(
-            fn($sale, $index) => $this->formatForDataTable($sale, $index)
-        )->toArray();
+        return Sale::with(['branch', 'customer', 'payments'])
+            ->forBranch($branchId)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn(Sale $sale, $index) => $this->formatSaleForDataTable($sale, $index))
+            ->toArray();
+    }
+
+    /**
+     * Obtiene los datos de los items de la venta para el componente DataTable.
+     */
+    public function getSaleItemsData(Sale $sale): array
+    {
+        $headers = ['#', 'Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
+
+        $rowData = $sale->items->map(function ($item, $index) {
+            return [
+                'id'         => $item->id,
+                'number'     => $index + 1,
+                'product'    => $item->product?->name ?? '<span class="text-muted fst-italic">Producto eliminado</span>',
+                'quantity'   => $item->quantity,
+                'unit_price' => '$' . number_format($item->unit_price, 2, ',', '.'),
+                'subtotal'   => '$' . number_format($item->subtotal, 2, ',', '.'),
+            ];
+        })->toArray();
+
+        return [
+            'headers'      => $headers,
+            'rowData'      => $rowData,
+            'hiddenFields' => ['id']
+        ];
     }
 
     public function createSale(array $data): Sale
@@ -122,5 +145,20 @@ class SaleService
 
         $class = $statusEnum->badgeClass();
         return "<span class=\"{$class}\">{$statusLabel}</span>";
+    }
+
+    public function buildOrderItemsHtml(Sale $order): array
+    {
+        return $order->items->map(function ($item) use ($order) {
+            return [
+                'html' => view('admin.order.partials._item_row', [
+                    'product'   => $item->product,
+                    'item'      => $item,
+                    'stock'     => $item->product ? $item->product->getStock($order->branch_id) : 0,
+                    'salePrice' => $item->unit_price,
+                    'allowEditPrice' => true,
+                ])->render(),
+            ];
+        })->values()->toArray();
     }
 }

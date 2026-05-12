@@ -5,42 +5,34 @@ namespace App\Policies;
 use App\Models\Product;
 use App\Models\User;
 
-class ProductPolicy
+class ProductPolicy extends BasePolicy
 {
+    protected string $resource = 'products';
+
     public function viewAny(User $user): bool
     {
-        return $user->can('products.view');
+        return $this->can($user, 'view');
     }
 
     public function view(User $user, Product $product): bool
     {
-        return $user->can('products.view');
+        return $this->can($user, 'view');
     }
 
     public function create(User $user): bool
     {
-        return $user->can('products.create');
+        return $this->can($user, 'create');
     }
 
     public function update(User $user, Product $product): bool
     {
-        return $user->can('products.update')
-            && $user->branch_id === $product->branch_id;
+        // Simplificado: Solo valida permiso del usuario
+        return $this->can($user, 'update');
     }
 
     public function delete(User $user, Product $product): bool
     {
-        return $user->can('products.delete')
-            && $user->branch_id === $product->branch_id;
-    }
-
-    public function restore(User $user, Product $product): bool
-    {
-        return false;
-    }
-
-    public function forceDelete(User $user, Product $product): bool
-    {
-        return false;
+        // Simplificado: Solo valida permiso del usuario
+        return $this->can($user, 'delete');
     }
 }

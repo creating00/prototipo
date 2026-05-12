@@ -20,7 +20,7 @@ jobs:
           script: |
             set -e
 
-            cd domains/prototipo.creatingsoft.net/public_html/testing
+            cd domains/tecnonautaserviciotecnico.creatingsoft.net/public_html/testing
 
             echo "📥 Sincronizando repositorio..."
             git fetch origin

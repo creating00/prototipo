@@ -17,4 +17,6 @@ trait CalculatesTotalFromItems
             return $carry + ($subtotal - $discountAmount);
         }, 0);
     }
+
+    
 }

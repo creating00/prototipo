@@ -3,15 +3,45 @@
 namespace App\Services;
 
 use App\Models\Branch;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\{Validator, DB};
 use Illuminate\Validation\ValidationException;
 
 class BranchService
 {
+    protected $clientService;
+
+    public function __construct(ClientService $clientService)
+    {
+        $this->clientService = $clientService;
+    }
+
     public function createBranch(array $data): Branch
     {
         $validated = $this->validateBranchData($data);
-        return Branch::create($validated);
+
+        return DB::transaction(function () use ($validated) {
+            $branch = Branch::create($validated);
+
+            $this->initializeBranchDefaults($branch);
+
+            return $branch;
+        });
+    }
+
+    private function initializeBranchDefaults(Branch $branch): void
+    {
+        $this->createDefaultClient($branch->id);
+    }
+
+    private function createDefaultClient(int $branchId): void
+    {
+        $this->clientService->findOrCreate([
+            'document'  => config('app.default_client_document'),
+            'full_name' => config('app.default_client_name'),
+            'is_system' => true,
+            'phone'     => '00000000',
+            'address'   => 'Ciudad'
+        ], $branchId);
     }
 
     public function getAllBranches()
@@ -21,9 +51,10 @@ class BranchService
 
     public function getUserBranch(int $userBranchId)
     {
+        // Usamos first() para obtener el objeto, no una colección
         return Branch::where('id', $userBranchId)
             ->orderBy('name')
-            ->get();
+            ->first();
     }
 
     public function getAllBranchesExcept(int $excludeBranchId)
@@ -43,6 +74,7 @@ class BranchService
                 'province_id' => $branch->province_id,       // Oculto si quieres
                 'number' => $index + 1,                      // Columna visible #
                 'name' => $branch->name,                     // Nombre de la sucursal
+                'phone' => $branch->phone,
                 'address' => $branch->address ?? '-',        // Dirección
                 'province' => $branch->province->name ?? '-', // Nombre de la provincia
             ];
@@ -66,6 +98,22 @@ class BranchService
     public function deleteBranch($id): bool
     {
         $branch = $this->getBranchById($id);
+
+        // 1. Validar órdenes inter-sucursal (donde es cliente)
+        if ($branch->ordersAsCustomer()->exists()) {
+            throw new \Exception('No se puede eliminar: la sucursal tiene órdenes pendientes como cliente.');
+        }
+
+        // 2. Validar órdenes generadas (donde es origen)
+        if ($branch->orders()->exists()) {
+            throw new \Exception('No se puede eliminar: la sucursal tiene historial de órdenes registradas.');
+        }
+
+        // 3. Validar stock/productos vinculados
+        if ($branch->products()->exists()) {
+            throw new \Exception('No se puede eliminar: existen productos vinculados a esta sucursal.');
+        }
+
         return $branch->delete();
     }
 
@@ -74,7 +122,8 @@ class BranchService
         $rules = [
             'province_id' => 'required|exists:provinces,id',
             'name' => 'required|unique:branches,name' . ($ignoreId ? ",$ignoreId" : ''),
-            'address' => 'nullable|string'
+            'address' => 'nullable|string',
+            'phone' => 'nullable|string'
         ];
 
         $validator = Validator::make($data, $rules);

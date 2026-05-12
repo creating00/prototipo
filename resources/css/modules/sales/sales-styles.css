@@ -1,0 +1,5 @@
+/* resources/css/modules/sales/sales-styles.css */
+
+@import "./layout.css";
+@import "./compact-select.css";
+@import "./shortcuts.css";

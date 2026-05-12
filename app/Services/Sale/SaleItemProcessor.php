@@ -5,10 +5,23 @@ namespace App\Services\Sale;
 use App\Services\BaseItemProcessor;
 use App\Models\Sale;
 use App\Models\Product;
+use App\Services\PriceAuditService;
+use App\Services\Product\ProductStockService;
 use Illuminate\Database\Eloquent\Model;
 
 class SaleItemProcessor extends BaseItemProcessor
 {
+    protected PriceAuditService $auditService;
+
+    public function __construct(
+        ProductStockService $stockService, // Requerido por el padre
+        PriceAuditService $auditService    // Requerido por esta clase
+    ) {
+        // Inicializa el stockService en la clase Base
+        parent::__construct($stockService);
+
+        $this->auditService = $auditService;
+    }
     /**
      * @param Sale $model
      */
@@ -17,13 +30,29 @@ class SaleItemProcessor extends BaseItemProcessor
         Product $product,
         int $quantity,
         float $unitPrice,
-        float $subtotal
+        float $subtotal,
+        array $rawItem
     ): void {
+
+        //dd($model);
+        $originalPrice = $this->getProductPrice($product, $model);
+
+        $this->auditService->recordModification([
+            'branch_id'      => $model->branch_id,
+            'user_id'        => $model->user_id,
+            'product_id'     => $product->id,
+            'original_price' => $originalPrice,
+            'modified_price' => $unitPrice,
+            'sale_id'        => $model->id,
+            'reason'         => 'Precio modificado manualmente en venta'
+        ]);
+
         $model->items()->create([
             'product_id' => $product->id,
-            'quantity' => $quantity,
+            'quantity'   => $quantity,
             'unit_price' => $unitPrice,
-            'subtotal' => $subtotal,
+            'subtotal'   => $subtotal,
+            'currency'   => $rawItem['currency'],
         ]);
     }
 
@@ -36,14 +65,20 @@ class SaleItemProcessor extends BaseItemProcessor
         }
     }
 
-    protected function getProductPrice(Product $product, int $branchId): float
+    protected function getProductPrice(Product $product, Model $model): float
     {
-        $unitPrice = $product->salePrice($branchId);
+        // Determinamos el precio según el tipo de venta
+        $unitPrice = match ($model->sale_type) {
+            \App\Enums\SaleType::Repair => $product->repairPrice($model->branch_id),
+            \App\Enums\SaleType::Sale   => $product->salePrice($model->branch_id),
+            default                     => null,
+        };
 
         if (!$unitPrice) {
-            throw new \Exception("No se encontró un precio de venta para {$product->name} en la sucursal {$branchId}");
+            $typeName = $model->sale_type->label();
+            throw new \Exception("No se encontró un precio de {$typeName} para {$product->name} en la sucursal {$model->branch_id}");
         }
 
-        return $unitPrice;
+        return (float) $unitPrice;
     }
 }

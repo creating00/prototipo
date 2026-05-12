@@ -39,3 +39,72 @@ export async function deleteItem(url, itemName = "este registro") {
         form.submit();
     }
 }
+
+/**
+ * Procesa la eliminación masiva de registros
+ * @param {string} url - Endpoint de la API
+ * @param {Array} ids - Array de IDs a eliminar
+ * @param {Object} manager - Instancia de DataTableManager
+ * @param {string} entityName - Nombre de la entidad para el mensaje
+ */
+export async function deleteBulkItems(
+    url,
+    ids,
+    manager,
+    entityName = "registros",
+) {
+    let successConfirmed = false; // Bandera para silenciar el catch
+
+    try {
+        const result = await Swal.fire({
+            title: "¿Estás seguro?",
+            text: `Se eliminarán ${ids.length} ${entityName} seleccionados.`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            confirmButtonText: "Sí, eliminar",
+            cancelButtonText: "Cancelar",
+        });
+
+        if (!result.isConfirmed) return;
+
+        Swal.fire({
+            title: "Procesando...",
+            didOpen: () => Swal.showLoading(),
+            allowOutsideClick: false,
+        });
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+            },
+            body: JSON.stringify({ ids, _method: "DELETE" }),
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+
+        if (data.success) {
+            successConfirmed = true; // A partir de aquí, ignoramos cualquier error de JS
+
+            await Swal.fire("Eliminados", data.message, "success");
+
+            if (manager?.reload) {
+                manager.reload();
+            }
+        } else {
+            Swal.fire("Error", data.message || "Error desconocido", "error");
+        }
+    } catch (error) {
+        // Si ya confirmamos éxito o el usuario navegó fuera (Abort), silencio total.
+        if (successConfirmed || error.name === "AbortError") return;
+
+        console.error("Bulk delete error:", error);
+        Swal.fire("Error", `Detalle: ${error.message}`, "error");
+    }
+}

@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\CurrencyType;
 use App\Enums\OrderSource;
 use App\Enums\OrderStatus;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class Order extends Model
 {
@@ -18,7 +21,8 @@ class Order extends Model
         'status',
         'source',
         'sale_id',
-        'total_amount',
+        'exchange_rate',
+        'totals',
         'notes',
         'customer_id',
         'customer_type',
@@ -27,6 +31,8 @@ class Order extends Model
     protected $casts = [
         'status' => OrderStatus::class,
         'source' => OrderSource::class,
+        'totals' => 'array',
+        'exchange_rate' => 'decimal:4',
     ];
 
     public function branch()
@@ -61,19 +67,66 @@ class Order extends Model
         return $this->morphMany(Payment::class, 'paymentable');
     }
 
+    public function reception(): HasOne
+    {
+        return $this->hasOne(OrderReception::class);
+    }
+
+    public function getSubtotalsAttribute(): array
+    {
+        return collect($this->totals ?? [])->map(function ($amount, $currency) {
+            return sprintf(
+                '%s %s',
+                CurrencyType::from($currency)->symbol(),
+                number_format($amount, 2, ',', '.')
+            );
+        })->toArray();
+    }
+
+    public function getFormattedTotalsAttribute(): array
+    {
+        $rate = (float) $this->exchange_rate;
+
+        if (!$this->totals || $rate === 0.0) {
+            return [];
+        }
+
+
+        $ars = $this->totals[CurrencyType::ARS->value] ?? 0;
+        $usd = $this->totals[CurrencyType::USD->value] ?? 0;
+
+        $totalArs = $ars + ($usd * $this->exchange_rate);
+        $totalUsd = $usd + ($ars / $this->exchange_rate);
+
+        return [
+            'ARS' => '$ ' . number_format($totalArs, 2, ',', '.'),
+            'USD' => 'U$D ' . number_format($totalUsd, 2, ',', '.'),
+        ];
+    }
+
     public function customer(): MorphTo
     {
         return $this->morphTo();
     }
 
-    public function getAmountToChargeAttribute(): float
-    {
-        return $this->total_amount;
-    }
-
     public function isInterBranch(): bool
     {
         return $this->customer_type === Branch::class;
+    }
+
+    public function scopeForBranch($query, int $branchId)
+    {
+        return $query->where('branch_id', $branchId);
+    }
+
+    public function scopeToday($query)
+    {
+        return $query->whereDate('created_at', Carbon::today());
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', OrderStatus::Pending);
     }
 
     public function getCustomerNameAttribute(): string
@@ -84,5 +137,51 @@ class Order extends Model
                 : $this->customer->full_name ?? '';
         }
         return '';
+    }
+
+    public function generateWhatsAppMessage(): string
+    {
+        $customerName = $this->customer_name;
+
+        $itemsDetail = $this->items->take(5)->map(function ($item) {
+            return "• {$item->quantity}x " . ($item->product->name ?? 'Producto');
+        })->implode("\n");
+
+        if ($this->items->count() > 5) {
+            $itemsDetail .= "\n... y otros productos.";
+        }
+
+        $totals = collect($this->formatted_totals)
+            ->map(fn($value) => "• {$value}")
+            ->implode("\n");
+
+        return "Hola *{$customerName}*, te contacto desde la sucursal por tu pedido *#{$this->id}*:\n\n"
+            . "Detalle:\n{$itemsDetail}\n\n"
+            . "*Total: {$totals}*";
+    }
+
+    /**
+     * Formatea cualquier ID al estándar ORD-00000000
+     */
+    public static function formatOrderNumber(?int $id): string
+    {
+        return $id ? 'PED-' . str_pad((string) $id, 8, '0', STR_PAD_LEFT) : 'N/A';
+    }
+
+    /**
+     * Accessor para obtener el número de pedido formateado ($order->order_number)
+     */
+    public function getOrderNumberAttribute(): string
+    {
+        return self::formatOrderNumber($this->id);
+    }
+
+    /**
+     * Filtra pedidos que pertenecen a Clientes (excluye traslados entre sucursales)
+     */
+    public function scopeForClientsOnly($query)
+    {
+        // Asumiendo que tu modelo de cliente es App\Models\Client
+        return $query->where('customer_type', \App\Models\Client::class);
     }
 }

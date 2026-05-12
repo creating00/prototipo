@@ -2,7 +2,9 @@
 
 namespace App\Services\Product;
 
+use App\Enums\ProductStatus;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\ValidationException;
 
 class ProductValidatorService
@@ -14,11 +16,13 @@ class ProductValidatorService
             'name' => 'required|string',
             'description' => 'nullable|string',
             'category_id' => 'nullable|exists:categories,id',
+            'imageFile' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'imageUrl' => 'nullable|url',
             'branch_id' => 'required|exists:branches,id',
             'stock' => 'required|integer|min:0',
             'low_stock_threshold' => 'nullable|integer|min:0',
-            'status' => 'required|integer|in:1,2,3',
-            
+            'status' => ['required', new Enum(ProductStatus::class)],
+
             // Precio de Compra
             'purchase_price_amount' => 'required|numeric|min:0',
             'purchase_price_currency' => 'required|integer|in:1,2',
@@ -31,6 +35,13 @@ class ProductValidatorService
             'wholesale_price_amount' => 'nullable|numeric|min:0',
             // La moneda mayorista solo es requerida si se envió el monto
             'wholesale_price_currency' => 'required_with:wholesale_price_amount|integer|in:1,2',
+
+            // Precio de Reparación (Opcional)
+            'repair_price_amount' => 'nullable|numeric|min:0',
+            'repair_price_currency' => 'required_with:repair_price_amount|integer|in:1,2',
+
+            'providers' => 'nullable|array',
+            'providers.*' => 'exists:providers,id',
         ];
 
         $validator = Validator::make($data, $rules);

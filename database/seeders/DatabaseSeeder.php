@@ -18,9 +18,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ProvincesSeeder::class,
             CategorySeeder::class,
-            ClientSeeder::class,
             PermissionSeeder::class,
             BranchAndUserSeeder::class,
+            ClientSeeder::class,
         ]);
         // User::factory(10)->create();
 

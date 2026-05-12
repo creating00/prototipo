@@ -6,6 +6,7 @@ use App\Http\Controllers\BaseUserController;
 use App\Http\Requests\User\UserWebRequest;
 use App\Models\Branch;
 use App\Models\Province;
+use App\Models\User;
 use App\Services\User\UserDataTableService;
 use App\ViewModels\UserFormData;
 use App\Traits\AuthTrait;
@@ -17,6 +18,7 @@ class UserWebController extends BaseUserController
 
     public function index(UserDataTableService $dataTableService)
     {
+        $this->authorize('viewAny', User::class);
         $rowData = $dataTableService->getAllUsersForDataTable();
 
         $headers = [
@@ -35,6 +37,7 @@ class UserWebController extends BaseUserController
 
     public function create()
     {
+        $this->authorize('create', User::class);
         $formData = new UserFormData(
             user: null,
             provinces: Province::orderBy('name')->get(),
@@ -49,6 +52,7 @@ class UserWebController extends BaseUserController
 
     public function store(UserWebRequest $request)
     {
+        $this->authorize('create', User::class);
         $this->userService->createUser($request->validated());
 
         return redirect()->route('web.users.index')
@@ -58,6 +62,7 @@ class UserWebController extends BaseUserController
     public function edit($id)
     {
         $user = $this->userService->getUserById($id);
+        $this->authorize('update', $user);
 
         $formData = new UserFormData(
             user: $user,
@@ -73,6 +78,9 @@ class UserWebController extends BaseUserController
 
     public function update(UserWebRequest $request, $id)
     {
+        $user = $this->userService->getUserById($id);
+        $this->authorize('update', $user);
+
         $this->userService->updateUser($id, $request->validated());
 
         return redirect()->route('web.users.index')
@@ -81,6 +89,9 @@ class UserWebController extends BaseUserController
 
     public function destroy($id)
     {
+        $user = $this->userService->getUserById($id);
+        $this->authorize('update', $user);
+        
         $this->userService->deleteUser($id);
 
         return redirect()->route('web.users.index')

@@ -4,6 +4,42 @@ import { deleteItem } from "../../utils/deleteHelper";
 const TABLE_CONFIG = {
     tableId: "sales-table",
     rowActions: {
+        print: {
+            selector: ".btn-print",
+            handler: (row, baseUrl) => {
+                const { id } = row.dataset;
+                const modalEl = document.getElementById("modalPrintSale");
+
+                if (!modalEl) return;
+
+                const ticketLink = modalEl.querySelector("#linkPrintTicket");
+                const a4Link = modalEl.querySelector("#linkPrintA4");
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+                // Actualizar rutas
+                ticketLink.href = `${baseUrl}/${id}/ticket`;
+                a4Link.href = `${baseUrl}/${id}/a4`;
+
+                // Función para cerrar modal tras click
+                const closeLabels = () => {
+                    // Un pequeño delay permite que el navegador procese la apertura de la nueva pestaña
+                    setTimeout(() => modal.hide(), 100);
+                };
+
+                // Asignar evento de cierre (limpiando previos para evitar duplicados)
+                ticketLink.onclick = closeLabels;
+                a4Link.onclick = closeLabels;
+
+                modal.show();
+            },
+        },
+        detail: {
+            selector: ".btn-view",
+            handler: (row, baseUrl) => {
+                const { id } = row.dataset;
+                window.location.href = `${baseUrl}/${id}/details`;
+            },
+        },
         edit: {
             selector: ".btn-edit",
             handler: (row, baseUrl) => {
@@ -30,6 +66,18 @@ const TABLE_CONFIG = {
             selector: ".btn-header-new-branch",
             handler: (baseUrl) => {
                 window.location.href = `${baseUrl}/create-branch`;
+            },
+        },
+        newRepair: {
+            selector: ".btn-header-new-repair",
+            handler: () => {
+                // Seleccionamos el botón directamente por su clase
+                const btn = document.querySelector(".btn-header-new-repair");
+                const customUrl = btn ? btn.getAttribute("data-url") : null;
+
+                if (customUrl) {
+                    window.location.href = `${customUrl}/create`;
+                }
             },
         },
     },

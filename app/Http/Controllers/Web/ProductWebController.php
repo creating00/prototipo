@@ -13,6 +13,8 @@ use App\Services\CategoryService;
 use App\Traits\AuthTrait;
 use App\ViewModels\ProductFormData;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class ProductWebController extends BaseProductController
 {
@@ -23,7 +25,7 @@ class ProductWebController extends BaseProductController
         $this->authorize('viewAny', Product::class);
         $rowData = $this->productService->getAllForDataTable();
 
-        $headers = ['#', 'Código', 'Nombre', 'Precio Compra', 'Precio Venta', 'Stock', 'Estado'];
+        $headers = ['#', 'Código', 'Nombre', 'Precio Compra', 'Precio Venta', 'Stock', 'Proveedor/es', 'Estado'];
         $hiddenFields = ['id', 'purchase_price_raw', 'sale_price_raw'];
 
         return view('admin.product.index', compact('rowData', 'headers', 'hiddenFields'));
@@ -33,6 +35,14 @@ class ProductWebController extends BaseProductController
     {
         $this->authorize('create', Product::class);
         $branchUserId = $this->currentBranchId();
+
+        /** @var \App\Models\User $user */
+        $user = $this->currentUser();
+        $isAdmin = $user->hasRole('admin');
+
+        $branches = $isAdmin
+            ? app(BranchService::class)->getAllBranches()
+            : app(BranchService::class)->getAllBranches()->where('id', $branchUserId);
 
         $productBranch = new ProductBranch([
             'stock' => 0,
@@ -48,10 +58,11 @@ class ProductWebController extends BaseProductController
             productBranch: $productBranch,
             statusOptions: ProductStatus::forSelect(),
             currencyOptions: CurrencyType::forSelect(),
-            branches: app(BranchService::class)->getAllBranches(),
+            branches: $branches,
             categories: app(CategoryService::class)->getAllCategories(),
             provinces: Province::orderBy('name')->get(),
             branchUserId: $branchUserId,
+            isAdmin: $isAdmin
         );
 
         return view('admin.product.create', compact('formData'));
@@ -60,9 +71,16 @@ class ProductWebController extends BaseProductController
     public function store(Request $request)
     {
         $this->authorize('create', Product::class);
+
         try {
+            $data = $request->except(['removeImage']);
+
+            if ($request->hasFile('imageFile')) {
+                $data['imageFile'] = $request->file('imageFile');
+            }
+
             $product = $this->productService->create(
-                data: $request->except(['imageFile', 'imageUrl', 'removeImage']),
+                data: $data,
                 imageFile: $request->file('imageFile'),
                 imageUrl: $request->input('imageUrl')
             );
@@ -85,23 +103,42 @@ class ProductWebController extends BaseProductController
 
     public function edit(int $id)
     {
+        /** @var \App\Models\User $user */
+        $user = $this->currentUser();
+        $isAdmin = $user->hasRole('admin');
         $branchUserId = $this->currentBranchId();
 
+        // Obtiene el producto (falle solo si el ID de producto no existe en absoluto)
         $product = $this->productService->getProductForEdit($id, $branchUserId);
-
         $this->authorize('update', $product);
 
-        $productBranch = $product->productBranches->firstOrFail();
+        // Intentamos obtener la relación desde la colección cargada
+        $productBranch = $product->productBranches->first();
+
+        // Si no existe, instanciamos uno nuevo en memoria para el formulario
+        if (!$productBranch) {
+            $productBranch = new \App\Models\ProductBranch([
+                'product_id' => $product->id,
+                'branch_id' => $branchUserId,
+                'stock' => 0,
+                'status' => \App\Enums\ProductStatus::Available
+            ]);
+        }
+
+        $branches = $isAdmin
+            ? app(BranchService::class)->getAllBranches()
+            : app(BranchService::class)->getAllBranches()->where('id', $branchUserId);
 
         $formData = new ProductFormData(
             product: $product,
             productBranch: $productBranch,
             statusOptions: ProductStatus::forSelect(),
             currencyOptions: CurrencyType::forSelect(),
-            branches: app(BranchService::class)->getAllBranches(),
+            branches: $branches,
             categories: app(CategoryService::class)->getAllCategories(),
-            provinces: Province::orderBy('name')->get(),
+            provinces: \App\Models\Province::orderBy('name')->get(),
             branchUserId: $branchUserId,
+            isAdmin: $isAdmin
         );
 
         return view('admin.product.edit', compact('formData'));
@@ -111,12 +148,22 @@ class ProductWebController extends BaseProductController
     {
         $product = $this->productService->getById($id);
         $this->authorize('update', $product);
+
         try {
-            $product = $this->productService->update(
-                product: $this->productService->getById($id),
-                data: $request->except(['imageFile', 'imageUrl', 'removeImage']),
+            // NO excluir imageFile e imageUrl, solo removeImage
+            $data = $request->except(['removeImage']);
+
+            // Asegurar que los archivos estén en el array si existen
+            if ($request->hasFile('imageFile')) {
+                $data['imageFile'] = $request->file('imageFile');
+            }
+
+            $this->productService->update(
+                product: $product,
+                data: $data, // Ahora incluye imageFile e imageUrl
                 imageFile: $request->file('imageFile'),
-                imageUrl: $request->input('imageUrl')
+                imageUrl: $request->input('imageUrl'),
+                removeImage: $request->boolean('removeImage')
             );
 
             return redirect()
@@ -137,17 +184,71 @@ class ProductWebController extends BaseProductController
     {
         $product = $this->productService->getById($id);
         $this->authorize('delete', $product);
-        try {
-            $this->productService->delete(
-                $this->productService->getById($id)
-            );
 
-            return redirect()
-                ->route('web.products.index')
-                ->with('success', 'Producto eliminado exitosamente.');
+        try {
+            $result = $this->productService->delete($product, $this->currentBranchId());
+
+            return match ($result) {
+                'global_delete' => redirect()->route('web.products.index')
+                    ->with('success', 'Producto eliminado completamente del sistema.'),
+
+                'branch_delete' => redirect()->route('web.products.index')
+                    ->with('success', 'Los datos de stock y precio de su sucursal han sido eliminados.'),
+
+                'not_found' => redirect()->back()
+                    ->with('info', 'Su sucursal ya no tenía registros vinculados a este producto.'),
+
+                default => redirect()->route('web.products.index')
+                    ->with('warning', 'Acción finalizada con un estado desconocido.'),
+            };
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', $e->getMessage());
+        }
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        // Autorización masiva (se asume que si puede borrar uno, puede borrar varios)
+        $this->authorize('delete', Product::class);
+
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se seleccionaron productos para eliminar.'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $branchId = $this->currentBranchId();
+            $deletedCount = 0;
+
+            foreach ($ids as $id) {
+                $product = $this->productService->getById($id);
+                if ($product) {
+                    $this->productService->delete($product, $branchId);
+                    $deletedCount++;
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Se han procesado {$deletedCount} productos correctamente."
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Error en eliminación masiva de productos: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Ocurrió un error al intentar eliminar los productos seleccionados.'
+            ], 500);
         }
     }
 }

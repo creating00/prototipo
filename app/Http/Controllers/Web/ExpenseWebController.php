@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\BaseExpenseController;
 use App\Http\Requests\Expense\ExpenseWebRequest;
+use App\Models\Branch;
+use App\Models\Expense;
 use App\Models\Province;
 use App\Models\User;
 use App\Services\Expense\ExpenseDataTableService;
@@ -17,28 +19,36 @@ class ExpenseWebController extends BaseExpenseController
 
     public function index(ExpenseDataTableService $dataTableService)
     {
-        $rowData = $dataTableService->getAllExpensesForDataTable();
+        if ($redirect = $this->redirectIfNotAdmin('web.expenses.create')) {
+            return $redirect;
+        }
 
-        // Encabezados en español, alineados con las claves del map
+        $this->authorize('viewAny', Expense::class);
+
+        $currentBranchId = $this->currentBranchId();
+
+        $rowData = $dataTableService->getAllExpensesForDataTable($currentBranchId);
+
         $headers = [
             '#',
-            'Usuario',
             'Sucursal',
-            'Tipo de gasto',
+            'Fecha',
             'Monto',
             'Forma de pago',
-            'Referencia',
-            'Fecha de registro'
+            'Motivo'
         ];
 
-        // Campos ocultos que no se muestran en la tabla pero pueden ser útiles
-        $hiddenFields = ['id'];
+        $hiddenFields = ['id', 'branch-id', 'payment_type_raw', 'currency', 'amount_raw'];
 
-        return view('admin.expense.index', compact('headers', 'rowData', 'hiddenFields'));
+        $currentBranchId = $this->currentBranchId();
+        $branches = Branch::pluck('name', 'id');
+
+        return view('admin.expense.index', compact('headers', 'rowData', 'hiddenFields', 'currentBranchId', 'branches'));
     }
 
     public function create()
     {
+        $this->authorize('create', Expense::class);
         $branchUserId = $this->currentBranchId();
 
         $formData = new ExpenseFormData(
@@ -56,22 +66,37 @@ class ExpenseWebController extends BaseExpenseController
 
     public function store(ExpenseWebRequest $request)
     {
+        $this->authorize('create', Expense::class);
+
         $data = $request->validated();
-        $data['user_id'] = $this->userId();
-        $data['amount'] = $data['amount_amount'];
+
+        // Mapeo de campos del componente y auditoría
+        $data['user_id']   = $this->userId();
+        $data['branch_id'] = $this->currentBranchId();
+        $data['amount']   = $data['amount_amount'];
         $data['currency'] = $data['amount_currency'];
 
         $this->expenseService->createExpense($data);
-        return redirect()->route('admin.expense.index')
+
+        return redirect()->route('web.expenses.index')
             ->with('success', 'Gasto registrado correctamente');
     }
 
     public function edit($id)
     {
-        $branchUserId = $this->currentBranchId();
-
         $expense = $this->expenseService->getExpenseById($id);
 
+        if ($expense->branch_id !== $this->currentBranchId()) {
+            return redirect()
+                ->route('web.expenses.index')
+                ->withErrors('No tienes permiso para editar gastos de otra sucursal.');
+        }
+
+        $this->authorize('update', $expense);
+
+        //dd($expense);
+
+        $branchUserId = $this->currentBranchId();
         $formData = new \App\ViewModels\ExpenseFormData(
             expense: $expense,
             branches: app(\App\Services\BranchService::class)->getAllBranches(),
@@ -87,19 +112,28 @@ class ExpenseWebController extends BaseExpenseController
 
     public function update(ExpenseWebRequest $request, $id)
     {
+        $expense = $this->expenseService->getExpenseById($id);
+        $this->authorize('update', $expense);
+
         $data = $request->validated();
-        $data['user_id'] = $this->userId();
-        $data['amount'] = $data['amount_amount'];
+
+        // Mapeo consistente con store
+        $data['user_id']  = $this->userId();
+        $data['amount']   = $data['amount_amount'];
         $data['currency'] = $data['amount_currency'];
 
         $this->expenseService->updateExpense($id, $data);
 
-        return redirect()->route('admin.expense.index')
+        return redirect()->route('web.expenses.index')
             ->with('success', 'Gasto actualizado correctamente');
     }
 
     public function destroy($id)
     {
+        $expense = $this->expenseService->getExpenseById($id);
+
+        $this->authorize('delete', $expense);
+
         $this->expenseService->deleteExpense($id);
         return redirect()->route('admin.branch.index')
             ->with('success', 'Gasto eliminado correctamente');

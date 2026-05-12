@@ -5,7 +5,7 @@ export class DataTableManager {
         this.table = tableElement;
         this.config = this.getDefaultConfig(config);
         this.dataTable = null;
-        this.currentRequest = null; // Nueva propiedad para controlar la solicitud actual
+        this.currentRequest = null;
         this.init();
     }
 
@@ -30,16 +30,72 @@ export class DataTableManager {
 
     init() {
         if (this.table && !DataTableManager.instances.has(this.table)) {
-            // Verificar si la configuración tiene ajax personalizado
             if (this.config.ajax && typeof this.config.ajax === "function") {
                 this.wrapAjaxFunction();
             }
 
             this.dataTable = new DataTable(this.table, this.config);
+
+            // Agrega este listener para que el botón se actualice al redibujar la tabla
+            this.dataTable.on("draw", () => {
+                this.updateBulkActionsVisibility();
+            });
+
+            this.initSelectionEvents();
+
             DataTableManager.instances.set(this.table, this);
             this.table.classList.add("dataTable-initialized");
         }
         return this;
+    }
+
+    initSelectionEvents() {
+        const selectAll = this.table.querySelector(".select-all-checkbox");
+        if (!selectAll) return;
+
+        // Evento para el checkbox maestro
+        selectAll.addEventListener("change", (e) => {
+            const checkboxes = this.table.querySelectorAll(".row-checkbox");
+            checkboxes.forEach((cb) => (cb.checked = e.target.checked));
+            this.updateBulkActionsVisibility();
+        });
+
+        // Evento para checkboxes individuales (delegación)
+        this.table.querySelector("tbody").addEventListener("change", (e) => {
+            if (e.target.classList.contains("row-checkbox")) {
+                const total =
+                    this.table.querySelectorAll(".row-checkbox").length;
+                const checked = this.table.querySelectorAll(
+                    ".row-checkbox:checked",
+                ).length;
+
+                selectAll.checked = total === checked;
+                selectAll.indeterminate = checked > 0 && checked < total;
+
+                this.updateBulkActionsVisibility();
+            }
+        });
+    }
+
+    updateBulkActionsVisibility() {
+        const checkedCount = this.getSelectedIds().length;
+        // Busca botones con el atributo data-bulk-target apuntando a esta tabla
+        const bulkButtons = document.querySelectorAll(
+            `[data-bulk-target="#${this.table.id}"]`,
+        );
+
+        bulkButtons.forEach((btn) => {
+            if (checkedCount > 0) {
+                btn.classList.remove("d-none");
+            } else {
+                btn.classList.add("d-none");
+            }
+        });
+    }
+
+    getSelectedIds() {
+        const checkboxes = this.table.querySelectorAll(".row-checkbox:checked");
+        return Array.from(checkboxes).map((cb) => cb.value);
     }
 
     wrapAjaxFunction() {
@@ -74,15 +130,25 @@ export class DataTableManager {
     }
 
     reload() {
-        if (this.dataTable) {
-            // Primero abortar cualquier solicitud en curso
-            if (this.currentRequest && this.currentRequest.abort) {
-                this.currentRequest.abort();
-            }
+        if (!this.dataTable) return this;
 
-            // Luego recargar
-            this.dataTable.ajax.reload(null, false); // El segundo parámetro false evita resetear paginación
+        if (this.currentRequest?.abort) {
+            try {
+                this.currentRequest.abort();
+            } catch (e) {}
         }
+
+        try {
+            const hasAjax = typeof this.dataTable.ajax?.reload === "function";
+            if (hasAjax) {
+                this.dataTable.ajax.reload(null, false);
+            } else {
+                window.location.reload();
+            }
+        } catch (e) {
+            window.location.reload();
+        }
+
         return this;
     }
 

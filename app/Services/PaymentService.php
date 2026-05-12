@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\CurrencyType;
 use App\Models\Payment;
 use App\Enums\PaymentType;
+use App\Services\Payments\PaymentFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -13,28 +15,54 @@ class PaymentService
     /**
      * Crea un nuevo pago para un modelo
      */
+
     public function create(Model $paymentable, array $data): Payment
     {
         $validated = $this->validatePaymentData($data);
+        $methodData = PaymentFactory::build($validated);
+        $currency = $data['currency'] ?? CurrencyType::ARS;
+        $exchangeRate = null;
+
+        if ($currency !== CurrencyType::ARS) {
+            // prioridad: pago > venta
+            $exchangeRate =
+                $data['exchange_rate']
+                ?? ($paymentable->exchange_rate ?? null);
+
+            if (!$exchangeRate) {
+                throw new \LogicException(
+                    'No se puede registrar un pago en moneda extranjera sin tipo de cambio'
+                );
+            }
+        }
 
         return $paymentable->payments()->create([
-            'user_id' => $validated['user_id'],
+            'branch_id'    => $validated['branch_id'] ?? ($paymentable->branch_id ?? null),
+            'user_id'      => $validated['user_id'],
             'payment_type' => $validated['payment_type'],
-            'amount' => $validated['amount'],
+            'amount'       => $validated['amount'],
+            'notes'        => $validated['notes'] ?? null,
+            'currency'     => $currency,
+            'exchange_rate' => $exchangeRate,
+            ...$methodData, // Aquí entra el payment_method_id y type de la Factory
         ]);
     }
 
     /**
      * Actualiza un pago existente
      */
+
     public function update(Payment $payment, array $data): Payment
     {
         $validated = $this->validatePaymentData($data, $payment->id);
+
+        $methodData = PaymentFactory::build($validated);
 
         $payment->update([
             'user_id' => $validated['user_id'],
             'payment_type' => $validated['payment_type'],
             'amount' => $validated['amount'],
+            ...$methodData,
         ]);
 
         return $payment->fresh();
@@ -85,18 +113,16 @@ class PaymentService
      */
     public function validatePaymentData(array $data, $ignoreId = null): array
     {
-        $rules = [
-            'user_id' => 'required|exists:users,id',
-            'payment_type' => 'required|integer|in:' . implode(',', array_column(PaymentType::cases(), 'value')),
-            'amount' => 'required|numeric|min:0.01',
-        ];
-
-        $validator = Validator::make($data, $rules);
-
-        if ($validator->fails()) {
-            throw new ValidationException($validator);
-        }
-
-        return $validator->validated();
+        return Validator::make($data, [
+            'user_id'             => 'required|exists:users,id',
+            'payment_type'        => 'required|integer|in:' . implode(',', array_column(PaymentType::cases(), 'value')),
+            'amount'              => 'required|numeric|min:0',
+            'exchange_rate'       => 'nullable|numeric|min:0',
+            'bank_id'             => 'nullable|exists:banks,id',
+            'bank_account_id'     => 'nullable|exists:bank_accounts,id',
+            'payment_method_type' => 'nullable|string',
+            'notes'               => 'nullable|string|max:500',
+            'branch_id'           => 'nullable|exists:branches,id',
+        ])->validate();
     }
 }

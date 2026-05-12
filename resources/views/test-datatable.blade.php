@@ -30,25 +30,25 @@
             ];
         @endphp
 
-        <x-admin-lte.data-table tableId="test-table" title="Prueba de DataTable con Botones" :headers="['ID', 'Nombre', 'Email', 'Rol', 'Fecha']"
+        <x-adminlte.data-table tableId="test-table" title="Prueba de DataTable con Botones" :headers="['ID', 'Nombre', 'Email', 'Rol', 'Fecha']"
             :rowData="$rowData" withActions="true">
             <!-- Botones de acciones -->
-            <x-admin-lte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
-            <x-admin-lte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete" />
+            <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
+            <x-adminlte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete" />
 
             <!-- Botones del header -->
             <x-slot name="headerButtons">
-                <x-admin-lte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-new">
+                <x-adminlte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-new">
                     Nuevo
-                </x-admin-lte.button>
-                <x-admin-lte.button color="danger" icon="fas fa-trash-restore" class="me-1 btn-header-deleted">
+                </x-adminlte.button>
+                <x-adminlte.button color="danger" icon="fas fa-trash-restore" class="me-1 btn-header-deleted">
                     Eliminados
-                </x-admin-lte.button>
-                <x-admin-lte.button color="custom-indigo" outline="true" icon="fas fa-print" class="btn-header-print">
+                </x-adminlte.button>
+                <x-adminlte.button color="custom-indigo" outline="true" icon="fas fa-print" class="btn-header-print">
                     Imprimir
-                </x-admin-lte.button>
+                </x-adminlte.button>
             </x-slot>
-        </x-admin-lte.data-table>
+        </x-adminlte.data-table>
     </div>
 @endsection
 

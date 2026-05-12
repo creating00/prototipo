@@ -5,48 +5,42 @@ namespace App\Policies;
 use App\Models\Sale;
 use App\Models\User;
 
-class SalePolicy
+class SalePolicy extends BasePolicy
 {
+    protected string $resource = 'sales';
+
     public function viewAny(User $user): bool
     {
-        return $user->can('sales.view');
+        return $this->can($user, 'view');
     }
 
     public function view(User $user, Sale $sale): bool
     {
-        return $user->can('sales.view')
-            && $user->branch_id === $sale->branch_id;
+        return $this->can($user, 'view');
     }
 
-    public function create(User $user): bool
+    public function createClient(User $user): bool
     {
-        return $user->can('sales.create');
+        return $this->can($user, 'create_client');
     }
 
-    public function update(User $user, Sale $sale): bool
+    public function createBranch(User $user): bool
     {
-        return $user->can('sales.update')
-            && $user->branch_id === $sale->branch_id
-            && $sale->status === 'draft';
+        return $this->can($user, 'create_branch');
     }
 
     public function cancel(User $user, Sale $sale): bool
     {
-        return $user->can('sales.cancel')
-            && $user->branch_id === $sale->branch_id
-            && ! in_array($sale->status, ['cancelled', 'refunded']);
+        return $this->can($user, 'cancel');
     }
 
     public function print(User $user, Sale $sale): bool
     {
-        return $user->can('sales.print')
-            && $user->branch_id === $sale->branch_id;
+        return $this->can($user, 'print');
     }
 
     public function refund(User $user, Sale $sale): bool
     {
-        return $user->can('sales.refund')
-            && $user->branch_id === $sale->branch_id
-            && $sale->status === 'completed';
+        return $this->can($user, 'refund');
     }
 }

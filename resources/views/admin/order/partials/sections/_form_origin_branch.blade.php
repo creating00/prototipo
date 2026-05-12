@@ -1,13 +1,28 @@
-<div class="row g-3 mb-4 equal-height-selects align-items-end">
-    <input type="hidden" name="branch_id" value="{{ auth()->user()->branch_id }}">
-    <!-- Sucursal Destinataria -->
-    <div class="col-md-4" id="branch-select-wrapper">
-        <x-admin-lte.select name="branch_recipient_id" label="Sucursal Destinataria" :options="$destinationBranches->pluck('name', 'id')->toArray()" :value="old('branch_recipient_id', $order->branch_recipient_id ?? null)"
-            required />
+<div class="d-flex flex-column gap-2">
+
+    {{-- Sucursal Proveedora --}}
+    <div class="compact-select-wrapper">
+        <label class="compact-select-label fw-bold small">Sucursal Proveedora</label>
+        <x-adminlte.select name="branch_id" :options="$destinationBranches->pluck('name', 'id')->toArray()" :value="old('branch_id', $order->branch_id ?? '')" required />
     </div>
 
-    <!-- Estado -->
-    <div class="col-md-4">
-        <x-admin-lte.select name="status" label="Estado del Pedido" :options="$statusOptions" :value="old('status', $order->status->value ?? 0)" required />
+    {{-- Sucursal Solicitante --}}
+    @if ($isEdit)
+        <div class="compact-select-wrapper">
+            <label class="compact-select-label fw-bold small">Sucursal Solicitante</label>
+            <x-adminlte.select name="customer_id" :options="$branches->pluck('name', 'id')->toArray()" :value="old('customer_id', $order->customer_id ?? '')" required />
+        </div>
+    @else
+        <input type="hidden" name="customer_id" value="{{ auth()->user()->branch_id }}">
+    @endif
+
+    <input type="hidden" name="customer_type" value="App\Models\Branch">
+
+    {{-- Estado del Pedido --}}
+    <div class="compact-select-wrapper">
+        <label class="compact-select-label fw-bold small">
+            Estado del Pedido <span class="text-danger">*</span>
+        </label>
+        <x-adminlte.select name="status" label="" :options="$statusOptions" :value="old('status', $order->status->value ?? 1)" required />
     </div>
 </div>

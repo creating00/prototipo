@@ -9,6 +9,7 @@ use App\Services\Product\ProductValidatorService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use App\Traits\AuthTrait;
+use Illuminate\Support\Facades\DB;
 
 class ProductService
 {
@@ -23,20 +24,61 @@ class ProductService
 
     public function create(array $data, ?UploadedFile $imageFile = null, ?string $imageUrl = null): Product
     {
-        $validated = $this->validatorService->validateProductData($data);
-        $validated['image'] = $this->handleImageUpload($imageFile, $imageUrl, $validated['code']);
+        $dataForValidation = $data;
+
+        if ($imageFile) {
+            $dataForValidation['imageFile'] = $imageFile;
+        }
+
+        if ($imageUrl) {
+            $dataForValidation['imageUrl'] = $imageUrl;
+        }
+
+        $validated = $this->validatorService->validateProductData($dataForValidation);
+
+        $imagePath = $this->handleImageUpload($imageFile, $imageUrl, $validated['code']);
 
         $product = Product::create([
             'code' => $validated['code'],
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
-            'image' => $validated['image'],
+            'image' => $imagePath,
             'category_id' => $validated['category_id'] ?? null,
         ]);
 
-        $this->branchService->createBranchDataForProduct($product, $validated);
+        //$this->branchService->createBranchDataForProduct($product, $validated);
+        $this->branchService->updateOrCreateBranchData($product, $validated);
+
+        $this->syncProviders($product, $validated['providers'] ?? []);
 
         return $product->fresh();
+    }
+
+    protected function syncProviders(Product $product, array $providerIds): void
+    {
+        $service = app(ProviderProductService::class);
+
+        $currentIds = \App\Models\ProviderProduct::where('product_id', $product->id)
+            ->pluck('provider_id')
+            ->toArray();
+
+        // Eliminar obsoletos
+        $toDelete = array_diff($currentIds, $providerIds);
+        if (!empty($toDelete)) {
+            \App\Models\ProviderProduct::where('product_id', $product->id)
+                ->whereIn('provider_id', $toDelete)
+                ->delete();
+        }
+
+        // Agregar nuevos como globales
+        $toAdd = array_diff($providerIds, $currentIds);
+        foreach ($toAdd as $id) {
+            $service->attachProductToProvider([
+                'product_id'  => $product->id,
+                'provider_id' => $id,
+                'branch_id'   => null // Relación global explícita
+            ]);
+        }
     }
 
     public function update(
@@ -46,7 +88,18 @@ class ProductService
         ?string $imageUrl = null,
         bool $removeImage = false
     ): Product {
-        $validated = $this->validatorService->validateProductData($data, $product->id);
+        $dataForValidation = $data;
+
+        if ($imageFile) {
+            $dataForValidation['imageFile'] = $imageFile;
+        }
+
+        if ($imageUrl) {
+            $dataForValidation['imageUrl'] = $imageUrl;
+        }
+
+        $validated = $this->validatorService->validateProductData($dataForValidation, $product->id);
+
         $newImage = $this->handleImageUpdate($product, $validated, $imageFile, $imageUrl, $removeImage);
 
         $product->update([
@@ -58,15 +111,37 @@ class ProductService
         ]);
 
         if (isset($validated['branch_id'])) {
-            $this->branchService->updateBranchDataForProduct($product, $validated);
+            //$this->branchService->updateBranchDataForProduct($product, $validated);
+            $this->branchService->updateOrCreateBranchData($product, $validated);
         }
+
+        // Sincronizar proveedores
+        $this->syncProviders($product, $validated['providers'] ?? []);
 
         return $product->fresh();
     }
 
-    public function delete(Product $product): void
+    public function delete(Product $product, int $branchId): string
     {
-        $product->delete();
+        return DB::transaction(function () use ($product, $branchId) {
+            $deletedFromBranch = $this->branchService->deleteBranchData($product, $branchId);
+
+            // Si no se borró nada (porque ya no existía en la sucursal)
+            if (!$deletedFromBranch) {
+                return 'not_found';
+            }
+
+            // Si después de borrar de la sucursal, no quedan más asociaciones
+            if ($product->productBranches()->count() === 0) {
+                $product->update([
+                    'code' => $product->code . '_del_' . now()->timestamp
+                ]);
+                $product->delete();
+                return 'global_delete';
+            }
+
+            return 'branch_delete';
+        });
     }
 
     public function getById(int $id): Product
@@ -81,15 +156,12 @@ class ProductService
 
     public function getProductForEdit(int $productId, int $branchId): Product
     {
+        // Cargamos la relación de forma condicional sin filtrar la existencia del producto base
         return Product::with([
+            'providers',
             'category',
             'productBranches' => function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
-            },
-            'productBranches.prices' => function ($query) use ($branchId) {
-                $query->whereHas('productBranch', function ($q) use ($branchId) {
-                    $q->where('branch_id', $branchId);
-                });
+                $query->where('branch_id', $branchId)->with('prices');
             }
         ])->findOrFail($productId);
     }
@@ -108,12 +180,43 @@ class ProductService
         return Product::with(['category', 'ratings', 'productBranches.prices'])->get();
     }
 
-    public function getAllForSummary(?int $branchId = null): Collection
+    /**
+     * Get all products formatted for summary, filtered by branch, category, and target.
+     *
+     * @param int|null $branchId
+     * @param int|null $categoryId
+     * @param int|null $target
+     * @return \Illuminate\Support\Collection
+     */
+    public function getAllForSummary(?int $branchId = null, ?int $categoryId = null, ?int $target = null): Collection
     {
-        $branchId = $branchId ?? $this->currentBranchId();
-        $products = Product::with(['category', 'ratings', 'productBranches.prices'])->get();
+        $branchFilter = function ($query) use ($branchId) {
+            $query->where('stock', '>', 0);
 
-        return $this->presenterService->formatForSummary($products, $branchId);
+            if ($branchId) {
+                $query->where('branch_id', $branchId);
+            }
+
+            $query->with('prices', 'branch');
+        };
+
+        $products = Product::with([
+            'category',
+            'ratings',
+            'productBranches' => $branchFilter
+        ])
+            ->whereHas('productBranches', $branchFilter)
+            ->whereHas('category', function ($query) use ($target) {
+                $query->exceptTarget(\App\Enums\CategoryTarget::None);
+
+                if ($target) {
+                    $query->where('target', $target);
+                }
+            })
+            ->when($categoryId, fn($query) => $query->where('category_id', $categoryId))
+            ->get();
+
+        return $this->presenterService->formatForSummaryByBranch($products);
     }
 
     public function getAllForDataTable(): array
@@ -121,6 +224,7 @@ class ProductService
         $branchId = $branchId ?? $this->currentBranchId();
         $products = Product::with([
             'category',
+            'providers',
             'productBranches' => fn($q) => $q->where('branch_id', $branchId),
             'productBranches.prices',
         ])->get();

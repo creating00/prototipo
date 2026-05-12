@@ -23,7 +23,12 @@ class ExpenseFormData
      */
     public function currency(): int
     {
-        return $this->expense?->currency?->value ?? $this->defaultCurrency();
+        // Si existe el gasto y tiene moneda, extraemos el valor del Enum
+        if ($this->expense && $this->expense->currency) {
+            return $this->expense->currency->value;
+        }
+
+        return $this->defaultCurrency();
     }
 
     /**

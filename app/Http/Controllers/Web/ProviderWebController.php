@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\BaseProviderController;
 use App\Models\Product;
+use App\Models\Provider;
 use App\Services\ProviderProductService;
 use App\Services\ProviderService;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class ProviderWebController extends BaseProviderController
 
     public function index()
     {
+        $this->authorize('viewAny', Provider::class);
         $rowData = $this->providerService->getAllProvidersForDataTable();
         $providers = $this->providerService->getAllProviders();
 
@@ -43,6 +45,8 @@ class ProviderWebController extends BaseProviderController
     public function show($id)
     {
         $provider = $this->providerService->getProviderById($id);
+        $this->authorize('view', $provider);
+
         $products = Product::orderBy('name')->get();
 
         $providerProducts = $this->providerProductService
@@ -54,7 +58,7 @@ class ProviderWebController extends BaseProviderController
             'Código Proveedor',
             'Lead Time',
             'Estado',
-            'Precio vigente',
+            // 'Precio vigente',
         ];
 
         $hiddenFields = ['id'];
@@ -66,11 +70,11 @@ class ProviderWebController extends BaseProviderController
                 'product' => $pp->product->name ?? '—',
                 'provider_code' => $pp->provider_code ?? '—',
                 'lead_time_days' => $pp->lead_time_days ?? '—',
-                'status' => $pp->status->label(),
-                'price' => $pp->currentPrice
-                    ? $pp->currentPrice->currency->symbol() . ' ' .
-                    number_format($pp->currentPrice->cost_price, 2)
-                    : '—',
+                'status' => $pp->status->badgeClass(),
+                // 'price' => $pp->currentPrice
+                //     ? $pp->currentPrice->currency->symbol() . ' ' .
+                //     number_format($pp->currentPrice->cost_price, 2)
+                //     : '—',
             ];
         })->toArray();
 
@@ -85,13 +89,15 @@ class ProviderWebController extends BaseProviderController
 
     public function create()
     {
+        $this->authorize('create', Provider::class);
         return view('admin.provider.create');
     }
 
     public function store(Request $request)
     {
+        $this->authorize('create', Provider::class);
         try {
-            $provider = $this->providerService->createProvider($request->all());
+            $this->providerService->createProvider($request->all());
             return redirect()->route('web.providers.index')
                 ->with('success', 'Provider created successfully');
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -104,13 +110,17 @@ class ProviderWebController extends BaseProviderController
     public function edit($id)
     {
         $provider = $this->providerService->getProviderById($id);
+        $this->authorize('update', $provider);
+
         return view('admin.provider.edit', compact('provider'));
     }
 
     public function update(Request $request, $id)
     {
+        $provider = $this->providerService->getProviderById($id);
+        $this->authorize('update', $provider);
         try {
-            $provider = $this->providerService->updateProvider($id, $request->all());
+            $this->providerService->updateProvider($id, $request->all());
             return redirect()->route('web.providers.index')
                 ->with('success', 'Provider updated successfully');
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -122,6 +132,8 @@ class ProviderWebController extends BaseProviderController
 
     public function destroy($id)
     {
+        $provider = $this->providerService->getProviderById($id);
+        $this->authorize('delete', $provider);
         try {
             $this->providerService->deleteProvider($id);
             return redirect()->route('web.providers.index')

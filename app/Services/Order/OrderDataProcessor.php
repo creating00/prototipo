@@ -2,6 +2,7 @@
 
 namespace App\Services\Order;
 
+use App\Enums\CurrencyType;
 use App\Enums\OrderSource;
 use App\Models\Client;
 use App\Models\ClientAccount;
@@ -25,22 +26,28 @@ class OrderDataProcessor
     {
         $data = $validated;
 
-        if (($validated['source'] ?? null) == OrderSource::Ecommerce->value) {
-            // Si hay token, obtener cliente desde token
-            if (isset($validated['token'])) {
-                $this->handleTokenOrder($data);
-            }
-            // Si hay client, crear o buscar cliente desde los datos enviados
-            elseif (isset($validated['client'])) {
-                $this->handleEcommerceOrder($data);
-            }
-            // Si no hay ni token ni client, lanzar error
-            else {
-                throw new \Exception('Debes enviar token o client para pedidos Ecommerce');
+        if (($data['source'] ?? null) == OrderSource::Ecommerce->value) {
+            if (($data['customer_type'] ?? null) === Client::class) {
+                if (isset($data['token'])) {
+                    $this->handleTokenOrder($data);
+                } elseif (isset($data['client'])) {
+                    $this->handleEcommerceOrder($data);
+                }
+            } elseif (($data['customer_type'] ?? null) === \App\Models\Branch::class) {
+                // Usamos la misma lógica interna para procesar los IDs de sucursal
+                $this->handleInternalOrder($data);
+                $data['user_id'] = $this->getDefaultEcommerceUser()->id;
             }
         } else {
             $this->handleInternalOrder($data);
         }
+
+        foreach ($data['items'] as &$item) {
+            if (!isset($item['currency']) || !$item['currency']) {
+                $item['currency'] = CurrencyType::ARS->value;
+            }
+        }
+        unset($item);
 
         return $data;
     }
@@ -62,7 +69,7 @@ class OrderDataProcessor
             throw new \Exception('No se proporcionó información de cliente');
         }
 
-        $client = $this->clientService->findOrCreate($data['client']);
+        $client = $this->clientService->findOrCreate($data['client'], $data['branch_id']);
         $data['customer_id'] = $client->id;
         $data['customer_type'] = Client::class;
         $data['user_id'] = $this->getDefaultEcommerceUser()->id;
@@ -76,8 +83,30 @@ class OrderDataProcessor
             $data['customer_id'] = $data['client_id'];
             $data['branch_id'] = $data['branch_id'] ?? $this->currentBranchId();
         } else {
-            $data['customer_id'] = $this->currentBranchId();
-            $data['branch_id'] = $data['branch_recipient_id'];
+            // FLUJO DE SUCURSALES
+            $myBranchId = $this->currentBranchId();
+
+            // Si existe branch_recipient_id, es un CREATE (necesita inversión inicial)
+            if (isset($data['branch_recipient_id'])) {
+                $data['branch_id'] = $data['branch_recipient_id'];
+                $data['customer_id'] = $myBranchId;
+            }
+            // Si no existe, es un UPDATE o ya viene con customer_id definido
+            else {
+                // Validamos que existan los campos necesarios
+                $data['branch_id'] = $data['branch_id'] ?? null;
+                $data['customer_id'] = $data['customer_id'] ?? $myBranchId;
+            }
+
+            if (!$data['branch_id']) {
+                throw new \Exception('Debe seleccionar una sucursal proveedora.');
+            }
+
+            if ($data['branch_id'] == $data['customer_id']) {
+                throw new \Exception('No puedes realizar un pedido a la misma sucursal.');
+            }
+
+            $data['customer_type'] = \App\Models\Branch::class;
         }
     }
 

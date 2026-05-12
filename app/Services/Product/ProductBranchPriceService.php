@@ -12,7 +12,6 @@ class ProductBranchPriceService
         // Precio de Compra
         $branch->prices()->create([
             'type'     => PriceType::PURCHASE,
-            // Usamos los campos específicos del componente
             'currency' => $data['purchase_price_currency'],
             'amount'   => $data['purchase_price_amount'],
         ]);
@@ -20,19 +19,25 @@ class ProductBranchPriceService
         // Precio de Venta
         $branch->prices()->create([
             'type'     => PriceType::SALE,
-            // Usamos los campos específicos del componente
             'currency' => $data['sale_price_currency'],
             'amount'   => $data['sale_price_amount'],
         ]);
 
         // Precio Mayorista (Opcional)
-        // Usamos el campo de monto para verificar si se envió
         if (!empty($data['wholesale_price_amount'])) {
             $branch->prices()->create([
                 'type'     => PriceType::WHOLESALE,
-                // Usamos los campos específicos del componente
                 'currency' => $data['wholesale_price_currency'],
                 'amount'   => $data['wholesale_price_amount'],
+            ]);
+        }
+
+        // Precio de Reparación (Opcional)
+        if (!empty($data['repair_price_amount'])) {
+            $branch->prices()->create([
+                'type'     => PriceType::REPAIR,
+                'currency' => $data['repair_price_currency'],
+                'amount'   => $data['repair_price_amount'],
             ]);
         }
     }
@@ -40,29 +45,19 @@ class ProductBranchPriceService
     public function updatePricesForBranch(ProductBranch $branch, array $data): void
     {
         // Compra
-        $this->upsertPrice(
-            $branch,
-            PriceType::PURCHASE,
-            $data['purchase_price_currency'],
-            $data['purchase_price_amount']
-        );
+        $this->upsertPrice($branch, PriceType::PURCHASE, $data['purchase_price_currency'], $data['purchase_price_amount']);
 
         // Venta
-        $this->upsertPrice(
-            $branch,
-            PriceType::SALE,
-            $data['sale_price_currency'],
-            $data['sale_price_amount']
-        );
+        $this->upsertPrice($branch, PriceType::SALE, $data['sale_price_currency'], $data['sale_price_amount']);
 
         // Mayorista (opcional)
         if (!empty($data['wholesale_price_amount'])) {
-            $this->upsertPrice(
-                $branch,
-                PriceType::WHOLESALE,
-                $data['wholesale_price_currency'],
-                $data['wholesale_price_amount']
-            );
+            $this->upsertPrice($branch, PriceType::WHOLESALE, $data['wholesale_price_currency'], $data['wholesale_price_amount']);
+        }
+
+        // Reparación (opcional)
+        if (!empty($data['repair_price_amount'])) {
+            $this->upsertPrice($branch, PriceType::REPAIR, $data['repair_price_currency'], $data['repair_price_amount']);
         }
     }
 

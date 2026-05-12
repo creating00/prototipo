@@ -29,6 +29,7 @@ return new class extends Migration
                 ->restrictOnDelete();
             $table->string('name');
             $table->string('address')->nullable();
+            $table->string('phone')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

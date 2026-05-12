@@ -1,16 +1,34 @@
 export class UIHelper {
-    static disableButton(btn) {
+    static disableButton(btn, customText = "Procesando...") {
         btn.disabled = true;
-        btn.querySelector(".spinner-border")?.classList.remove("d-none");
+
+        const spinner = btn.querySelector(".spinner-border");
         const text = btn.querySelector(".btn-text");
-        if (text) text.textContent = "Guardando...";
+
+        if (text && spinner) {
+            // Caso A: El botón tiene estructura fija (span + spinner)
+            spinner.classList.remove("d-none");
+            text.textContent = customText;
+        } else {
+            // Caso B: El botón es simple, guardamos todo el HTML
+            btn.dataset.originalHtml = btn.innerHTML;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${customText}`;
+        }
     }
 
     static enableButton(btn) {
         btn.disabled = false;
-        btn.querySelector(".spinner-border")?.classList.add("d-none");
+
+        const spinner = btn.querySelector(".spinner-border");
         const text = btn.querySelector(".btn-text");
-        if (text) text.textContent = "Guardar";
+
+        if (text && spinner) {
+            spinner.classList.add("d-none");
+        } else if (btn.dataset.originalHtml) {
+            // Caso B: Restauramos el HTML completo que guardamos en disableButton
+            btn.innerHTML = btn.dataset.originalHtml;
+            delete btn.dataset.originalHtml;
+        }
     }
 
     static success(msg) {
@@ -33,5 +51,171 @@ export class UIHelper {
             showConfirmButton: false,
             timer: 5000,
         });
+    }
+
+    /**
+     * Descarga archivos vía AJAX con manejo de UI
+     */
+    static async handleDownload(
+        btn,
+        event,
+        defaultFilename = "plantilla.xlsx",
+    ) {
+        event.preventDefault();
+
+        const url = btn.href;
+        const type = btn.dataset.type;
+        const filename = type ? `plantilla_${type}.xlsx` : defaultFilename;
+
+        this.disableButton(btn, "Preparando...");
+
+        try {
+            const response = await axios({
+                url: url,
+                method: "GET",
+                responseType: "blob",
+            });
+
+            const blob = new Blob([response.data]);
+            const urlBlob = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+
+            link.href = urlBlob;
+            link.download = filename;
+            document.body.appendChild(link); // Mejor compatibilidad
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(urlBlob); // Liberar memoria
+
+            this.success("Descarga iniciada");
+        } catch (error) {
+            console.error("Error en descarga:", error);
+            this.error("El archivo no está disponible en el servidor.");
+        } finally {
+            this.enableButton(btn);
+        }
+    }
+
+    /**
+     * Maneja la importación de archivos Excel/CSV con feedback de UI
+     * @param {HTMLElement} btn - Botón que dispara la acción
+     * @param {String} inputId - ID del input file oculto
+     * @param {String} endpoint - URL a la que se envía el archivo
+     * @param {String} resourceName - Nombre del recurso (para los mensajes)
+     */
+    static handleImport(btn, inputId, endpoint, resourceName = "datos") {
+        const fileInput = document.getElementById(inputId);
+        if (!fileInput) return;
+
+        fileInput.value = ""; // Reset para permitir subir el mismo archivo
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const allowed = ["xlsx", "xls", "csv"];
+            const ext = file.name.split(".").pop().toLowerCase();
+
+            if (!allowed.includes(ext)) {
+                this.error(`Formato no válido. Use: ${allowed.join(", ")}`);
+                fileInput.value = "";
+                return;
+            }
+
+            this.disableButton(btn, "Subiendo...");
+
+            Swal.fire({
+                title: `Importando ${resourceName}...`,
+                text: "Analizando archivo y procesando registros",
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading(),
+            });
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const { data } = await axios.post(endpoint, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+
+                this.success(
+                    data.message || `Importación de ${resourceName} exitosa`,
+                );
+                setTimeout(() => window.location.reload(), 1500);
+            } catch (error) {
+                console.error(error);
+                const msg =
+                    error.response?.data?.error ||
+                    `Error al importar ${resourceName}`;
+                Swal.fire("Error", msg, "error");
+            } finally {
+                this.enableButton(btn);
+            }
+        };
+
+        fileInput.click();
+    }
+
+    static async handleBulkDelete(
+        btn,
+        endpoint,
+        ids,
+        manager,
+        resourceName = "registros",
+    ) {
+        if (!ids || ids.length === 0) return;
+
+        const confirmed = await Swal.fire({
+            title: "¿Estás seguro?",
+            text: `Se eliminarán ${ids.length} ${resourceName} seleccionados.`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            confirmButtonText: "Sí, eliminar",
+            cancelButtonText: "Cancelar",
+        });
+
+        if (!confirmed.isConfirmed) return;
+
+        this.disableButton(btn, "Eliminando...");
+
+        // Mostrar Loading
+        Swal.fire({
+            title: `Eliminando ${resourceName}...`,
+            text: "Procesando la solicitud",
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+        });
+
+        try {
+            const { data } = await axios.post(endpoint, {
+                ids: ids,
+                _method: "DELETE",
+            });
+
+            // IMPORTANTE: Primero disparamos el success (Toast)
+            this.success(
+                data.message || `${resourceName} eliminados con éxito`,
+            );
+
+            // Usamos la misma lógica que en handleImport:
+            // Esperamos un tiempo prudente y refrescamos la página.
+            setTimeout(() => {
+                if (manager && typeof manager.reload === "function") {
+                    manager.reload();
+                } else {
+                    window.location.reload();
+                }
+            }, 1500);
+        } catch (error) {
+            console.error("Bulk delete error:", error);
+            const msg =
+                error.response?.data?.message ||
+                `Error al eliminar ${resourceName}`;
+
+            // Si hay error, quitamos el loading y mostramos el error
+            Swal.fire("Error", msg, "error");
+            this.enableButton(btn);
+        }
     }
 }

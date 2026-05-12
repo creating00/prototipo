@@ -23,19 +23,26 @@
 
 @section('content')
     <div class="container-fluid">
-        <x-admin-lte.alert-manager />
+        <x-adminlte.alert-manager />
 
-        <x-admin-lte.data-table tableId="clients-table" title="Gestión de Clientes" :headers="$headers" :rowData="$rowData"
+        <x-adminlte.data-table tableId="clients-table" title="Gestión de Clientes" :headers="$headers" :rowData="$rowData"
             :hiddenFields="$hiddenFields" withActions="true">
-            <x-admin-lte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
-            <x-admin-lte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete" />
+            @canResource('clients.update')
+            <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
+            @endcanResource
+
+            @canResource('clients.delete')
+            <x-adminlte.button color="danger" size="sm" icon="fas fa-trash" class="btn-delete" />
+            @endcanResource
 
             <x-slot name="headerButtons">
-                <x-admin-lte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-new">
+                @canResource('clients.create')
+                <x-adminlte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-new">
                     Nuevo Cliente
-                </x-admin-lte.button>
+                </x-adminlte.button>
+                @endcanResource
             </x-slot>
-        </x-admin-lte.data-table>
+        </x-adminlte.data-table>
     </div>
 @endsection
 

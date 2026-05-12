@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use App\Enums\CurrencyType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use App\Enums\SaleStatus;
-use App\Enums\SaleType; // Importar el nuevo Enum
+use App\Enums\SaleType;
+use App\Models\Concerns\HasCurrency;
+use App\Services\CurrencyExchangeService;
 
 class Sale extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasCurrency;
 
     /**
      * Los atributos que son asignables masivamente.
@@ -26,9 +30,15 @@ class Sale extends Model
         'amount_received',
         'change_returned',
         'remaining_balance',
-        'total_amount',
+        'discount_id',
+        'discount_amount',
+        'totals',
         'customer_id',
+        'requires_invoice',
         'customer_type',
+        'notes',
+        'sale_date',
+        'exchange_rate',
     ];
 
     /**
@@ -39,9 +49,16 @@ class Sale extends Model
     protected $casts = [
         'status'    => SaleStatus::class,
         'sale_type' => SaleType::class,
+        'totals'    => 'array',
+        'requires_invoice' => 'boolean',
     ];
 
     // ===== RELACIONES =====
+
+    public function discount()
+    {
+        return $this->belongsTo(Discount::class);
+    }
 
     /**
      * Obtiene la sucursal a la que pertenece la venta.
@@ -87,6 +104,60 @@ class Sale extends Model
 
     // ===== HELPERS & ACCESSORS =====
 
+    public function getFormattedTotalsAttribute(): array
+    {
+        return collect($this->totals ?? [])->map(function ($amount, $currency) {
+            return sprintf(
+                '%s %s',
+                CurrencyType::from($currency)->symbol(),
+                number_format($amount, 2, ',', '.')
+            );
+        })->toArray();
+    }
+
+    /**
+     * Accessor para obtener el total consolidado en pesos automáticamente
+     */
+    public function getTotalGeneralArsAttribute(): float
+    {
+        return $this->getTotalInCurrency(\App\Enums\CurrencyType::ARS);
+    }
+
+    /**
+     * Calcula el total consolidado en una moneda específica
+     */
+    public function getTotalInCurrency(CurrencyType $target = CurrencyType::ARS, ?float $rate = null): float
+    {
+        $totals = $this->totals ?? [];
+        $sum = 0;
+
+        // Si no pasan un rate, lo obtenemos del servicio
+        if ($rate === null) {
+            $exchangeService = app(CurrencyExchangeService::class);
+            $rate = $exchangeService->getCurrentDollarRate();
+        }
+
+        foreach ($totals as $currencyId => $amount) {
+            $currentCurrency = CurrencyType::tryFrom((int)$currencyId);
+            if (!$currentCurrency) continue;
+
+            if ($currentCurrency === $target) {
+                $sum += $amount;
+            } elseif ($target === CurrencyType::ARS && $currentCurrency === CurrencyType::USD) {
+                $sum += $amount * $rate;
+            } elseif ($target === CurrencyType::USD && $currentCurrency === CurrencyType::ARS) {
+                $sum += ($rate > 0) ? ($amount / $rate) : 0;
+            }
+        }
+
+        return $sum;
+    }
+
+    public function getNetTotalAttribute()
+    {
+        return $this->items()->sum('subtotal') - $this->discount_amount;
+    }
+
     /**
      * Determina si el cliente es otra sucursal.
      *
@@ -120,5 +191,39 @@ class Sale extends Model
                 : $this->customer->full_name ?? '';
         }
         return '';
+    }
+
+    public function hasDiscount(): bool
+    {
+        return $this->discount_id !== null && $this->discount_amount > 0;
+    }
+
+    public function generateWhatsAppMessage(): string
+    {
+        $customerName = $this->customer_name;
+
+        $itemsDetail = $this->items->take(5)->map(function ($item) {
+            return "• {$item->quantity}x " . ($item->product->name ?? 'Producto');
+        })->implode("\n");
+
+        if ($this->items->count() > 5) {
+            $itemsDetail .= "\n... y otros productos.";
+        }
+
+        $totalFormatted = $this->formatted_total;
+
+        return "Hola *{$customerName}*, te contacto desde la sucursal por tu pedido *#{$this->id}*:\n\n"
+            . "Detalle:\n{$itemsDetail}\n\n"
+            . "*Total: {$totalFormatted}*";
+    }
+
+    public function scopeForBranch($query, int $branchId)
+    {
+        return $query->where('branch_id', $branchId);
+    }
+
+    public function scopeToday($query)
+    {
+        return $query->whereDate('created_at', Carbon::today());
     }
 }

@@ -2,20 +2,9 @@
 
 @section('page-title', 'Detalle del Proveedor')
 
-@include('admin.provider.partials.provider-product._modal-create', [
-    'provider' => $provider,
-    'products' => $products,
-])
-
-@include('admin.provider.partials.provider-product._modal-edit')
-@include('admin.provider.partials.provider-product._prices')
-
 @section('content')
-
     <div class="container-fluid">
-
-        <x-admin-lte.alert-manager />
-
+        <x-adminlte.alert-manager />
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="mb-0">
@@ -48,24 +37,36 @@
             </div>
         </div>
 
-        <x-admin-lte.data-table tableId="provider-products-table" title="Productos asociados" :headers="$headers"
+        <x-adminlte.data-table tableId="provider-products-table" title="Productos asociados" :headers="$headers"
             :rowData="$rowData" :hiddenFields="$hiddenFields" withActions="true">
             {{-- Acciones por fila --}}
-            <x-admin-lte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
-
-            {{-- <x-admin-lte.button color="custom-emerald" size="sm" icon="fas fa-dollar-sign" class="btn-price" /> --}}
-
+            <x-slot name="actions">
+                <div class="d-flex justify-content-center gap-1">
+                    @canResource('provider_products.update')
+                    <x-adminlte.button color="custom-teal" size="sm" icon="fas fa-edit" class="me-1 btn-edit" />
+                    @endcanResource
+                    {{-- <x-adminlte.button color="custom-emerald" size="sm" icon="fas fa-dollar-sign" class="btn-price" /> --}}
+                </div>
+            </x-slot>
             {{-- Botones del header --}}
             <x-slot name="headerButtons">
-                <x-admin-lte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-attach-product"
+                @canResource('provider_products.create')
+                <x-adminlte.button color="primary" icon="fas fa-plus" class="me-1 btn-header-attach-product"
                     data-bs-toggle="modal" data-bs-target="#attachProductModal">
                     Asociar producto
-                </x-admin-lte.button>
-
+                </x-adminlte.button>
+                @endcanResource
             </x-slot>
-        </x-admin-lte.data-table>
-
+        </x-adminlte.data-table>
     </div>
+
+    @include('admin.provider.partials.provider-product._modal-create', [
+        'provider' => $provider,
+        'products' => $products,
+    ])
+
+    @include('admin.provider.partials.provider-product._modal-edit')
+    @include('admin.provider.partials.provider-product._prices')
 @endsection
 
 @push('scripts')

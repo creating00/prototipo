@@ -3,24 +3,55 @@
 @section('page-title', 'Crear Venta')
 
 @section('content')
-    <x-admin-lte.alert-manager />
+    @php
+        $customerType = old('customer_type', $customer_type ?? $sale?->customer_type);
+        $customerId = old('customer_id', $sale->customer_id ?? null);
+        $currentSaleDate = old('sale_date', $sale->sale_date ?? ($saleDate ?? now()->format('Y-m-d')));
 
-    <x-admin-lte.form action="{{ route('web.sales.store') }}" method="POST" title="Crear Nuevo Venta"
-        submit-text="Guardar Venta" submitting-text="Registrando pedido...">
-        <input type="hidden" name="customer_type" value="App\Models\Client">
+        $pago1 = null;
+        $pago2 = null;
+        $isDual = false;
+        $isRepair = false;
+    @endphp
 
-        @include('admin.sales.partials._form', [
-            'order' => null,
-            'branches' => $branches,
-            'clients' => $clients,
-            'statusOptions' => $statusOptions,
-        ])
-    </x-admin-lte.form>
+    <div class="row justify-content-center">
+        <div class="col-12" style="max-width: 100%;">
+            <x-adminlte.alert-manager />
 
-    @include('admin.product.partials._modal_product_search')
+            <x-adminlte.form id="saleForm" action="{{ route('web.sales.store') }}" title="Nueva Venta">
+                <x-slot:headerActions>
+                    <a href="{{ route('web.sales.index') }}" class="btn btn-sm btn-default mr-1">Cancelar</a>
+                    <button type="submit" form="saleForm" class="btn btn-sm btn-primary" x-bind:disabled="submitting">
+                        <i class="fas fa-save mr-1"></i>
+                        <span x-show="!submitting">Procesar Pago <span class="kbd-shortcut">F12</span></span>
+                        <span x-show="submitting" x-cloak>Procesando...</span>
+                    </button>
+                </x-slot:headerActions>
+
+                {{-- Contenido del Formulario --}}
+                @include('admin.sales.partials._form')
+            </x-adminlte.form>
+        </div>
+    </div>
+
+    {{-- @include('admin.product.partials._modal_product_search') --}}
     @include('admin.client.partials._modal-create')
+    {{-- @include('admin.sales.partials._modal-payment', [
+        'saleDate' => $currentSaleDate,
+        'customerType' => $customerType,
+    ]) --}}
 @endsection
 
 @push('scripts')
+    <script>
+        window.DISCOUNT_AMOUNT_MAP = @json($discountMap);
+        //console.log(window.DISCOUNT_AMOUNT_MAP);
+    </script>
+    <script>
+        window.repairAmountsMap = @json($repairAmountsMap);
+    </script>
+
     @vite('resources/js/modules/sales/create.js')
 @endpush
+
+<x-sale-print-handler />

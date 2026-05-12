@@ -27,6 +27,10 @@ class Product extends Model
 
     protected array $branchCache = [];
 
+    protected $casts = [
+        'status' => \App\Enums\ProductStatus::class,
+    ];
+
     /*
     |--------------------------------------------------------------------------
     | Relationships
@@ -56,6 +60,15 @@ class Product extends Model
     public function productBranches(): HasMany
     {
         return $this->hasMany(ProductBranch::class);
+    }
+
+    public function providers()
+    {
+        // Relación de muchos a muchos a través de la tabla pivote
+        return $this->belongsToMany(Provider::class, 'provider_products')
+            ->withPivot(['provider_code', 'lead_time_days', 'status'])
+            ->withTimestamps()
+            ->wherePivot('deleted_at', null);
     }
 
     /*
@@ -89,24 +102,29 @@ class Product extends Model
     |--------------------------------------------------------------------------
     */
 
-    public function price(?int $branchId, PriceType $type, CurrencyType $currency): ?float
+    public function price(?int $branchId, PriceType $type, ?CurrencyType $currency = null): ?float
     {
         return $this->priceModel($branchId, $type, $currency)?->amount;
     }
 
-    public function purchasePrice(?int $branchId = null, CurrencyType $currency = CurrencyType::ARS): ?float
+    public function purchasePrice(?int $branchId = null, ?CurrencyType $currency = null): ?float
     {
         return $this->price($branchId, PriceType::PURCHASE, $currency);
     }
 
-    public function salePrice(?int $branchId = null, CurrencyType $currency = CurrencyType::ARS): ?float
+    public function salePrice(?int $branchId = null, ?CurrencyType $currency = null): ?float
     {
         return $this->price($branchId, PriceType::SALE, $currency);
     }
 
-    public function wholesalePrice(?int $branchId = null, CurrencyType $currency = CurrencyType::ARS): ?float
+    public function wholesalePrice(?int $branchId = null, ?CurrencyType $currency = null): ?float
     {
         return $this->price($branchId, PriceType::WHOLESALE, $currency);
+    }
+
+    public function repairPrice(?int $branchId = null, ?CurrencyType $currency = null): ?float
+    {
+        return $this->price($branchId, PriceType::REPAIR, $currency);
     }
 
     /*
@@ -118,11 +136,11 @@ class Product extends Model
     public function priceModel(?int $branchId, PriceType $type, ?CurrencyType $currency = null): ?ProductBranchPrice
     {
         $branchModel = $this->branchContext($branchId);
-        if (!$branchModel) {
-            return null;
-        }
+        if (!$branchModel) return null;
 
         $query = $branchModel->prices()->where('type', $type->value);
+
+        // Si pasamos moneda, filtramos. Si no, traerá el primero que encuentre (sea ARS o USD)
         if ($currency) {
             $query->where('currency', $currency->value);
         }
@@ -138,6 +156,16 @@ class Product extends Model
     public function salePriceModel(?int $branchId = null, ?CurrencyType $currency = null): ?ProductBranchPrice
     {
         return $this->priceModel($branchId, PriceType::SALE, $currency);
+    }
+
+    public function wholesalePriceModel(?int $branchId = null, ?CurrencyType $currency = null): ?ProductBranchPrice
+    {
+        return $this->priceModel($branchId, PriceType::WHOLESALE, $currency);
+    }
+
+    public function repairPriceModel(?int $branchId = null, ?CurrencyType $currency = null): ?ProductBranchPrice
+    {
+        return $this->priceModel($branchId, PriceType::REPAIR, $currency);
     }
 
     /*
@@ -165,5 +193,29 @@ class Product extends Model
     public function getAverageRatingAttribute(): float
     {
         return $this->ratings()->avg('rate') ?? 0;
+    }
+
+    public function getFullImageUrlAttribute(): ?string
+    {
+        if (!$this->image) {
+            return null;
+        }
+
+        // Si ya es una URL completa (http:// o https://)
+        if (filter_var($this->image, FILTER_VALIDATE_URL)) {
+            return $this->image;
+        }
+
+        // Si es una ruta local (/storage/)
+        if (str_starts_with($this->image, '/storage/')) {
+            return config('app.url') . $this->image;
+        }
+
+        // Si es una ruta relativa sin /storage/
+        if (str_starts_with($this->image, 'storage/')) {
+            return config('app.url') . '/' . $this->image;
+        }
+
+        return $this->image;
     }
 }

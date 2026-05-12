@@ -2,125 +2,90 @@
 
 namespace App\Services\Sale;
 
-use App\Enums\SaleStatus;
-use App\Enums\SaleType;
 use App\Models\Sale;
+use App\Services\PriceAuditService;
+use App\Services\Sale\Traits\HandlesSalePayments;
+use App\Services\Sale\Traits\CalculatesSaleTotals;
+use App\Services\Sale\Traits\NormalizesSaleInput;
 use App\Traits\AuthTrait;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-
 
 class SaleCreator
 {
-    use AuthTrait;
+    use AuthTrait, HandlesSalePayments, CalculatesSaleTotals, NormalizesSaleInput;
 
     protected SaleDataProcessor $dataProcessor;
     protected SaleItemProcessor $itemProcessor;
+    protected PriceAuditService $auditService;
 
     public function __construct(
         SaleDataProcessor $dataProcessor,
-        SaleItemProcessor $itemProcessor
+        SaleItemProcessor $itemProcessor,
+        PriceAuditService $auditService,
     ) {
         $this->dataProcessor = $dataProcessor;
         $this->itemProcessor = $itemProcessor;
+        $this->auditService = $auditService;
     }
 
-    /**
-     * Crea un nuevo registro de venta, sincroniza ítems, y procesa el pago inicial.
-     *
-     * @param array $data Datos de la venta.
-     * @param callable $addPaymentCallback Función para añadir el pago.
-     * @return Sale
-     */
     public function create(array $data, callable $addPaymentCallback): Sale
     {
         $prepared = $this->dataProcessor->prepare($data);
 
-        return DB::transaction(function () use ($prepared, $addPaymentCallback) {
-            $sale = $this->createSaleRecord($prepared);
-            $this->itemProcessor->sync($sale, $prepared['items']);
-            $total = (float) $prepared['total'];
+        return DB::transaction(function () use ($prepared, $addPaymentCallback, $data) {
+            $internalNumber = $this->generateInternalNumber($prepared['branch_id']);
 
-            Log::debug('Total de venta resuelto', [
-                'sale_id' => $sale->id,
-                'sale_type' => $sale->sale_type->name,
-                'total' => $total,
+            // 1. Cálculos mediante Trait (Unificado con Updater)
+            $totals = json_decode($data['totals'] ?? '{}', true);
+
+            // 1.5. Normalización: Ajusta el monto Y modifica el array $totals si es menor
+            // Pasamos $totals para que se actualice internamente si es necesario
+            $data['amount_received'] = $this->resolveAndAdjustTotals($data, $totals);
+
+            $calculated = $this->calculateNormalizedData($data, $totals);
+
+            // 2. Preparación de datos finales
+            $finalData = array_merge($prepared, [
+                'internal_number'   => $internalNumber,
+                'user_id'           => $prepared['user_id'] ?? $this->userId(),
+                'exchange_rate'     => $calculated['exchange_rate'],
+                'amount_received'   => $calculated['amount_received'],
+                'change_returned'   => $calculated['change_returned'],
+                'remaining_balance' => $calculated['remaining_balance'],
+                'totals'            => $totals, // Se incluye directamente en la creación
             ]);
 
-            // Calcular los campos de pago basados en el total real
-            $updateData = $this->calculatePaymentFields($total, $prepared);
-            $updateData['total_amount'] = $total;
+            // 3. Creación de la venta
+            $sale = Sale::create($finalData);
 
-            $sale->update($updateData);
+            // 4. Sincronizar items
+            $this->itemProcessor->sync(
+                $sale,
+                $prepared['items'],
+                $prepared['skip_stock_movement'] ?? false
+            );
 
-            if (isset($prepared['payment']) && $prepared['payment']) {
-                $addPaymentCallback($sale, $prepared['payment']);
-            }
+            // 5. Registro de Pagos
+            $this->processPayments($sale, $data, $totals, $addPaymentCallback);
 
-            return $sale->fresh(['items', 'branch', 'customer']);
+            return $sale->fresh(['items', 'payments']);
         });
     }
 
-    /**
-     * Crea el registro inicial de la venta y genera el número interno.
-     *
-     * @param array $saleData Datos procesados de la venta.
-     * @return Sale
-     */
-    protected function createSaleRecord(array $saleData): Sale
+    protected function generateInternalNumber(int $branchId): int
     {
         DB::table('sales_internal_numbers')->updateOrInsert(
-            ['branch_id' => $saleData['branch_id']],
+            ['branch_id' => $branchId],
             ['value' => DB::raw('COALESCE(value, 0)')]
         );
 
         DB::table('sales_internal_numbers')
-            ->where('branch_id', $saleData['branch_id'])
+            ->where('branch_id', $branchId)
             ->lockForUpdate()
             ->increment('value');
 
-        $internalNumber = DB::table('sales_internal_numbers')
-            ->where('branch_id', $saleData['branch_id'])
+        return DB::table('sales_internal_numbers')
+            ->where('branch_id', $branchId)
             ->value('value');
-
-        return Sale::create([
-            'branch_id'       => $saleData['branch_id'],
-            'user_id'         => $saleData['user_id'] ?? $this->userId(),
-            'sale_type'       => $saleData['sale_type'],
-            'status'          => $saleData['status'],
-            'internal_number' => $internalNumber,
-            'total_amount'    => 0,
-            'customer_id'     => $saleData['customer_id'],
-            'customer_type'   => $saleData['customer_type'],
-            'sale_date'       => $saleData['sale_date'] ?? now(),
-            'notes'           => $saleData['notes'] ?? null,
-            'amount_received' => 0,
-            'change_returned' => 0,
-            'remaining_balance' => 0,
-        ]);
-    }
-
-    /**
-     * Calcula los campos de balance y estado basados en el total y el pago inicial.
-     *
-     * @param float $total Monto total real de la venta.
-     * @param array $prepared Datos procesados de la venta.
-     * @return array
-     */
-    protected function calculatePaymentFields(float $total, array $prepared): array
-    {
-        $amountReceived = (float) ($prepared['amount_received'] ?? 0);
-
-        $changeReturned = max(0, $amountReceived - $total);
-        $remainingBalance = max(0, $total - $amountReceived);
-
-        return [
-            'amount_received'   => $amountReceived,
-            'change_returned'   => $changeReturned,
-            'remaining_balance' => $remainingBalance,
-            'status' => $remainingBalance == 0
-                ? SaleStatus::Paid->value
-                : SaleStatus::Pending->value,
-        ];
     }
 }

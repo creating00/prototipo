@@ -11,32 +11,71 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\Api\ClientAuthController;
+use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SalePaymentController;
 use App\Http\Controllers\Api\ExpenseTypeController;
+use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\ProviderProductController;
+use App\Http\Controllers\Api\DiscountController;
+use App\Http\Controllers\Api\ProfileApiController;
+use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\PromotionImageController;
+use App\Http\Controllers\Api\ProvinceController;
+use Illuminate\Support\Facades\Cache;
 
+Route::get('/currency/rate', [CurrencyController::class, 'rate']);
+
+Route::get('/provinces', [ProvinceController::class, 'index']);
+Route::get('/provinces/{id}', [ProvinceController::class, 'show']);
 Route::apiResource('branches', BranchController::class);
 Route::apiResource('categories', CategoryController::class);
 Route::apiResource('expense-types', ExpenseTypeController::class);
-
+Route::apiResource('discounts', DiscountController::class);
+Route::post('/profile/change-password', [ProfileApiController::class, 'updatePassword'])
+    ->name('api.profile.password.update')
+    ->middleware('web', 'auth');
 Route::prefix('inventory')->group(function () {
     Route::get('list', [ProductController::class, 'list']);
-    Route::get('by-code/{code}', [ProductController::class, 'findByCode']);
+    Route::get('by-code', [ProductController::class, 'findByCode']);
 });
-
 Route::apiResource('products', ProductController::class);
+Route::apiResource('promotions', PromotionImageController::class);
 
-Route::post('providers/{provider}/products', [ProviderProductController::class, 'store'])
-    ->name('providers.products.store');
+Route::get('providers/search', [ProviderController::class, 'search'])->name('providers.search');
+Route::get('providers/list-basic', [ProviderController::class, 'listBasic'])->name('providers.list-basic');
+
+Route::apiResource('providers', ProviderController::class);
+Route::prefix('providers/{provider}')->group(function () {
+    // Obtener lista de productos (usada por tu Select dinámico)
+    Route::get('products', [ProviderController::class, 'getProducts'])
+        ->name('providers.products.index');
+
+    // Gestión de asociación de productos (ProviderProductController)
+    Route::post('products', [ProviderProductController::class, 'store'])
+        ->name('providers.products.store');
+
+    Route::get('products/{providerProduct}', [ProviderProductController::class, 'show'])
+        ->name('providers.products.show');
+
+    Route::put('products/{providerProduct}', [ProviderProductController::class, 'update'])
+        ->name('providers.products.update');
+});
 
 Route::get('/clients/search', [ClientController::class, 'search']);
 Route::apiResource('clients', ClientController::class);
-// Rutas públicas para e-commerce (creación de órdenes)
+
+// Rutas públicas para e-commerce
 Route::post('orders/ecommerce', [OrderController::class, 'storeFromEcommerce']);
 
+// Acciones específicas sobre órdenes (requieren autenticación)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('orders', [OrderController::class, 'store']);
+    Route::post('orders/{id}/cancel', [OrderController::class, 'cancel']);
+});
+
+// Rutas CRUD estándar
 Route::apiResource('orders', OrderController::class)->except(['store']);
-Route::post('orders', [OrderController::class, 'store'])->middleware('auth:sanctum');
 
 Route::apiResource('sales', SaleController::class);
 Route::post('sales/{sale}/payments', [SalePaymentController::class, 'store']);

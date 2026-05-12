@@ -2,18 +2,20 @@
 
 namespace App\Services\Sale;
 
+use App\Enums\CurrencyType;
 use App\Enums\PaymentType;
 use App\Enums\SaleStatus;
 use App\Enums\SaleType;
 use App\Models\Branch;
 use App\Models\Client;
-use App\Traits\CalculatesTotalFromItems;
+use App\Traits\CalculatesSubtotalFromItems;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class SaleValidator
 {
-    use CalculatesTotalFromItems;
+    use CalculatesSubtotalFromItems;
 
     /**
      * Valida los datos de la venta.
@@ -25,6 +27,10 @@ class SaleValidator
      */
     public function validate(array $data, $ignoreId = null): array
     {
+        if (isset($data['customer_id'], $data['customer_type']) && $data['customer_type'] === Branch::class) {
+            $data['branch_recipient_id'] = $data['customer_id'];
+        }
+
         $validator = Validator::make($data, $this->getValidationRules($data));
 
         $validator->after(function ($validator) use ($data) {
@@ -72,6 +78,15 @@ class SaleValidator
             'customer_type' => 'required|in:App\Models\Client,App\Models\Branch',
             'sale_date'     => 'required|date',
             'notes'         => 'nullable|string|max:500',
+            'source_order_id' => 'nullable|exists:orders,id',
+            'discount_id' => 'nullable|exists:discounts,id',
+            'discount_amount'   => 'nullable|numeric|min:0',
+            'skip_stock_movement' => 'sometimes|boolean',
+            'requires_invoice' => 'sometimes|boolean',
+            'amount_received'     => 'nullable|numeric|min:0',
+            'change_returned'     => 'nullable|numeric|min:0',
+            'remaining_balance'   => 'nullable|numeric|min:0',
+            'exchange_rate_blue'  => 'nullable|numeric|min:1',
         ];
     }
 
@@ -86,8 +101,8 @@ class SaleValidator
             'items'             => 'required|array|min:1',
             'items.*.product_id'  => 'required|exists:products,id',
             'items.*.quantity'    => 'required|numeric|min:1',
+            'items.*.currency' => ['required', Rule::enum(CurrencyType::class)],
             'items.*.unit_price'  => 'required|numeric|min:0',
-            'items.*.discount'    => 'nullable|numeric|min:0|max:100',
         ];
     }
 
@@ -99,18 +114,27 @@ class SaleValidator
      */
     protected function getPaymentRules(array $data): array
     {
-        $rules = [
-            'payment_type'   => 'required|integer|in:' . implode(',', [PaymentType::Cash->value, PaymentType::Transfer->value]),
-            'payment_notes'  => 'nullable|string|max:500',
+        $allPaymentTypes = array_column(PaymentType::cases(), 'value');
+        $typesCsv = implode(',', $allPaymentTypes);
+
+        $isDual = isset($data['enable_dual_payment']) && $data['enable_dual_payment'] == '1';
+
+        return [
+            // Pago 1: Siempre requerido si no es una venta a crédito/sucursal diferida
+            'payment_type'    => "required|integer|in:$typesCsv",
+            'payment_method_id'     => 'nullable|integer',
+            'payment_method_type'   => 'nullable|string|max:255',
+            'amount_received' => 'required|numeric|min:0',
+
+            // Pago 2: Estrictamente dependiente del flag
+            'enable_dual_payment' => 'sometimes|boolean',
+            'payment_type_2'      => "nullable|required_if:enable_dual_payment,1|integer|in:$typesCsv",
+            'payment_method_id_2'   => 'nullable|integer',
+            'payment_method_type_2' => 'nullable|string|max:255',
+            'amount_received_2'   => "nullable|required_if:enable_dual_payment,1|numeric|min:0",
+
+            'payment_notes'   => 'nullable|string|max:500',
         ];
-
-        // Para ventas entre sucursales, el pago podría ser diferido
-        if (isset($data['customer_type']) && $data['customer_type'] === Branch::class) {
-            $rules['payment_type'] = 'required|integer|in:' . PaymentType::Transfer->value;
-            $rules['amount_received'] = 'nullable|numeric|min:0';
-        }
-
-        return $rules;
     }
 
     /**
@@ -121,10 +145,8 @@ class SaleValidator
     protected function getNewPaymentFieldsRules(): array
     {
         return [
-            'amount_received'   => 'nullable|numeric|min:0',
-            'change_returned'   => 'nullable|numeric|min:0',
-            'remaining_balance' => 'nullable|numeric|min:0',
             'repair_amount' => 'exclude_unless:sale_type,' . SaleType::Repair->value . '|numeric|min:0.01',
+            'totals' => 'nullable|json',
         ];
     }
 
@@ -160,8 +182,9 @@ class SaleValidator
      */
     protected function addCustomValidations($validator, array $data): void
     {
-        $this->validatePaymentAmounts($validator, $data);
+        $this->validateTotals($validator, $data);
         $this->validateInterBranchSale($validator, $data);
+        //$this->validateDiscount($validator, $data);
     }
 
     /**
@@ -173,56 +196,61 @@ class SaleValidator
      */
     protected function validatePaymentAmounts($validator, array $data): void
     {
-        if (empty($data['items'])) {
-            return;
-        }
-
-        $total = $this->calculateTotalFromItems($data['items']);
+        $total = app(SaleTotalResolver::class)->resolve($data);
 
         if (isset($data['amount_received'])) {
-            $amountReceived = $data['amount_received'];
+            $amountReceived = round((float)$data['amount_received'], 2);
+            $changeReturned = round((float)($data['change_returned'] ?? 0), 2);
 
             if ($amountReceived < 0) {
-                $validator->errors()->add('amount_received', 'El monto recibido no puede ser negativo');
+                $validator->errors()->add(
+                    'amount_received',
+                    'El monto recibido no puede ser negativo'
+                );
             }
 
-            if (isset($data['change_returned'])) {
-                $changeReturned = $data['change_returned'];
-
-                if ($changeReturned < 0) {
-                    $validator->errors()->add('change_returned', 'El cambio devuelto no puede ser negativo');
-                }
-
-                if ($changeReturned > 0 && $amountReceived <= $total) {
-                    $validator->errors()->add('amount_received', 'Si hay cambio devuelto, el monto recibido debe ser mayor al total de la venta');
-                }
-
-                if ($changeReturned > $amountReceived) {
-                    $validator->errors()->add('change_returned', 'El cambio devuelto no puede ser mayor al monto recibido');
-                }
+            if (($amountReceived - $total) < $changeReturned) {
+                $validator->errors()->add(
+                    'amount_received',
+                    "Monto insuficiente para el cambio entregado. Total: {$total}, Recibido: {$amountReceived}, Cambio: {$changeReturned}"
+                );
             }
         }
 
         if (isset($data['remaining_balance'])) {
-            $remainingBalance = $data['remaining_balance'];
+            $expected = round(
+                max(0, $total - ($data['amount_received'] ?? 0)),
+                2
+            );
 
-            if ($remainingBalance < 0) {
-                $validator->errors()->add('remaining_balance', 'El saldo pendiente no puede ser negativo');
+            if (abs($expected - $data['remaining_balance']) > 0.01) {
+                $validator->errors()->add(
+                    'remaining_balance',
+                    sprintf(
+                        'El saldo pendiente (%.2f) no coincide. Se esperaba: %.2f',
+                        $data['remaining_balance'],
+                        $expected
+                    )
+                );
             }
+        }
+    }
 
-            if (isset($data['amount_received'])) {
-                $expectedBalance = max(0, $total - $data['amount_received']);
+    protected function validateDiscount($validator, array $data): void
+    {
+        if (!isset($data['discount_id'])) {
+            return;
+        }
 
-                if (abs($remainingBalance - $expectedBalance) > 0.01) {
-                    $validator->errors()->add('remaining_balance', sprintf(
-                        'El saldo pendiente (%.2f) no coincide. Se esperaba: %.2f (Total: %.2f - Recibido: %.2f)',
-                        $remainingBalance,
-                        $expectedBalance,
-                        $total,
-                        $data['amount_received']
-                    ));
-                }
-            }
+        $discount = \App\Models\Discount::where('id', $data['discount_id'])
+            ->where('is_active', true)
+            ->first();
+
+        if (!$discount) {
+            $validator->errors()->add(
+                'discount_id',
+                'El descuento seleccionado no es válido o no está activo'
+            );
         }
     }
 
@@ -244,6 +272,41 @@ class SaleValidator
             $data['branch_id'] == $data['branch_recipient_id']
         ) {
             $validator->errors()->add('branch_recipient_id', 'No puede realizar una venta a la misma sucursal');
+        }
+    }
+
+    protected function validateTotals($validator, array $data): void
+    {
+        if (!isset($data['totals'])) {
+            return;
+        }
+
+        $totals = json_decode($data['totals'], true);
+
+        if (!is_array($totals) || empty($totals)) {
+            $validator->errors()->add(
+                'totals',
+                'El formato de totales es inválido.'
+            );
+            return;
+        }
+
+        foreach ($totals as $currencyId => $amount) {
+            if (!is_numeric($currencyId) || !is_numeric($amount)) {
+                $validator->errors()->add(
+                    'totals',
+                    'El formato de totales es inválido.'
+                );
+                return;
+            }
+
+            if ($amount < 0) {
+                $validator->errors()->add(
+                    'totals',
+                    'Los totales no pueden ser negativos.'
+                );
+                return;
+            }
         }
     }
 }

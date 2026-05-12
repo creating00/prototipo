@@ -1,0 +1,14 @@
+html {
+    scroll-behavior: smooth;
+}
+
+.equal-height-selects .form-group,
+.equal-height-selects .select2-container {
+    height: 100%;
+}
+
+.sticky-summary {
+    position: sticky;
+    top: 1rem;
+    z-index: 10;
+}

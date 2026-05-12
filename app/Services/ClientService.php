@@ -5,41 +5,58 @@ namespace App\Services;
 use App\Models\Client;
 use App\Models\ClientAccount;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class ClientService
 {
+    /**
+     * Punto central para consultas filtradas por sucursal.
+     */
+    private function branchQuery(int $branchId)
+    {
+        return Client::forBranch($branchId);
+    }
+
     public function createClient(array $data): Client
     {
         $validated = $this->validateClientData($data);
         return Client::create($validated);
     }
 
-    public function getAllClients()
+    public function getAllClients(int $branchId)
     {
-        return Client::orderBy('full_name')->get();
+        // Usamos el helper centralizado
+        return $this->branchQuery($branchId)
+            ->orderBy('full_name')
+            ->get();
     }
 
-    public function getClientById($id): Client
+    public function getClientById($id, ?int $branchId = null): Client
     {
-        return Client::findOrFail($id);
+        $query = Client::query();
+
+        if ($branchId) {
+            $query->forBranch($branchId);
+        }
+
+        return $query->findOrFail($id);
     }
 
     public function updateClient($id, array $data): Client
     {
-        $client = $this->getClientById($id);
+        $client = $this->getClientById($id, $data['branch_id'] ?? null);
         $validated = $this->validateClientData($data, $client->id);
 
         $client->update($validated);
         return $client->fresh();
     }
 
-    public function deleteClient($id): array
+    public function deleteClient($id, ?int $branchId = null): array
     {
-        $client = $this->getClientById($id);
+        $client = $this->getClientById($id, $branchId);
 
-        // Verificar si tiene órdenes asociadas
-        if ($client->orders()->count() > 0) {
+        if ($client->orders()->exists()) {
             throw new \Exception('Cannot delete a client with associated orders', 400);
         }
 
@@ -47,10 +64,13 @@ class ClientService
         return ['message' => 'Client deleted'];
     }
 
-    public function findOrCreate(array $clientData): Client
+    public function findOrCreate(array $clientData, int $branchId): Client
     {
         return Client::firstOrCreate(
-            ['document' => $clientData['document']],
+            [
+                'document' => $clientData['document'],
+                'branch_id' => $branchId
+            ],
             [
                 'full_name' => $clientData['full_name'] ?? '',
                 'email' => $clientData['email'] ?? null,
@@ -75,8 +95,14 @@ class ClientService
 
     public function validateClientData(array $data, $ignoreId = null): array
     {
+        $branchId = $data['branch_id'] ?? null;
         $rules = [
-            'document' => 'required|string|unique:clients,document' . ($ignoreId ? ",$ignoreId" : ''),
+            'branch_id' => 'required|exists:branches,id',
+            'document' => [
+                'required',
+                'string',
+                Rule::unique('clients')->where(fn($q) => $q->where('branch_id', $branchId))->ignore($ignoreId)
+            ],
             'full_name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
             'address' => 'nullable|string|max:500',
@@ -97,9 +123,10 @@ class ClientService
         return Client::with('orders')->get();
     }
 
-    public function getAllClientsForDataTable()
+    public function getAllClientsForDataTable(int $branchId)
     {
-        $clients = $this->getAllClients();
+        // Reutilizamos el método que ya filtra por branch
+        $clients = $this->getAllClients($branchId);
 
         return $clients->map(function ($client, $index) {
             return [

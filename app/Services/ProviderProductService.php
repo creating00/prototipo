@@ -4,28 +4,35 @@ namespace App\Services;
 
 use App\Models\ProviderProduct;
 use App\Enums\ProviderProductStatus;
+use App\Traits\AuthTrait;
 use Illuminate\Validation\ValidationException;
 
 class ProviderProductService
 {
+    use AuthTrait;
+
     public function attachProductToProvider(array $data): ProviderProduct
     {
-        $exists = ProviderProduct::where('provider_id', $data['provider_id'])
-            ->where('product_id', $data['product_id'])
-            ->exists();
+        // Buscamos si ya existe la relación
+        $providerProduct = ProviderProduct::where('product_id', $data['product_id'])
+            ->where('provider_id', $data['provider_id'])
+            ->first();
 
-        if ($exists) {
-            throw ValidationException::withMessages([
-                'product_id' => 'El proveedor ya tiene asociado este producto.',
-            ]);
+        if ($providerProduct) {
+            // OPCIONAL: Si quieres que registros viejos se vuelvan globales al tocarlos
+            if ($providerProduct->branch_id !== null) {
+                $providerProduct->update(['branch_id' => null]);
+            }
+            return $providerProduct;
         }
 
         return ProviderProduct::create([
-            'provider_id'     => $data['provider_id'],
-            'product_id'      => $data['product_id'],
-            'provider_code'   => $data['provider_code'] ?? null,
-            'lead_time_days'  => $data['lead_time_days'] ?? null,
-            'status'          => ProviderProductStatus::ACTIVE,
+            'branch_id'      => null,
+            'provider_id'    => $data['provider_id'],
+            'product_id'     => $data['product_id'],
+            'provider_code'  => $data['provider_code'] ?? null,
+            'lead_time_days' => $data['lead_time_days'] ?? null,
+            'status'         => ProviderProductStatus::ACTIVE,
         ]);
     }
 

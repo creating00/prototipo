@@ -2,6 +2,7 @@
 
 namespace App\Services\Product;
 
+use App\Enums\ProductStatus;
 use App\Models\Product;
 use App\Models\ProductBranch;
 
@@ -20,7 +21,7 @@ class ProductBranchService
             'branch_id'           => $data['branch_id'],
             'stock'               => $data['stock'],
             'low_stock_threshold' => $data['low_stock_threshold'] ?? 5,
-            'status'              => $data['status'],
+            'status'              => $this->resolveStatus($data),
         ]);
 
         $this->priceService->createPricesForBranch($branch, $data);
@@ -28,20 +29,86 @@ class ProductBranchService
         return $branch;
     }
 
-    public function updateBranchDataForProduct(Product $product, array $data): ProductBranch
+    public function updateOrCreateBranchData(Product $product, array $data): ProductBranch
     {
+        // Buscamos el registro incluyendo los borrados (Soft Deletes)
         $branch = $product->productBranches()
+            ->withTrashed()
             ->where('branch_id', $data['branch_id'])
-            ->firstOrFail();
+            ->first();
 
-        $branch->update([
-            'stock'               => $data['stock'] ?? $branch->stock,
-            'low_stock_threshold' => $data['low_stock_threshold'] ?? $branch->low_stock_threshold,
-            'status'              => $data['status'] ?? $branch->status,
-        ]);
+        if ($branch) {
+            if ($branch->trashed()) {
+                $branch->restore(); // Si estaba borrado, lo traemos de vuelta
+            }
+
+            $branch->update([
+                'stock'               => $data['stock'] ?? 0,
+                'low_stock_threshold' => $data['low_stock_threshold'] ?? 5,
+                'status'              => $this->resolveStatus($data),
+            ]);
+        } else {
+            // Si realmente no existe ni en la papelera, lo creamos
+            $branch = $product->productBranches()->create([
+                'branch_id'           => $data['branch_id'],
+                'stock'               => $data['stock'],
+                'low_stock_threshold' => $data['low_stock_threshold'] ?? 5,
+                'status'              => $this->resolveStatus($data),
+            ]);
+        }
 
         $this->priceService->updatePricesForBranch($branch, $data);
 
         return $branch;
+    }
+
+    public function updateBranchDataForProduct(Product $product, array $data): ProductBranch
+    {
+        $branch = $product->productBranches()->updateOrCreate(
+            ['branch_id' => $data['branch_id']],
+            [
+                'stock'               => $data['stock'] ?? 0,
+                'low_stock_threshold' => $data['low_stock_threshold'] ?? 5,
+                'status'              => $this->resolveStatus($data),
+            ]
+        );
+
+        $this->priceService->updatePricesForBranch($branch, $data);
+
+        return $branch;
+    }
+
+    /**
+     * Resuelve el estado basado en el stock.
+     */
+    private function resolveStatus(array $data): ProductStatus
+    {
+        // Si el stock es 0, retornamos la instancia del Enum directamente
+        if (isset($data['stock']) && (int)$data['stock'] === 0) {
+            return ProductStatus::OutOfStock;
+        }
+
+        // Si $data['status'] ya es una instancia del Enum, la retornamos
+        if ($data['status'] instanceof ProductStatus) {
+            return $data['status'];
+        }
+
+        // Convertimos el string/value que viene del request a una instancia del Enum
+        return ProductStatus::from($data['status']);
+    }
+
+    public function deleteBranchData(Product $product, int $branchId): bool
+    {
+        $productBranch = $product->productBranches()
+            ->where('branch_id', $branchId)
+            ->first();
+
+        if ($productBranch) {
+            $productBranch->prices()->delete();
+            $productBranch->delete();
+            return true;
+        }
+
+        return false;
     }
 }

@@ -1,5 +1,3 @@
-import Swal from "sweetalert2";
-
 // Configuración para notificaciones rápidas (Toasts)
 export const Toast = Swal.mixin({
     toast: true,

@@ -17,13 +17,15 @@ class OrderItemProcessor extends BaseItemProcessor
         Product $product,
         int $quantity,
         float $unitPrice,
-        float $subtotal
+        float $subtotal,
+        array $rawItem
     ): void {
         $model->items()->create([
             'product_id' => $product->id,
-            'quantity' => $quantity,
+            'quantity'   => $quantity,
             'unit_price' => $unitPrice,
-            'subtotal' => $subtotal,
+            'subtotal'   => $subtotal,
+            'currency'   => $rawItem['currency'],
         ]);
     }
 
@@ -40,9 +42,9 @@ class OrderItemProcessor extends BaseItemProcessor
         }
     }
 
-    protected function getProductPrice(Product $product, int $branchId): float
+    protected function getProductPrice(Product $product, Model $model): float
     {
-        $unitPrice = $product->salePrice($branchId);
+        $unitPrice = $product->salePrice($model->branch_id);
 
         if (!$unitPrice) {
             throw new \Exception("No se encontró un precio de venta para {$product->name} en esta sucursal.");

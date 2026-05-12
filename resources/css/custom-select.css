@@ -1,55 +1,57 @@
+/* ===== CUSTOM SELECT TURQUOISE (Compact Version) ===== */
+
 .select-custom-turquoise {
+    /* Sincronización de altura con el sistema Compact */
+    height: calc(2.8rem + 2px) !important;
+    padding: 0.35rem 1.9rem 0.35rem 0.75rem !important;
+
     background-color: #1abc9c !important;
     color: #ffffff !important;
-    border-color: #16a085 !important;
+    border: 1px solid #16a085 !important;
+    border-radius: 0.375rem; /* Consistente con tus compact-inputs */
 
-    /* Ajuste fino del espacio del texto respecto al ícono */
-    padding-right: 1.9rem !important;
-
+    font-size: 0.875rem; /* Tamaño de fuente estándar compact */
     font-weight: 600;
+    cursor: pointer;
     transition: all 0.25s ease;
 
+    /* Flecha personalizada (SVG optimizado) */
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
     background-repeat: no-repeat;
-
-    /* Chevron ligeramente más hacia la derecha */
     background-position: right 0.6rem center;
-
     background-size: 1rem;
 
-    cursor: pointer;
-
+    /* Layout */
+    display: inline-block;
     width: auto !important;
     min-width: 85px;
     flex: 0 0 auto !important;
+    appearance: none; /* Elimina la flecha nativa en todos los navegadores */
 }
 
 .select-custom-turquoise:hover {
     background-color: #17b897 !important;
     border-color: #13937a !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .select-custom-turquoise:focus {
+    outline: none;
     background-color: #16a085 !important;
-    color: #ffffff !important;
     box-shadow: 0 0 0 0.25rem rgba(26, 188, 156, 0.35) !important;
-    border-color: #16a085 !important;
 }
 
+/* ===== ESTILO DE LAS OPCIONES (NATIVO) ===== */
 .select-custom-turquoise option {
     color: #08362d;
-    background-color: #e2faf4; /* tono más claro */
+    background-color: #ffffff;
     font-weight: 500;
+    padding: 10px;
 }
 
+/* Nota: Styling de options nativos es limitado por el OS, 
+   pero estas reglas ayudan en browsers basados en Chromium */
 .select-custom-turquoise option:checked {
     color: #ffffff !important;
-    background-color: #157463 !important; /* hover más suave */
-}
-
-/* Opción seleccionada, marcada pero sin ser tan negra */
-.select-custom-turquoise option:hover {
-    color: #ffffff !important;
-    background-color: #0f5a4b !important; /* tono intermedio, no tan oscuro */
-    font-weight: 600;
+    background-color: #16a085 !important;
 }

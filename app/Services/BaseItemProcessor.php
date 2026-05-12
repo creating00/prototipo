@@ -17,30 +17,57 @@ abstract class BaseItemProcessor
 
     /**
      * Procesa y sincroniza los items del modelo
-     * 
-     * @param Model $model Modelo que contiene los items (Order o Sale)
+     * * @param Model $model Modelo que contiene los items (Order o Sale)
      * @param array $items Array de items a procesar
-     * @return float Total calculado
+     * @param bool $skipStockMovement
+     * @return array Totales calculados por moneda
      */
-    final public function sync(Model $model, array $items): float
+    final public function sync(Model $model, array $items, bool $skipStockMovement = false): array
     {
-        $total = 0;
+        $totals = [];
         $branchId = $model->branch_id;
 
+        // Obtenemos ítems actuales indexados por product_id
+        $existingItems = $model->items()->get()->keyBy('product_id');
+
+        // Extraemos IDs de productos que vienen en el nuevo request
+        $incomingProductIds = collect($items)->pluck('product_id')->toArray();
+
         foreach ($items as $item) {
-            $product = $this->getLockedProduct($item['product_id']);
-            $this->validateStock($product, $branchId, $item['quantity']);
+            $productId = $item['product_id'];
+            $quantity = $item['quantity'];
+            $currency = $item['currency'] ?? \App\Enums\CurrencyType::ARS->value;
 
-            $unitPrice = $this->getProductPrice($product, $branchId);
-            $this->stockService->reserve($product, $item['quantity'], $branchId);
+            $product = $this->getLockedProduct($productId);
 
-            $subtotal = $unitPrice * $item['quantity'];
-            $total += $subtotal;
+            if (!$skipStockMovement) {
+                $this->validateStock($product, $branchId, $quantity);
+                $this->stockService->reserve($product, $quantity, $branchId);
+            }
 
-            $this->createItem($model, $product, $item['quantity'], $unitPrice, $subtotal);
+            $unitPrice = $item['unit_price'] ?? $this->getProductPrice($product, $model);
+            $subtotal = $unitPrice * $quantity;
+
+            $totals[$currency] = ($totals[$currency] ?? 0) + $subtotal;
+
+            if ($existingItems->has($productId)) {
+                // Actualización de ítem existente
+                $existingItems[$productId]->update([
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'subtotal' => $subtotal,
+                    'currency' => $currency,
+                ]);
+            } else {
+                // Creación de nuevo ítem
+                $this->createItem($model, $product, $quantity, $unitPrice, $subtotal, $item);
+            }
         }
 
-        return $total;
+        // ELIMINACIÓN: Solo borrar los que NO están en el request actual
+        $model->items()->whereNotIn('product_id', $incomingProductIds)->delete();
+
+        return $totals;
     }
 
     /**
@@ -53,8 +80,12 @@ abstract class BaseItemProcessor
         $branchId = $model->branch_id;
 
         foreach ($model->items as $item) {
-            $product = $this->getLockedProduct($item->product_id);
-            $this->stockService->release($product, $item->quantity, $branchId);
+            // Pasamos false para que no explote si el producto ya no existe
+            $product = $this->getLockedProduct($item->product_id, false);
+
+            if ($product) {
+                $this->stockService->release($product, $item->quantity, $branchId);
+            }
         }
     }
 
@@ -72,7 +103,8 @@ abstract class BaseItemProcessor
         Product $product,
         int $quantity,
         float $unitPrice,
-        float $subtotal
+        float $subtotal,
+        array $rawItem
     ): void;
 
     /**
@@ -93,18 +125,18 @@ abstract class BaseItemProcessor
      * @return float Precio de venta
      * @throws \Exception Si no se encuentra el precio
      */
-    abstract protected function getProductPrice(Product $product, int $branchId): float;
+    abstract protected function getProductPrice(Product $product, Model $model): float;
 
     /**
      * Obtiene un producto bloqueado para escritura
-     * 
-     * @param int $productId ID del producto
-     * @return Product Producto bloqueado
+     * * @param int $productId ID del producto
+     * @param bool $fail Si debe lanzar excepción o devolver null
+     * @return Product|null
      */
-    final protected function getLockedProduct(int $productId): Product
+    final protected function getLockedProduct(int $productId, bool $fail = true): ?Product
     {
-        return Product::where('id', $productId)
-            ->lockForUpdate()
-            ->firstOrFail();
+        $query = Product::where('id', $productId)->lockForUpdate();
+
+        return $fail ? $query->firstOrFail() : $query->first();
     }
 }

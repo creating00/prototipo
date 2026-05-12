@@ -1,4 +1,3 @@
-import orderItems from "./order-items";
 import { ModalHandler } from "../../products/ModalHandler";
 import { MODAL_CONFIG } from "../../../config/order";
 import { TABLE_CONFIGS } from "../../../config/tables";
@@ -22,31 +21,30 @@ export default {
             });
         }
 
-        document.addEventListener("click", async (e) => {
-            const btn = e.target.closest(".btn-select-product");
+        if (!this._branchListenerAttached) {
+            document.addEventListener("branch:changed", () => {
+                this.reloadTable();
+            });
+            this._branchListenerAttached = true;
+        }
 
+        document.addEventListener("click", (e) => {
+            const btn = e.target.closest(".btn-select-product");
             if (!btn) return;
 
             e.preventDefault();
 
-            // Obtener datos del producto desde los atributos data-
-            const productData = {
-                code: btn.dataset.code,
-                name: btn.dataset.name,
-                price: btn.dataset.price,
-                stock: btn.dataset.stock,
-                id: btn.dataset.id,
-            };
+            const code = btn.dataset.code;
 
             const modalEl = document.querySelector("#modal-product-search");
             const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
 
-            if (modal) {
-                modal.hide();
-            }
-
-            // Pasar los datos del producto a orderItems
-            await orderItems.addProductByCode(productData.code);
+            document.dispatchEvent(
+                new CustomEvent("product:searchByCode", {
+                    detail: { code },
+                })
+            );
         });
 
         modalHandler.init();

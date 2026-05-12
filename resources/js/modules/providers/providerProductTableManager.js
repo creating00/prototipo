@@ -1,6 +1,7 @@
 import { TableManager } from "../../components/TableManager";
 import { deleteItem } from "../../utils/deleteHelper";
 import { ModalFormHandler } from "../../helpers/ModalFormHandler";
+import { ModalSuccessWatcher } from "../../helpers/ModalSuccessWatcher";
 
 const TABLE_CONFIG = {
     tableId: "provider-products-table",
@@ -44,7 +45,6 @@ const TABLE_CONFIG = {
                     "providerProductPricesModal",
                     "providerProductPriceForm",
                     (data) => {
-                        // Opcional: actualizar tabla de precios dentro del modal o refrescar
                         location.reload(); // para simplificar
                     }
                 );
@@ -67,9 +67,20 @@ const TABLE_CONFIG = {
         attachProduct: {
             selector: ".btn-header-attach-product",
             handler: (baseUrl) => {
-                // Asociar producto al proveedor actual
-                // El provider_id normalmente vendrá embebido en la URL
-                //window.location.href = `${baseUrl}/attach-product`;
+                const modalId = "attachProductModal";
+                const modalElement = document.getElementById(modalId);
+
+                if (modalElement) {
+                    const modal =
+                        bootstrap.Modal.getOrCreateInstance(modalElement);
+
+                    // Usamos nuestro nuevo helper
+                    ModalSuccessWatcher.watch(modalId, () => {
+                        window.location.reload();
+                    });
+
+                    modal.show();
+                }
             },
         },
     },

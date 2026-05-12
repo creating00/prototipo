@@ -2,6 +2,10 @@
 
 namespace App\Services\Traits;
 
+use App\Enums\CurrencyType;
+use App\Models\Order;
+use App\Models\Sale;
+
 trait DataTableFormatter
 {
     protected function resolveCustomerName($model): string
@@ -25,11 +29,40 @@ trait DataTableFormatter
         };
     }
 
-    protected function formatCurrency(float $amount, string $currency = '₲', string $class = 'fw-bold text-success'): string
+    protected function resolveCustomerNameRaw($model): string
     {
-        return '<span class="' . $class . '">' . $currency . ' ' .
-            number_format($amount, 0, ',', '.') .
-            '</span>';
+        if (!$model->customer) {
+            return '';
+        }
+
+        return match ($model->customer_type) {
+            \App\Models\Client::class => (
+                $model->customer->full_name ??
+                $model->customer->name ??
+                $model->customer->document ??
+                ''
+            ),
+
+            \App\Models\Branch::class => $model->customer->name ?? '',
+
+            default => '',
+        };
+    }
+
+    protected function formatCurrency(float $amount, ?CurrencyType $currency = null, string $class = 'fw-bold'): string
+    {
+        $currency = $currency ?? CurrencyType::ARS;
+
+        // Usamos el color definido en el Enum: text-success o text-primary
+        $colorClass = "text-" . $currency->color();
+
+        return sprintf(
+            '<span class="%s %s">%s %s</span>',
+            $class,
+            $colorClass,
+            $currency->symbol(),
+            number_format($amount, 2, ',', '.')
+        );
     }
 
     protected function formatStatusBadge(string $statusLabel): string
@@ -78,21 +111,162 @@ trait DataTableFormatter
      */
     protected function formatForDataTable($model, int $index, array $options = []): array
     {
+        $phone = $this->cleanPhoneNumber($model->customer?->phone);
+        $customerName = $this->resolveCustomerName($model);
+        $customerNameRaw = $this->resolveCustomerNameRaw($model);
+
+        // --- Lógica de Detección: ¿Usamos pagos reales o totales declarados? ---
+        $hasPayments = isset($model->payments) && $model->payments->isNotEmpty();
+
+        if ($hasPayments) {
+            // Comportamiento para SALE: Basado en pagos reales
+            $formattedTotals = $model->payments->map(function ($payment) {
+                $currency = $payment->currency instanceof CurrencyType
+                    ? $payment->currency
+                    : CurrencyType::tryFrom((int)$payment->currency);
+                return $this->formatCurrency((float) $payment->amount, $currency);
+            })->implode('<br>');
+
+            $totalArs = $model->payments->filter(fn($p) => $p->currency === CurrencyType::ARS)->sum('amount');
+            $totalUsd = $model->payments->filter(fn($p) => $p->currency === CurrencyType::USD)->sum('amount');
+
+            $paymentsDetailed = $model->payments->map(fn($p) => [
+                'type'     => $p->payment_type->value,
+                'currency' => $p->currency instanceof CurrencyType ? $p->currency->value : (int)$p->currency,
+                'amount'   => (float)$p->amount
+            ])->toJson();
+        } else {
+            // Comportamiento para ORDER: Basado en el array totals
+            $totals = $model->totals ?? [];
+            $formattedTotals = collect($totals)->map(function ($amount, $currencyId) {
+                $currency = CurrencyType::tryFrom((int) $currencyId);
+                return $this->formatCurrency((float) $amount, $currency);
+            })->implode('<br>');
+
+            $totalArs = $totals[CurrencyType::ARS->value] ?? 0;
+            $totalUsd = $totals[CurrencyType::USD->value] ?? 0;
+
+            // Para Order, creamos un detalle ficticio "Pendiente" para que el JS no falle
+            $paymentsDetailed = collect($totals)->map(fn($amount, $currencyId) => [
+                'type'     => 'pending',
+                'currency' => (int)$currencyId,
+                'amount'   => (float)$amount
+            ])->values()->toJson();
+        }
+
+        // --- HTML Común ---
+        $requiresInvoiceHtml = $model->requires_invoice
+            ? '<span class="badge bg-success">Sí</span>'
+            : '<span class="badge bg-secondary">No</span>';
+
+        // Para el payment_type en Order, si no hay pagos, mostramos "-" o un estado.
+        $paymentTypeHtml = $hasPayments
+            ? $model->payments->map(function ($payment) {
+                return sprintf(
+                    '<div class="mb-1"><span class="badge %s" data-search="%s">%s</span></div>',
+                    $payment->payment_type->badgeClass(),
+                    $payment->payment_type->value,
+                    $payment->payment_type->label()
+                );
+            })->implode('')
+            : '<span class="text-muted">Pendiente</span>';
+
         return [
-            'id'          => $model->id,
-            'number'      => $index + 1,
-            'branch'      => $model->branch->name ?? '',
-            'customer'    => $this->resolveCustomerName($model),
-
-            'total' => $this->formatCurrency(
-                amount: $model->total_amount,
-                currency: $options['currency'] ?? '$',
-                class: $options['currencyClass'] ?? 'fw-bold text-success'
-            ),
-
-            'status'      => $this->resolveStatus($model, $options),
-
-            'created_at'  => $model->created_at->format('Y-m-d'),
+            'id'                   => $model->id,
+            'number'               => $index + 1,
+            'branch'               => $model->branch->name ?? '',
+            'customer'             => $customerName,
+            'customer_type'        => $model->customer_type,
+            'payment_type'         => $paymentTypeHtml,
+            'total'                => $formattedTotals ?: $this->formatCurrency(0),
+            'requires_invoice'     => $requiresInvoiceHtml,
+            'requires_invoice_raw' => $model->requires_invoice,
+            'status'               => $this->resolveStatus($model, $options),
+            'status_raw'           => is_object($model->status) ? $model->status->value : $model->status,
+            'created_at'           => $model->created_at->format('Y-m-d'),
+            'phone'                => $phone,
+            'whatsapp-url'         => $phone ? $this->getWhatsAppLink($model, $phone) : null,
+            'total_ars'            => $totalArs,
+            'total_usd'            => $totalUsd,
+            'totals_json'          => json_encode($model->totals),
+            'payments_detailed'    => $paymentsDetailed,
+            'customer_name_raw'    => $customerNameRaw,
+            'exchange_rate'        => $model->exchange_rate
         ];
+    }
+
+    protected function formatOrderForDataTable(Order $order, int $index): array
+    {
+        $baseRow = $this->formatForDataTable($order, $index);
+
+        $sourceLabel = is_object($order->source) ? $order->source->label() : $order->source;
+        $sourceRaw   = is_object($order->source) ? $order->source->value : $order->source;
+
+        return [
+            // --- 1. CELDAS VISIBLES (El orden aquí ES el orden de las columnas) ---
+            'number'     => $baseRow['number'],
+            'Pedido' => '<span class="fw-bold">' . Order::formatOrderNumber($baseRow['id']) . '</span>',
+            'branch'     => $baseRow['branch'],
+            'customer'   => $baseRow['customer'],
+            'total'      => $baseRow['total'],
+            'source'     => '<span class="badge bg-info">' . $sourceLabel . '</span>',
+            'status'     => $baseRow['status'],
+            'created_at' => $baseRow['created_at'],
+
+            // --- 2. ATRIBUTOS DE FILA ---
+            '_row_attributes' => [
+                'id'                   => $baseRow['id'],
+                'status_raw'           => $baseRow['status_raw'],
+                'source_raw'           => $sourceRaw,
+                'phone'                => $baseRow['phone'],
+                'whatsapp-url'         => $baseRow['whatsapp-url'],
+                'customer_type'        => $baseRow['customer_type'],
+                'payment_type'         => $baseRow['payment_type'],
+                'requires_invoice'     => $baseRow['requires_invoice'],
+                'requires_invoice_raw' => $baseRow['requires_invoice_raw'],
+                'total_ars'            => $baseRow['total_ars'],
+                'total_usd'            => $baseRow['total_usd'],
+                'totals_json'          => $baseRow['totals_json'],
+                'payments_detailed'    => $baseRow['payments_detailed'],
+                'customer_name'        => $baseRow['customer_name_raw'],
+                'exchange_rate'        => $baseRow['exchange_rate'],
+                'sale_id'              => $order->sale?->id,
+            ]
+        ];
+    }
+
+    protected function formatSaleForDataTable(Sale $sale, int $index): array
+    {
+        // 1. Obtenemos la base (ya trae pagos, totales y detalles para el footer)
+        $row = $this->formatForDataTable($sale, $index);
+
+        // 2. Generamos el HTML del tipo de venta
+        $saleTypeHtml = $sale->sale_type
+            ? sprintf(
+                '<span class="badge %s" data-search="%s">%s</span>',
+                $sale->sale_type->badgeClass(),
+                $sale->sale_type->value,
+                $sale->sale_type->label()
+            )
+            : '';
+
+        // 3. Insertamos 'sale_type' en la posición exacta para mantener el orden de columnas
+        // Cortamos el array: los primeros 4 elementos, insertamos el tipo, y pegamos el resto.
+        return array_merge(
+            array_slice($row, 0, 4, true),
+            ['sale_type' => $saleTypeHtml],
+            array_slice($row, 4, null, true)
+        );
+    }
+
+    private function cleanPhoneNumber(?string $phone): string
+    {
+        return preg_replace('/[^0-9]/', '', $phone ?? '');
+    }
+
+    private function getWhatsAppLink($model, string $phone): string
+    {
+        $message = urlencode($model->generateWhatsAppMessage());
+        return "https://wa.me/{$phone}?text={$message}";
     }
 }

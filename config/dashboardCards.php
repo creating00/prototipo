@@ -2,6 +2,26 @@
 
 return [
     'cards' => [
+        'analytics' => [
+            'title' => 'Analitico',
+            'value' => '.',
+            'color' => 'custom',
+            'customBgColor' => "#6db2ebff",
+            'icon' => 'analytics',
+            'viewBox' => '0 0 24 24',
+            'route' => ['href' => 'web.analytics.index', 'label' => 'Ver Descuentos'],
+            'description' => 'Ver Datos'
+        ],
+        'discounts' => [
+            'title' => 'Descuentos',
+            'value' => 0,
+            'color' => 'custom',
+            'customBgColor' => "#eb6d6dff",
+            'icon' => 'discount',
+            'viewBox' => '0 0 24 24',
+            'route' => ['href' => 'web.discounts.index', 'label' => 'Ver Descuentos'],
+            'description' => 'Gestion de Descuentos'
+        ],
         'sales' => [
             'title' => 'Ventas Totales',
             'value' => 0,
@@ -18,6 +38,26 @@ return [
             'icon' => 'cart',
             'viewBox' => '0 0 24 24',
             'route' => ['href' => 'web.orders.index', 'label' => 'Gestionar Pedidos'],
+            'description' => 'Pedidos pendientes'
+        ],
+        'audits' => [
+            'title' => 'Auditoría de Precios',
+            'value' => 0,
+            'color' => 'custom',
+            'customBgColor' => "#3b82f6ff",
+            'icon' => 'search',
+            'viewBox' => '0 0 24 24',
+            'route' => ['href' => 'web.price-modifications.index', 'label' => 'Ver Auditoría'],
+            'description' => 'Historial de modificaciones de precios'
+        ],
+        'provider-orders' => [
+            'title' => 'Pedidos a Proveedor',
+            'value' => 0,
+            'color' => 'custom',
+            'customBgColor' => "#6deb8dff",
+            'icon' => 'truck-check',
+            'viewBox' => '0 0 24 24',
+            'route' => ['href' => 'web.provider-orders.index', 'label' => 'Gestionar Pedidos'],
             'description' => 'Pedidos pendientes'
         ],
         'products' => [

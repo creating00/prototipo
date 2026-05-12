@@ -3,7 +3,7 @@
 @tailwind utilities; */
 
 /* Bootstrap */
-@import "bootstrap/dist/css/bootstrap.min.css";
+/* @import "bootstrap/dist/css/bootstrap.min.css"; */
 
 /* AdminLTE */
 @import "admin-lte/dist/css/adminlte.min.css";
@@ -30,3 +30,6 @@
 /* @import "custom-choices.css"; */
 
 @import "sweetalert2/dist/sweetalert2.min.css";
+
+/* @import "flatpickr/dist/flatpickr.css";
+@import "flatpickr/dist/plugins/monthSelect/style.css"; */

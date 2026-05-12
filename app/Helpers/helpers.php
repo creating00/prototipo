@@ -12,17 +12,17 @@ use Illuminate\Support\Facades\Route;
 function resourceWithExtras(string $prefix, string $controller, array $extras = [])
 {
     Route::prefix($prefix)->as("web.$prefix.")->group(function () use ($prefix, $controller, $extras) {
+        // Extras
+        foreach ($extras as $uri => $method) {
+            Route::get($uri, [$controller, $method])->name($uri);
+        }
+
         // CRUD básico
         Route::get('/', [$controller, 'index'])->name('index');
         Route::post('/', [$controller, 'store'])->name('store');
         Route::get('{' . $prefix . '}/edit', [$controller, 'edit'])->name('edit');
         Route::put('{' . $prefix . '}', [$controller, 'update'])->name('update');
         Route::delete('{' . $prefix . '}', [$controller, 'destroy'])->name('destroy');
-
-        // Extras
-        foreach ($extras as $uri => $method) {
-            Route::get($uri, [$controller, $method])->name($method);
-        }
     });
 }
 

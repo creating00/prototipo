@@ -22,23 +22,25 @@
 <body class="layout-fixed sidebar-expand-lg sidebar-open bg-body-tertiary">
     <!-- App Wrapper -->
     <div class="app-wrapper">
+        <!--begin::Header-->
+        <x-adminlte.header />
+        <!--end::Header-->
+        <!--begin::Sidebar-->
+        <x-adminlte.sidebar />
+        <!--end::Sidebar-->
 
-        <!-- Header -->
-        @include('adminlte.partials.header')
-
-        <!-- Sidebar -->
-        @include('adminlte.partials.sidebar')
-
-        <!-- Main Content -->
-        <main class="app-main">
+        <!--begin::App Main-->
+        <x-adminlte.app-main>
             @yield('content')
-        </main>
+        </x-adminlte.app-main>
+        <!--end::App Main-->
 
-        <!-- Footer -->
-        @include('adminlte.partials.footer')
-
+        <!--begin::Footer-->
+        <x-adminlte.footer />
+        <!--end::Footer-->
     </div>
 
     @stack('scripts')
+    @include('admin.user.partials._modal-change_password', ['userId' => auth()->id()])
 </body>
 </html>

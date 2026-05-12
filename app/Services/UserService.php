@@ -49,6 +49,14 @@ class UserService
         return $user->fresh('roles');
     }
 
+    public function updatePassword($id, string $newPassword): void
+    {
+        $user = $this->getUserById($id);
+        $user->update([
+            'password' => Hash::make($newPassword)
+        ]);
+    }
+
     public function deleteUser($id): bool
     {
         $user = $this->getUserById($id);

@@ -2,6 +2,7 @@
 import { MODAL_CONFIG } from "../../config/products.js";
 import { ModalHandler } from "./ModalHandler.js";
 import { ImagePreview } from "./ImagePreview.js";
+import providerAutocomplete from "./partials/provider-autocomplete.js";
 
 document.addEventListener("DOMContentLoaded", function () {
     const modalHandler = new ModalHandler(MODAL_CONFIG);
@@ -17,5 +18,5 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function initCreateSpecific() {
-    //
+    providerAutocomplete.init();
 }

@@ -2,6 +2,7 @@
 
 namespace App\Services\Expense;
 
+use App\Enums\CurrencyType;
 use App\Enums\PaymentType;
 use App\Models\Expense;
 use App\Traits\HasStatusBadge;
@@ -14,34 +15,46 @@ class ExpenseDataTableService
      * Obtiene todos los gastos y los transforma en un arreglo
      * listo para usar en DataTables o vistas.
      */
-    public function getAllExpensesForDataTable(): array
+    public function getAllExpensesForDataTable(?int $branchId = null): array
     {
-        $expenses = Expense::with(['user', 'branch', 'expenseType'])
-            ->orderByDesc('created_at')
+        $expenses = Expense::with(['branch'])
+            ->when($branchId, fn($query) => $query->forBranch($branchId))
+            ->orderByDesc('date')
             ->get();
 
         return $expenses->map(function ($expense, $index) {
             return [
-                'id' => $expense->id,                               // Oculto pero usable en data-id
-                'number' => $index + 1,                             // Columna visible #
-                'user' => $expense->user->name ?? '-',              // Usuario que registró el gasto
-                'branch' => $expense->branch->name ?? '-',          // Nombre de la sucursal
-                'expense_type' => $expense->expenseType->name ?? '-', // Tipo de gasto (ej: Luz, Agua)
-                'amount' => $this->formatExpenseAmount($expense),
-                'payment_type' => $this->formatStatusBadge($expense->payment_type->label(), PaymentType::class),
-                'reference' => $expense->reference ?? '-',          // Factura o referencia
-                'created_at' => $expense->created_at->format('d/m/Y H:i'), // Fecha de registro
+                'id'               => $expense->id,
+                'number'           => $index + 1,
+                'branch'           => $expense->branch->name ?? '-',
+                'branch-id'        => $expense->branch_id,
+                'date'             => $expense->date ? $expense->date->format('d/m/Y') : '-',
+                'amount'           => $this->formatExpenseAmount($expense),
+                'currency'         => $expense->currency->value,
+                'amount_raw'       => $expense->amount,
+                'payment_type'     => $this->formatStatusBadge($expense->payment_type->label(), PaymentType::class),
+                'payment_type_raw' => $expense->payment_type->value,
+                'observation'      => $expense->observation ?? '-',
             ];
         })->toArray();
     }
 
-    private function formatExpenseAmount(Expense $expense, string $class = 'fw-bold text-primary'): string
+    private function formatExpenseAmount(Expense $expense): string
     {
         if (!$expense->currency) {
             return '<span class="text-muted">-</span>';
         }
+
+        $colorClass = ($expense->currency->value === CurrencyType::USD->value) ? 'text-primary' : 'text-danger';
+
         $symbol = $expense->currency->symbol();
         $formatted = number_format($expense->amount, 2, ',', '.');
-        return sprintf('<span class="%s">%s %s</span>', $class, $symbol, $formatted);
+
+        return sprintf(
+            '<span class="fw-bold %s">%s %s</span>',
+            $colorClass,
+            $symbol,
+            $formatted
+        );
     }
 }
