@@ -54,6 +54,8 @@ export function setupSalesFilters(api) {
         const invoice = document.getElementById("filter-invoice")?.checked;
         const month = document.getElementById("filter-month")?.value;
 
+        console.log("Applying filter:", { type, payment, invoice, month });
+
         api.column(3).search(type ? `^${type}$` : "", {
             regex: true,
             smart: false,
@@ -71,6 +73,10 @@ export function setupSalesFilters(api) {
                     ds.requires_invoice_raw === "1" ||
                     ds.requires_invoice_raw === "true";
                 if (invoice && !reqInv) return false;
+                
+                // Debug log inside search
+                // console.log("Filtering sale", ds.created_at, month);
+                
                 if (month && ds.created_at && !ds.created_at.startsWith(month))
                     return false;
             }

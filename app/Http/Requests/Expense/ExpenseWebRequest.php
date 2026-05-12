@@ -14,7 +14,7 @@ class ExpenseWebRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'expense_type_id' => 'nullable|exists:expense_types,id',
+            'expense_type_id' => 'required|exists:expense_types,id',
             'amount_amount' => 'required|numeric|min:0',
             'amount_currency' => 'required|integer|in:1,2',
             'payment_type' => 'required|integer|in:1,2,3,4',
@@ -27,6 +27,8 @@ class ExpenseWebRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'expense_type_id.required' => 'Debe seleccionar un motivo del gasto.',
+            'expense_type_id.exists' => 'El motivo seleccionado no es válido.',
             'amount_amount.required' => 'Debe ingresar un monto.',
             'amount_amount.numeric' => 'El monto debe ser numérico.',
             'amount_currency.required' => 'Debe seleccionar una moneda.',

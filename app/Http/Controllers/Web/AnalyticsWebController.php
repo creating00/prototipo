@@ -32,10 +32,11 @@ class AnalyticsWebController extends Controller
 
         // 2. Construir filtros unificados
         $filters = [
-            'branch_id'   => $branchId,
-            'start_date'  => $request->input('start_date'),
-            'end_date'    => $request->input('end_date'),
-            'category_id' => $request->input('category_id'),
+            'branch_id'       => $branchId,
+            'start_date'      => $request->input('start_date'),
+            'end_date'        => $request->input('end_date'),
+            'category_id'     => $request->input('category_id'),
+            'expense_type_id' => $request->input('expense_type_id'),
         ];
 
         // 3. Persistir sesión
@@ -49,6 +50,7 @@ class AnalyticsWebController extends Controller
         // 5. Datos para la vista
         $data['branches'] = Branch::pluck('name', 'id');
         $data['categories'] = Category::pluck('name', 'id');
+        $data['expenseTypes'] = \App\Models\ExpenseType::pluck('name', 'id');
         $data['currentFilters'] = $filters;
         $data['currentBranchId'] = $branchId;
 
