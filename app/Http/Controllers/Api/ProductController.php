@@ -119,12 +119,17 @@ class ProductController extends BaseProductController
             return response()->json(['error' => 'Branch ID is required'], 400);
         }
 
-        $query = Product::query();
+        $query = Product::query()
+            ->with(['productBranches' => function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId)->with('prices');
+            }]);
 
         if ($search) {
             $query->where(function ($q) use ($search) {
+                // Using leading wildcard limits index usage, but it's often needed for UX.
+                // We'll ensure an index on 'name' exists in a migration.
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('code', 'like', "%{$search}%");
+                    ->orWhere('code', 'like', "{$search}%"); // Code search usually starts with the code
             });
         }
 
@@ -136,11 +141,11 @@ class ProductController extends BaseProductController
             ->whereHas('productBranches', function ($q) use ($branchId) {
                 $q->where('branch_id', $branchId)->sellable();
             })
-            ->limit(15)
+            ->limit(20)
             ->get();
 
         $response = $products->map(function ($product) use ($branchId, $context, $isRepair) {
-            // Usamos la lógica centralizada
+            // Usamos la lógica centralizada que ahora aprovecha el eager loading
             $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair);
 
             return [

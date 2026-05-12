@@ -31,7 +31,7 @@
 
     <div class="col-md-6">
         <x-bootstrap.compact-input id="phone" name="phone" label="Teléfono" placeholder="Ej: +54 9 11 5555-1234"
-            value="{{ old('phone', $client->phone ?? '') }}" required />
+            value="{{ old('phone', $client->phone ?? '') }}" />
     </div>
 </div>
 
