@@ -81,19 +81,26 @@ class Product extends Model
     {
         if (!$branchId) {
             $branchId = $this->currentBranchId();
-            //$branchId = auth()->user()->branch_id;
             if (!$branchId) {
                 return null; // no hay sucursal asignada
             }
         }
 
-        if (!isset($this->branchCache[$branchId])) {
-            $this->branchCache[$branchId] = $this->productBranches()
-                ->where('branch_id', $branchId)
-                ->first();
+        if (isset($this->branchCache[$branchId])) {
+            return $this->branchCache[$branchId];
         }
 
-        return $this->branchCache[$branchId];
+        // Optimization: Use already loaded relationship if available
+        if ($this->relationLoaded('productBranches')) {
+            $branch = $this->productBranches->firstWhere('branch_id', $branchId);
+            if ($branch) {
+                return $this->branchCache[$branchId] = $branch;
+            }
+        }
+
+        return $this->branchCache[$branchId] = $this->productBranches()
+            ->where('branch_id', $branchId)
+            ->first();
     }
 
     /*
@@ -137,6 +144,19 @@ class Product extends Model
     {
         $branchModel = $this->branchContext($branchId);
         if (!$branchModel) return null;
+
+        // Optimization: Use already loaded relationship if available
+        if ($branchModel->relationLoaded('prices')) {
+            return $branchModel->prices
+                ->filter(function ($price) use ($type, $currency) {
+                    $match = $price->type === $type;
+                    if ($currency) {
+                        $match = $match && $price->currency === $currency;
+                    }
+                    return $match;
+                })
+                ->first();
+        }
 
         $query = $branchModel->prices()->where('type', $type->value);
 

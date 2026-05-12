@@ -104,7 +104,7 @@ class ClientService
                 Rule::unique('clients')->where(fn($q) => $q->where('branch_id', $branchId))->ignore($ignoreId)
             ],
             'full_name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
             'email' => 'nullable|email|unique:clients,email' . ($ignoreId ? ",$ignoreId" : ''),
         ];
