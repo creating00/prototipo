@@ -26,17 +26,36 @@
 </div>
 
 <div class="row g-3">
-    {{-- Fila 2: Monto + Observación --}}
+    {{-- Fila 2: Monto + Motivo (Select) --}}
     <div class="col-md-6">
         <x-currency-price-input name="amount" label="Monto del Gasto" :amount-value="old('amount_amount', $formData->expense?->amount)" :currency-value="old('amount_currency', $formData->currency())"
             :currency-options="$formData->currencyOptions" :required="true" />
     </div>
 
     <div class="col-md-6">
-        <x-adminlte.textarea id="observation" name="observation" label="Motivo del Gasto" rows="2"
-            placeholder="Escriba el motivo del gasto..." :value="old('observation', $formData->expense?->observation)" required />
+        <label class="form-label">Motivo del Gasto <span class="text-danger">*</span></label>
+        <div class="input-group">
+            <select name="expense_type_id" id="expense_type_id" class="form-select" required>
+                <option value="">Seleccione el motivo...</option>
+                @foreach($formData->expenseTypes as $type)
+                    <option value="{{ $type->id }}" {{ old('expense_type_id', $formData->expense?->expense_type_id) == $type->id ? 'selected' : '' }}>
+                        {{ $type->display_name }}
+                    </option>
+                @endforeach
+            </select>
+            <button type="button" class="btn btn-outline-primary" id="btn-new-expense-type" title="Crear nuevo motivo">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+        @error('expense_type_id')
+            <div class="text-danger small">{{ $message }}</div>
+        @enderror
     </div>
 </div>
 
-{{-- Campo oculto --}}
-<input type="hidden" name="expense_type_id" value="{{ old('expense_type_id', $formData->expense?->expense_type_id) }}">
+<div class="row g-3 mt-1">
+    <div class="col-md-12">
+        <x-adminlte.textarea id="observation" name="observation" label="Observación adicional" rows="2"
+            placeholder="Opcional: detalles adicionales del gasto..." :value="old('observation', $formData->expense?->observation)" />
+    </div>
+</div>

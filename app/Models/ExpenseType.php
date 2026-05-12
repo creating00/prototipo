@@ -12,6 +12,11 @@ class ExpenseType extends Model
     protected $fillable = [
         'name',
         'description',
+        'is_system',
+    ];
+
+    protected $casts = [
+        'is_system' => 'boolean',
     ];
 
     // Para que siempre se incluya en JSON
