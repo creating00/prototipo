@@ -40,7 +40,7 @@ class AnalyticsService
         return [
             'infoboxes'    => $salesInfo,
             'expenseBoxes' => $expenseInfo,
-            'resultBoxes'  => $this->calculateResultBoxes($salesInfo, $expenseInfo),
+            'resultBoxes'  => $this->calculateResultBoxes($salesInfo, $expenseInfo, $branchId, $filters),
             'products'     => $this->getTopProducts($filters),
             'clients'      => $this->getTopClients($filters),
             'chartData'    => $this->getMonthlyChartData($branchId),
@@ -84,33 +84,64 @@ class AnalyticsService
     {
         $boxes = config('analytics.expense_infoboxes');
         $hasRange = !empty($filters['start_date']) && !empty($filters['end_date']);
+        $expenseTypeId = $filters['expense_type_id'] ?? null;
 
         $startDate = $hasRange ? $filters['start_date'] : now()->startOfMonth();
         $endDate = $hasRange ? $filters['end_date'] : now()->endOfMonth();
 
+        $queryBase = Expense::forBranch($branchId);
+        if ($expenseTypeId) {
+            $queryBase->where('expense_type_id', $expenseTypeId);
+        }
+
         // Usa el scope sumConverted del modelo (que usa el trait)
-        $boxes['expenses_today']['number'] = Expense::forBranch($branchId)
+        $boxes['expenses_today']['number'] = (clone $queryBase)
             ->whereDate('date', today())
             ->sumConverted();
 
-        $boxes['expenses_month']['number'] = Expense::forBranch($branchId)
+        $boxes['expenses_month']['number'] = (clone $queryBase)
             ->whereBetween('date', [$startDate, $endDate])
             ->sumConverted();
 
-        $boxes['expenses_year']['number'] = Expense::forBranch($branchId)
+        $boxes['expenses_year']['number'] = (clone $queryBase)
             ->whereYear('date', now()->year)
             ->sumConverted();
 
         return $boxes;
     }
 
-    private function calculateResultBoxes(array $salesInfo, array $expenseInfo): array
+    private function getCostOfGoodsSold(int $branchId, array $dates): float
+    {
+        return \App\Models\SaleItem::whereHas('sale', function ($q) use ($branchId, $dates) {
+            $q->where('branch_id', $branchId)
+              ->whereBetween('created_at', $dates)
+              ->whereNull('deleted_at');
+        })
+        ->get()
+        ->sum(function ($item) use ($branchId) {
+            $cost = $item->product->purchasePrice($branchId) ?? 0;
+            return $cost * $item->quantity;
+        });
+    }
+
+    private function calculateResultBoxes(array $salesInfo, array $expenseInfo, int $branchId, array $filters): array
     {
         $results = config('analytics.result_infoboxes');
+        $hasRange = !empty($filters['start_date']) && !empty($filters['end_date']);
+        
+        $monthDates = $hasRange ? [$filters['start_date'], $filters['end_date']] : [now()->startOfMonth(), now()->endOfMonth()];
+        $yearDates = [now()->startOfYear(), now()->endOfYear()];
+
+        $cogsMonth = $this->getCostOfGoodsSold($branchId, $monthDates);
+        $cogsYear = $this->getCostOfGoodsSold($branchId, $yearDates);
+
         $results['net_month']['number'] = $salesInfo['sales_month']['secondaryNumber'] - $expenseInfo['expenses_month']['number'];
         $results['net_year']['number']  = $salesInfo['sales_year']['secondaryNumber'] - $expenseInfo['expenses_year']['number'];
+        
+        $results['real_profit_month']['number'] = $salesInfo['sales_month']['secondaryNumber'] - $cogsMonth;
+        $results['real_profit_year']['number']  = $salesInfo['sales_year']['secondaryNumber'] - $cogsYear;
 
-        foreach (['net_month', 'net_year'] as $key) {
+        foreach (['net_month', 'net_year', 'real_profit_month', 'real_profit_year'] as $key) {
             $results[$key]['color'] = $results[$key]['number'] >= 0 ? 'success' : 'danger';
         }
         return $results;

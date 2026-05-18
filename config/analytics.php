@@ -59,5 +59,17 @@ return [
             'text'  => 'Resultado del año',
             'prefix' => '$',
         ],
+        'real_profit_month' => [
+            'icon'  => 'bi bi-graph-up-arrow',
+            'color' => 'primary',
+            'text'  => 'Ganancia Real (Mes)',
+            'prefix' => '$',
+        ],
+        'real_profit_year' => [
+            'icon'  => 'bi bi-graph-up',
+            'color' => 'primary',
+            'text'  => 'Ganancia Real (Año)',
+            'prefix' => '$',
+        ],
     ],
 ];

@@ -250,13 +250,35 @@ trait DataTableFormatter
             )
             : '';
 
-        // 3. Insertamos 'sale_type' en la posición exacta para mantener el orden de columnas
-        // Cortamos el array: los primeros 4 elementos, insertamos el tipo, y pegamos el resto.
-        return array_merge(
+        // 3. Obtenemos los atributos base de la fila
+        $attributes = [
+            'id'                   => $row['id'],
+            'status_raw'           => $row['status_raw'],
+            'phone'                => $row['phone'],
+            'whatsapp-url'         => $row['whatsapp-url'],
+            'customer_type'        => $row['customer_type'],
+            'payment_type'         => $row['payment_type'],
+            'requires_invoice'     => $row['requires_invoice'],
+            'requires_invoice_raw' => $row['requires_invoice_raw'],
+            'total_ars'            => $row['total_ars'],
+            'total_usd'            => $row['total_usd'],
+            'totals_json'          => $row['totals_json'],
+            'payments_detailed'    => $row['payments_detailed'],
+            'customer_name'        => $row['customer_name_raw'],
+            'exchange_rate'        => $row['exchange_rate'],
+            'created_at'           => $row['created_at'], // <-- AGREGADO
+        ];
+
+        // 4. Retornamos la estructura incluyendo _row_attributes
+        $base = array_merge(
             array_slice($row, 0, 4, true),
             ['sale_type' => $saleTypeHtml],
             array_slice($row, 4, null, true)
         );
+        
+        $base['_row_attributes'] = $attributes;
+
+        return $base;
     }
 
     private function cleanPhoneNumber(?string $phone): string

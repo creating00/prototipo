@@ -62,20 +62,37 @@
         @endforeach
     </div>
 
-    {{-- <h6 class="text-muted text-uppercase mb-2">Gastos</h6> --}}
+    {{-- GASTOS --}}
     <div class="row mb-4">
         @foreach ($expenseBoxes as $box)
             <div class="col-12 col-sm-6 col-md-4">
-                <x-adminlte.infobox icon="{{ $box['icon'] }}" color="{{ $box['color'] }}" text="{{ $box['text'] }}"
-                    number="{{ $box['number'] ?? 0 }}" prefix="{{ $box['prefix'] ?? null }}" />
+                <x-adminlte.card type="{{ $box['color'] }}" title="{{ $box['text'] }}" icon="{{ $box['icon'] }}">
+                    <div class="text-center">
+                        <h4 class="font-weight-bold">{{ $box['prefix'] ?? '' }}{{ number_format($box['number'] ?? 0, 2) }}</h4>
+                    </div>
+                    <hr>
+                    <form method="GET" action="{{ route('web.analytics.index') }}">
+                        <input type="hidden" name="branch_id" value="{{ $currentBranchId }}">
+                        <input type="hidden" name="start_date" value="{{ $currentFilters['start_date'] }}">
+                        <input type="hidden" name="end_date" value="{{ $currentFilters['end_date'] }}">
+                        <select name="expense_type_id" class="form-control form-control-sm" onchange="this.form.submit()">
+                            <option value="">Todos los gastos</option>
+                            @foreach ($expenseTypes as $id => $name)
+                                <option value="{{ $id }}" {{ (request('expense_type_id') == $id) ? 'selected' : '' }}>
+                                    {{ $name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </form>
+                </x-adminlte.card>
             </div>
         @endforeach
     </div>
 
-    {{-- <h6 class="text-muted text-uppercase mb-2">Resultados</h6> --}}
+    {{-- RESULTADOS --}}
     <div class="row mb-5 justify-content-center">
         @foreach ($resultBoxes as $box)
-            <div class="col-12 col-sm-6 col-md-4">
+            <div class="col-12 col-sm-6 col-md-3">
                 <x-adminlte.infobox icon="{{ $box['icon'] }}" color="{{ $box['color'] }}" text="{{ $box['text'] }}"
                     number="{{ $box['number'] ?? 0 }}" prefix="{{ $box['prefix'] ?? null }}" />
             </div>
