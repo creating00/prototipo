@@ -44,7 +44,7 @@
                     <div class="input-group">
                         <input type="url" name="imageUrl" id="image_url" class="form-control"
                             placeholder="https://ejemplo.com/imagen.jpg"
-                            value="{{ old('imageUrl', $formData->product?->image ?? '') }}">
+                            value="{{ old('imageUrl', filter_var($formData->product?->image, FILTER_VALIDATE_URL) ? $formData->product->image : '') }}">
                         <button type="button" class="btn btn-outline-secondary" id="preview-button">
                             <i class="fas fa-eye"></i>
                         </button>

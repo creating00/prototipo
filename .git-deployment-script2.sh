@@ -17,4 +17,7 @@ php artisan cache:clear
 php artisan config:clear
 php artisan view:clear
 
+# 5. Asegurar enlace simbólico de almacenamiento
+php artisan storage:link
+
 echo "Despliegue automático de Laravel completado."
