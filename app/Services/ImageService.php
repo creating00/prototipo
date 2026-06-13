@@ -14,12 +14,17 @@ class ImageService
         try {
             $fileName = $prefix . '_' . time() . '.webp';
             $filePath = $folder . '/' . $fileName;
+
+            if ($imageFile->getMimeType() === 'image/webp') {
+                $imageFile->storeAs($folder, $fileName, 'public');
+                return Storage::url($filePath);
+            }
+
+            Storage::disk('public')->makeDirectory($folder);
             $fullPath = storage_path('app/public/' . $filePath);
 
-            Storage::disk('public')->makeDirectory('products');
-
             $imageInfo = getimagesize($imageFile->getPathname());
-            $mimeType = $imageInfo['mime'];
+            $mimeType = $imageInfo['mime'] ?? '';
 
             switch ($mimeType) {
                 case 'image/jpeg':
