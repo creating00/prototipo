@@ -252,23 +252,26 @@ class ProductService
         ?string $imageUrl,
         bool $removeImage
     ): ?string {
+        $productCode = $validated['code'] ?? $product->code;
+        $shouldDeleteOld = false;
+        $newImage = $product->image;
+
         if ($removeImage) {
-            $this->imageService->deleteImageIfLocal($product->image);
-            return null;
+            $newImage = null;
+            $shouldDeleteOld = true;
+        } elseif ($imageFile) {
+            $newImage = $this->imageService->processAndStoreImage($imageFile, $productCode);
+            $shouldDeleteOld = true;
+        } elseif ($imageUrl && $imageUrl !== $product->image) {
+            $newImage = $this->imageService->validateAndStoreExternalImage($imageUrl, $productCode);
+            $shouldDeleteOld = true;
         }
 
-        // Si se subió un archivo físico de imagen, este tiene prioridad absoluta
-        if ($imageFile) {
+        // Ejecutar eliminacion una sola vez si hubo cambios
+        if ($shouldDeleteOld && $product->image) {
             $this->imageService->deleteImageIfLocal($product->image);
-            return $this->imageService->processAndStoreImage($imageFile, $validated['code'] ?? $product->code);
         }
 
-        // Si hay una URL de imagen externa y esta es diferente a la imagen actual del producto (es decir, el usuario la cambió)
-        if ($imageUrl && $imageUrl !== $product->image) {
-            $this->imageService->deleteImageIfLocal($product->image);
-            return $this->imageService->validateAndStoreExternalImage($imageUrl, $validated['code'] ?? $product->code);
-        }
-
-        return $product->image;
+        return $newImage;
     }
 }
