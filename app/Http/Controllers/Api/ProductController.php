@@ -126,10 +126,8 @@ class ProductController extends BaseProductController
 
         if ($search) {
             $query->where(function ($q) use ($search) {
-                // Using leading wildcard limits index usage, but it's often needed for UX.
-                // We'll ensure an index on 'name' exists in a migration.
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('code', 'like', "{$search}%"); // Code search usually starts with the code
+                    ->orWhere('code', 'like', "{$search}%");
             });
         }
 
@@ -145,7 +143,6 @@ class ProductController extends BaseProductController
             ->get();
 
         $response = $products->map(function ($product) use ($branchId, $context, $isRepair) {
-            // Usamos la lógica centralizada que ahora aprovecha el eager loading
             $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair);
 
             return [
@@ -168,9 +165,9 @@ class ProductController extends BaseProductController
     {
         try {
             $product = $this->productService->create(
-                $request->except('image'),
-                $request->file('image'),
-                $request->get('image_url')
+                $request->except(['imageFile', 'imageUrl']),
+                $request->file('imageFile'),
+                $request->get('imageUrl')
             );
 
             return response()->json(
@@ -207,9 +204,10 @@ class ProductController extends BaseProductController
         try {
             $updatedProduct = $this->productService->update(
                 $product,
-                $request->except('image'),
-                $request->file('image'),
-                $request->get('image_url')
+                $request->except(['imageFile', 'imageUrl', 'removeImage']),
+                $request->file('imageFile'),
+                $request->get('imageUrl'),
+                $request->boolean('removeImage')
             );
 
             return response()->json(

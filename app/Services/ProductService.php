@@ -70,13 +70,12 @@ class ProductService
                 ->delete();
         }
 
-        // Agregar nuevos como globales
         $toAdd = array_diff($providerIds, $currentIds);
         foreach ($toAdd as $id) {
             $service->attachProductToProvider([
                 'product_id'  => $product->id,
                 'provider_id' => $id,
-                'branch_id'   => null // Relación global explícita
+                'branch_id'   => null 
             ]);
         }
     }
@@ -156,7 +155,6 @@ class ProductService
 
     public function getProductForEdit(int $productId, int $branchId): Product
     {
-        // Cargamos la relación de forma condicional sin filtrar la existencia del producto base
         return Product::with([
             'providers',
             'category',

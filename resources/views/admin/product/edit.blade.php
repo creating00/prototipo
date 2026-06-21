@@ -8,8 +8,10 @@
             <x-adminlte.alert-manager />
             <x-adminlte.form action="{{ route('web.products.update', $formData->product) }}" method="POST"
                 title="Editar Producto: {{ $formData->product->name }}" submit-text="Actualizar Producto"
-                submitting-text="Actualizando producto..." enctype="multipart/form-data" {{-- ¡Necesario para subir imágenes! --}}>
+                submitting-text="Actualizando producto..." enctype="multipart/form-data">
+
                 @method('PUT')
+
                 @include('admin.product.partials._form', [
                     'formData' => $formData,
                 ])
