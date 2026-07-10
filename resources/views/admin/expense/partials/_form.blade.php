@@ -10,7 +10,7 @@
 
 <h3>Información del Gasto</h3>
 
-<div class="row g-3 align-items-start">
+<div class="row g-3 align-items-start" x-data="{ paymentType: '{{ old('payment_type', $formData->expense?->payment_type->value ?? PaymentType::Cash->value) }}' }" @change="if ($event.target.name === 'payment_type') paymentType = $event.target.value">
     {{-- Fila 1: Fecha + Forma de Pago --}}
     <div class="col-md-6">
         <x-bootstrap.compact-input id="date" name="date" type="date" label="Fecha del Gasto" :value="old('date', $formData->expense?->date?->format('Y-m-d') ?? now()->format('Y-m-d'))"
@@ -21,6 +21,14 @@
         <div class="compact-select-wrapper">
             <label class="compact-select-label">Forma de Pago</label>
             <x-adminlte.select name="payment_type" label="" :options="PaymentType::forSelect()" :value="old('payment_type', $formData->expense?->payment_type->value ?? PaymentType::Cash->value)" required />
+        </div>
+    </div>
+
+    {{-- Cuenta Destino (Solo transferencia) --}}
+    <div class="col-md-6" x-show="paymentType == '3'" x-cloak x-transition>
+        <div class="compact-select-wrapper">
+            <label class="compact-select-label">Cuenta Destino <span class="text-danger">*</span></label>
+            <x-adminlte.select name="bank_account_id" label="" :options="$formData->bankAccounts" :value="old('bank_account_id', $formData->expense?->bank_account_id)" />
         </div>
     </div>
 </div>

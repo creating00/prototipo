@@ -62,28 +62,41 @@
         @endforeach
     </div>
 
-    {{-- GASTOS --}}
+    {{-- CUENTAS DESTINO (SALDOS DISCRIMINADOS) --}}
     <div class="row mb-4">
-        @foreach ($expenseBoxes as $box)
-            <div class="col-12 col-sm-6 col-md-4">
-                <x-adminlte.card type="{{ $box['color'] }}" title="{{ $box['text'] }}" icon="{{ $box['icon'] }}">
-                    <div class="text-center">
-                        <h4 class="font-weight-bold">{{ $box['prefix'] ?? '' }}{{ number_format($box['number'] ?? 0, 2) }}</h4>
+        @foreach ($bankAccountBoxes as $box)
+            <div class="col-12 col-md-6 col-lg-4 mb-3">
+                <x-adminlte.card type="info" title="{{ $box['account']->full_description }}" icon="fas fa-university">
+                    <div class="row text-center py-2">
+                        <!-- ARS Column -->
+                        <div class="col-6 border-end">
+                            <h6 class="text-uppercase text-muted small fw-bold mb-2">Pesos (ARS)</h6>
+                            <div class="mb-1 text-success font-weight-bold" style="font-size: 0.85rem;">
+                                Ventas: +$ {{ number_format($box['sales_ars'], 2, ',', '.') }}
+                            </div>
+                            <div class="mb-1 text-danger font-weight-bold" style="font-size: 0.85rem;">
+                                Gastos: -$ {{ number_format($box['expenses_ars'], 2, ',', '.') }}
+                            </div>
+                            <hr class="my-2">
+                            <div class="font-weight-bold {{ $box['net_ars'] >= 0 ? 'text-success' : 'text-danger' }}" style="font-size: 1.15rem;">
+                                $ {{ number_format($box['net_ars'], 2, ',', '.') }}
+                            </div>
+                        </div>
+                        <!-- USD Column -->
+                        <div class="col-6">
+                            <h6 class="text-uppercase text-muted small fw-bold mb-2">Dólares (USD)</h6>
+                            <div class="mb-1 text-success font-weight-bold" style="font-size: 0.85rem;">
+                                Ventas: +U$D {{ number_format($box['sales_usd'], 2, ',', '.') }}
+                            </div>
+                            <div class="mb-1 text-danger font-weight-bold" style="font-size: 0.85rem;">
+                                Gastos: -U$D {{ number_format($box['expenses_usd'], 2, ',', '.') }}
+                            </div>
+                            <hr class="my-2">
+                            <div class="font-weight-bold {{ $box['net_usd'] >= 0 ? 'text-success' : 'text-danger' }}" style="font-size: 1.15rem;">
+                                U$D {{ number_format($box['net_usd'], 2, ',', '.') }}
+                            </div>
+                        </div>
                     </div>
-                    <hr>
-                    <form method="GET" action="{{ route('web.analytics.index') }}">
-                        <input type="hidden" name="branch_id" value="{{ $currentBranchId }}">
-                        <input type="hidden" name="start_date" value="{{ $currentFilters['start_date'] }}">
-                        <input type="hidden" name="end_date" value="{{ $currentFilters['end_date'] }}">
-                        <select name="expense_type_id" class="form-control form-control-sm" onchange="this.form.submit()">
-                            <option value="">Todos los gastos</option>
-                            @foreach ($expenseTypes as $id => $name)
-                                <option value="{{ $id }}" {{ (request('expense_type_id') == $id) ? 'selected' : '' }}>
-                                    {{ $name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </form>
                 </x-adminlte.card>
             </div>
         @endforeach

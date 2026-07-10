@@ -36,15 +36,17 @@ class AnalyticsService
 
         $salesInfo = $this->getSalesInfoboxes($branchId, $filters);
         $expenseInfo = $this->getExpenseInfoboxes($branchId, $filters);
+        $bankAccountBoxes = $this->getBankAccountStats($filters);
 
         return [
-            'infoboxes'    => $salesInfo,
-            'expenseBoxes' => $expenseInfo,
-            'resultBoxes'  => $this->calculateResultBoxes($salesInfo, $expenseInfo, $branchId, $filters),
-            'products'     => $this->getTopProducts($filters),
-            'clients'      => $this->getTopClients($filters),
-            'chartData'    => $this->getMonthlyChartData($branchId),
-            'stockReport'  => $this->getStockReport($branchId),
+            'infoboxes'        => $salesInfo,
+            'expenseBoxes'     => $expenseInfo,
+            'bankAccountBoxes' => $bankAccountBoxes,
+            'resultBoxes'      => $this->calculateResultBoxes($salesInfo, $expenseInfo, $branchId, $filters),
+            'products'         => $this->getTopProducts($filters),
+            'clients'          => $this->getTopClients($filters),
+            'chartData'        => $this->getMonthlyChartData($branchId),
+            'stockReport'      => $this->getStockReport($branchId),
         ];
     }
 
@@ -108,6 +110,59 @@ class AnalyticsService
             ->sumConverted();
 
         return $boxes;
+    }
+
+    private function getBankAccountStats(array $filters): array
+    {
+        $branchId = $filters['branch_id'];
+        $hasRange = !empty($filters['start_date']) && !empty($filters['end_date']);
+        
+        $start = $hasRange ? Carbon::parse($filters['start_date'])->startOfDay() : now()->startOfMonth()->startOfDay();
+        $end = $hasRange ? Carbon::parse($filters['end_date'])->endOfDay() : now()->endOfMonth()->endOfDay();
+
+        $bankAccounts = \App\Models\BankAccount::with(['bank', 'user'])->get();
+
+        $stats = [];
+        foreach ($bankAccounts as $account) {
+            $salesQuery = Payment::where('paymentable_type', Sale::class)
+                ->where('payment_type', \App\Enums\PaymentType::Transfer->value)
+                ->where('payment_method_id', $account->id)
+                ->whereBetween('created_at', [$start, $end])
+                ->whereHasMorph('paymentable', [Sale::class], fn($q) => $q->forBranch($branchId));
+
+            $salesArs = (clone $salesQuery)
+                ->where('currency', CurrencyType::ARS->value)
+                ->sum('amount');
+
+            $salesUsd = (clone $salesQuery)
+                ->where('currency', CurrencyType::USD->value)
+                ->sum('amount');
+
+            $expensesQuery = Expense::forBranch($branchId)
+                ->where('payment_type', \App\Enums\PaymentType::Transfer->value)
+                ->where('bank_account_id', $account->id)
+                ->whereBetween('date', [$start, $end]);
+
+            $expensesArs = (clone $expensesQuery)
+                ->where('currency', CurrencyType::ARS->value)
+                ->sum('amount');
+
+            $expensesUsd = (clone $expensesQuery)
+                ->where('currency', CurrencyType::USD->value)
+                ->sum('amount');
+
+            $stats[] = [
+                'account' => $account,
+                'sales_ars' => $salesArs,
+                'sales_usd' => $salesUsd,
+                'expenses_ars' => $expensesArs,
+                'expenses_usd' => $expensesUsd,
+                'net_ars' => $salesArs - $expensesArs,
+                'net_usd' => $salesUsd - $expensesUsd,
+            ];
+        }
+
+        return $stats;
     }
 
     private function getCostOfGoodsSold(int $branchId, array $dates): float

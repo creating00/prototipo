@@ -9,8 +9,28 @@ const formatCurrency = (val) =>
  * Inicializa los componentes compartidos (MonthPicker y Botón Reset)
  */
 function setupCommonUI(filterCallback, resetIds) {
-    // Inicializar picker de mes
-    initMonthPicker("filter-month", filterCallback);
+    const modeEl = document.getElementById("filter-date-mode");
+    const getMode = () => modeEl?.value || "month";
+
+    const initPicker = () => {
+        initMonthPicker("filter-month", filterCallback, getMode());
+    };
+
+    // Inicializar picker con el modo inicial
+    initPicker();
+
+    // Escuchar cambios de modo de fecha (Mes / Día)
+    modeEl?.addEventListener("change", () => {
+        const monthEl = document.getElementById("filter-month");
+        if (monthEl) {
+            monthEl.value = "";
+            if (monthEl._flatpickr) {
+                monthEl._flatpickr.clear();
+            }
+        }
+        initPicker();
+        filterCallback();
+    });
 
     // Listener para el botón Reset
     document
@@ -23,9 +43,17 @@ function setupCommonUI(filterCallback, resetIds) {
                 else el.value = "";
             });
 
-            const monthEl = document.getElementById("filter-month");
-            if (monthEl?._flatpickr) monthEl._flatpickr.clear();
+            // Forzar volver a modo 'Mes' en el reset
+            if (modeEl) {
+                modeEl.value = "month";
+            }
 
+            const monthEl = document.getElementById("filter-month");
+            if (monthEl) {
+                monthEl.value = "";
+            }
+
+            initPicker();
             filterCallback();
         });
 }
@@ -48,13 +76,31 @@ function updateGenericFooter(api, dataMap) {
 // --- FUNCIONES EXPORTADAS ---
 
 export function setupSalesFilters(api) {
+    const filterPayment = document.getElementById("filter-payment");
+    const filterBankAccount = document.getElementById("filter-bank-account");
+
+    const toggleBankAccountFilter = () => {
+        if (!filterPayment || !filterBankAccount) return;
+        const container = filterBankAccount.closest('.mb-0') || filterBankAccount.parentElement;
+        if (filterPayment.value === "3") { // 3 = Transferencia
+            container?.classList.remove("d-none");
+        } else {
+            container?.classList.add("d-none");
+            filterBankAccount.value = "";
+        }
+    };
+
+    toggleBankAccountFilter();
+    filterPayment?.addEventListener("change", toggleBankAccountFilter);
+
     const filterTable = () => {
         const type = document.getElementById("filter-type")?.value;
         const payment = document.getElementById("filter-payment")?.value;
+        const bankAccount = document.getElementById("filter-bank-account")?.value;
         const invoice = document.getElementById("filter-invoice")?.checked;
         const month = document.getElementById("filter-month")?.value;
 
-        console.log("Applying filter:", { type, payment, invoice, month });
+        console.log("Applying filter:", { type, payment, bankAccount, invoice, month });
 
         api.column(3).search(type ? `^${type}$` : "", {
             regex: true,
@@ -74,11 +120,21 @@ export function setupSalesFilters(api) {
                     ds.requires_invoice_raw === "true";
                 if (invoice && !reqInv) return false;
                 
-                // Debug log inside search
-                // console.log("Filtering sale", ds.created_at, month);
-                
                 if (month && ds.created_at && !ds.created_at.startsWith(month))
                     return false;
+
+                const paymentsJson = api.row(dataIndex).node()?.getAttribute("data-payments_detailed");
+                if (paymentsJson) {
+                    const payments = JSON.parse(paymentsJson);
+                    if (payment === "3" && bankAccount) {
+                        const hasMatchingBankAccount = payments.some(p => 
+                            p.type.toString() === "3" && 
+                            p.payment_method_id && 
+                            p.payment_method_id.toString() === bankAccount
+                        );
+                        if (!hasMatchingBankAccount) return false;
+                    }
+                }
             }
             return true;
         });
@@ -86,7 +142,7 @@ export function setupSalesFilters(api) {
         DataTable.ext.search.pop();
     };
 
-    const ids = ["filter-type", "filter-payment", "filter-invoice"];
+    const ids = ["filter-type", "filter-payment", "filter-bank-account", "filter-invoice"];
     setupCommonUI(filterTable, ids);
     ids.forEach((id) =>
         document.getElementById(id)?.addEventListener("change", filterTable),
@@ -94,16 +150,28 @@ export function setupSalesFilters(api) {
 }
 
 export function setupExpenseFilters(api) {
+    const filterPayment = document.getElementById("filter-payment");
+    const filterBankAccount = document.getElementById("filter-bank-account");
+
+    const toggleBankAccountFilter = () => {
+        if (!filterPayment || !filterBankAccount) return;
+        const container = filterBankAccount.closest('.mb-0') || filterBankAccount.parentElement;
+        if (filterPayment.value === "3") { // 3 = Transferencia
+            container?.classList.remove("d-none");
+        } else {
+            container?.classList.add("d-none");
+            filterBankAccount.value = "";
+        }
+    };
+
+    toggleBankAccountFilter();
+    filterPayment?.addEventListener("change", toggleBankAccountFilter);
+
     const filterTable = () => {
         const payment = document.getElementById("filter-payment")?.value;
+        const bankAccount = document.getElementById("filter-bank-account")?.value;
         const month = document.getElementById("filter-month")?.value;
         const branch = document.getElementById("filter-branch")?.value;
-
-        // Filtro por forma de pago (columna)
-        api.column(5).search(payment ? `^${payment}$` : "", {
-            regex: true,
-            smart: false,
-        });
 
         DataTable.ext.search.push((settings, data, dataIndex) => {
             if (!settings.nTable.classList.contains("datatable-sm-expenses")) {
@@ -115,10 +183,22 @@ export function setupExpenseFilters(api) {
 
             const ds = row.dataset;
 
-            // --- filtro por mes ---
+            // --- filtro por forma de pago ---
+            if (payment && ds.payment_type_raw !== payment) {
+                return false;
+            }
+
+            // --- filtro por cuenta destino ---
+            if (payment === "3" && bankAccount && ds.bank_account_id !== bankAccount) {
+                return false;
+            }
+
+            // --- filtro por fecha (diario/mensual) ---
             if (month && ds.date) {
+                // ds.date es DD/MM/YYYY. Lo convertimos a YYYY-MM-DD para comparar usando startsWith
                 const [d, m, y] = ds.date.split("/");
-                if (`${y}-${m}` !== month) return false;
+                const rowDate = `${y}-${m}-${d}`;
+                if (!rowDate.startsWith(month)) return false;
             }
 
             // --- filtro por sucursal ---
@@ -133,9 +213,10 @@ export function setupExpenseFilters(api) {
         DataTable.ext.search.pop();
     };
 
-    setupCommonUI(filterTable, ["filter-payment", "filter-branch"]);
+    const ids = ["filter-payment", "filter-bank-account", "filter-branch"];
+    setupCommonUI(filterTable, ids);
 
-    ["filter-payment", "filter-branch"].forEach((id) =>
+    ids.forEach((id) =>
         document.getElementById(id)?.addEventListener("change", filterTable),
     );
 }
@@ -144,6 +225,8 @@ export function updateSalesFooter(api) {
     // Obtenemos el valor del filtro de pago actual
     const selectedPaymentFilter =
         document.getElementById("filter-payment")?.value;
+    const selectedBankAccountFilter =
+        document.getElementById("filter-bank-account")?.value;
 
     updateGenericFooter(api, (row, totals) => {
         const paymentsJson = row.getAttribute("data-payments_detailed");
@@ -154,10 +237,15 @@ export function updateSalesFooter(api) {
             payments.forEach((p) => {
                 // Si no hay filtro, sumamos todo.
                 // Si hay filtro, solo sumamos si el tipo de pago coincide.
-                if (
-                    !selectedPaymentFilter ||
-                    p.type.toString() === selectedPaymentFilter
-                ) {
+                const typeMatches = !selectedPaymentFilter || p.type.toString() === selectedPaymentFilter;
+                
+                // Si es transferencia y hay filtro de cuenta, validar que coincida
+                let bankAccountMatches = true;
+                if (selectedPaymentFilter === "3" && selectedBankAccountFilter) {
+                    bankAccountMatches = p.payment_method_id && p.payment_method_id.toString() === selectedBankAccountFilter;
+                }
+
+                if (typeMatches && bankAccountMatches) {
                     if (p.currency === 1) {
                         // ARS
                         totals.ars += p.amount;

@@ -9,8 +9,8 @@ use App\Traits\HasStatusBadge;
 
 class ExpenseDataTableService
 {
-
     use HasStatusBadge;
+
     /**
      * Obtiene todos los gastos y los transforma en un arreglo
      * listo para usar en DataTables o vistas.
@@ -34,7 +34,11 @@ class ExpenseDataTableService
                 'amount_raw'       => $expense->amount,
                 'payment_type'     => $this->formatStatusBadge($expense->payment_type->label(), PaymentType::class),
                 'payment_type_raw' => $expense->payment_type->value,
+                'bank_account_id'  => $expense->bank_account_id,
                 'observation'      => $expense->observation ?? '-',
+                '_row_attributes'  => [
+                    'date' => $expense->date ? $expense->date->format('d/m/Y') : '-',
+                ],
             ];
         })->toArray();
     }

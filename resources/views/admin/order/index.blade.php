@@ -70,11 +70,17 @@
 
                             <div class="vr d-none d-lg-block" style="height: 20px; opacity: 0.2;"></div>
 
-                            <div class="position-relative">
-                                <input type="text" id="filter-month" class="form-control form-control-sm bg-white ps-4"
-                                    style="min-width: 150px;" placeholder="Seleccionar mes" readonly>
-                                <i class="bi bi-calendar3 position-absolute start-2 top-50 translate-middle-y text-muted"
-                                    style="left: 10px; font-size: 0.8rem; pointer-events: none;"></i>
+                            <div class="d-flex align-items-center gap-0">
+                                <select id="filter-date-mode" class="form-select form-select-sm bg-white border-end-0 rounded-end-0" style="width: 75px; min-width: 75px;">
+                                    <option value="month" selected>Mes</option>
+                                    <option value="day">Día</option>
+                                </select>
+                                <div class="position-relative">
+                                    <input type="text" id="filter-month" class="form-control form-control-sm bg-white ps-4 rounded-start-0"
+                                        style="min-width: 150px; border-top-left-radius: 0; border-bottom-left-radius: 0;" placeholder="Seleccionar mes" readonly>
+                                    <i class="bi bi-calendar3 position-absolute start-2 top-50 translate-middle-y text-muted"
+                                        style="left: 10px; font-size: 0.8rem; pointer-events: none;"></i>
+                                </div>
                             </div>
 
                             <button type="button" id="btn-reset-filters"

@@ -38,18 +38,22 @@ class ExpenseWebController extends BaseExpenseController
             'Motivo'
         ];
 
-        $hiddenFields = ['id', 'branch-id', 'payment_type_raw', 'currency', 'amount_raw'];
+        $hiddenFields = ['id', 'branch-id', 'payment_type_raw', 'currency', 'amount_raw', 'bank_account_id'];
 
         $currentBranchId = $this->currentBranchId();
         $branches = Branch::pluck('name', 'id');
+        $bankAccounts = \App\Models\BankAccount::with(['bank', 'user'])
+            ->get()
+            ->pluck('full_description', 'id');
 
-        return view('admin.expense.index', compact('headers', 'rowData', 'hiddenFields', 'currentBranchId', 'branches'));
+        return view('admin.expense.index', compact('headers', 'rowData', 'hiddenFields', 'currentBranchId', 'branches', 'bankAccounts'));
     }
 
     public function create()
     {
         $this->authorize('create', Expense::class);
         $branchUserId = $this->currentBranchId();
+        $bankAccounts = \App\Models\BankAccount::with(['bank', 'user'])->get()->pluck('full_description', 'id')->toArray();
 
         $formData = new ExpenseFormData(
             expense: null,
@@ -59,6 +63,7 @@ class ExpenseWebController extends BaseExpenseController
             currencyOptions: \App\Enums\CurrencyType::forSelect(),
             paymentOptions: \App\Enums\PaymentType::forSelect(),
             branchUserId: $branchUserId,
+            bankAccounts: $bankAccounts,
         );
 
         return view('admin.expense.create', compact('formData'));
@@ -75,6 +80,10 @@ class ExpenseWebController extends BaseExpenseController
         $data['branch_id'] = $this->currentBranchId();
         $data['amount']   = $data['amount_amount'];
         $data['currency'] = $data['amount_currency'];
+
+        if ((int)$data['payment_type'] !== 3) {
+            $data['bank_account_id'] = null;
+        }
 
         $this->expenseService->createExpense($data);
 
@@ -97,6 +106,8 @@ class ExpenseWebController extends BaseExpenseController
         //dd($expense);
 
         $branchUserId = $this->currentBranchId();
+        $bankAccounts = \App\Models\BankAccount::with(['bank', 'user'])->get()->pluck('full_description', 'id')->toArray();
+
         $formData = new \App\ViewModels\ExpenseFormData(
             expense: $expense,
             branches: app(\App\Services\BranchService::class)->getAllBranches(),
@@ -105,6 +116,7 @@ class ExpenseWebController extends BaseExpenseController
             currencyOptions: \App\Enums\CurrencyType::forSelect(),
             paymentOptions: \App\Enums\PaymentType::forSelect(),
             branchUserId: $branchUserId,
+            bankAccounts: $bankAccounts,
         );
 
         return view('admin.expense.edit', compact('formData'));
@@ -121,6 +133,10 @@ class ExpenseWebController extends BaseExpenseController
         $data['user_id']  = $this->userId();
         $data['amount']   = $data['amount_amount'];
         $data['currency'] = $data['amount_currency'];
+
+        if ((int)$data['payment_type'] !== 3) {
+            $data['bank_account_id'] = null;
+        }
 
         $this->expenseService->updateExpense($id, $data);
 
