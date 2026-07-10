@@ -44,7 +44,11 @@ class SaleWebController extends BaseSaleController
             'payments_detailed'
         ];
 
-        return view('admin.sales.index', compact('sales', 'rowData', 'headers', 'hiddenFields'));
+        $bankAccounts = \App\Models\BankAccount::with(['bank', 'user'])
+            ->get()
+            ->pluck('full_description', 'id');
+
+        return view('admin.sales.index', compact('sales', 'rowData', 'headers', 'hiddenFields', 'bankAccounts'));
     }
 
     public function show($id)

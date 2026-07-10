@@ -131,9 +131,11 @@ trait DataTableFormatter
             $totalUsd = $model->payments->filter(fn($p) => $p->currency === CurrencyType::USD)->sum('amount');
 
             $paymentsDetailed = $model->payments->map(fn($p) => [
-                'type'     => $p->payment_type->value,
-                'currency' => $p->currency instanceof CurrencyType ? $p->currency->value : (int)$p->currency,
-                'amount'   => (float)$p->amount
+                'type'                => $p->payment_type->value,
+                'currency'            => $p->currency instanceof CurrencyType ? $p->currency->value : (int)$p->currency,
+                'amount'              => (float)$p->amount,
+                'payment_method_id'   => $p->payment_method_id,
+                'payment_method_type' => $p->payment_method_type,
             ])->toJson();
         } else {
             // Comportamiento para ORDER: Basado en el array totals

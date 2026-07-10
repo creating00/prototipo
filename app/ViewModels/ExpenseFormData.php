@@ -16,6 +16,7 @@ class ExpenseFormData
         public readonly array $currencyOptions,
         public readonly array $paymentOptions,
         public readonly ?int $branchUserId,
+        public readonly array $bankAccounts = [],
     ) {}
 
     /**

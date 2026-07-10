@@ -22,6 +22,7 @@ class Expense extends Model
         'amount',
         'currency',
         'payment_type',
+        'bank_account_id',
         'reference',
         'date',
         'observation',
@@ -59,6 +60,11 @@ class Expense extends Model
     public function expenseType(): BelongsTo
     {
         return $this->belongsTo(ExpenseType::class);
+    }
+
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(BankAccount::class);
     }
 
     public function getAmountInArsAttribute(): float
