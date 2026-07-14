@@ -38,10 +38,16 @@ class AnalyticsService
         $expenseInfo = $this->getExpenseInfoboxes($branchId, $filters);
         $bankAccountBoxes = $this->getBankAccountStats($filters);
 
+        $filteredSales = $this->getFilteredSalesTotal($filters);
+        $filteredExpenses = $this->getFilteredExpensesTotal($filters);
+
         return [
             'infoboxes'        => $salesInfo,
             'expenseBoxes'     => $expenseInfo,
             'bankAccountBoxes' => $bankAccountBoxes,
+            'filteredSales'    => $filteredSales,
+            'filteredExpenses' => $filteredExpenses,
+            'filteredBalance'  => $this->getBalanceTotals($filters, $filteredSales, $filteredExpenses),
             'resultBoxes'      => $this->calculateResultBoxes($salesInfo, $expenseInfo, $branchId, $filters),
             'products'         => $this->getTopProducts($filters),
             'clients'          => $this->getTopClients($filters),
@@ -55,29 +61,50 @@ class AnalyticsService
         $stats = config('analytics.infoboxes');
         $hasRange = !empty($filters['start_date']) && !empty($filters['end_date']);
 
-        $periods = [
-            'today' => [now()->startOfDay(), now()->endOfDay()],
-            'month' => $hasRange ? [$filters['start_date'], $filters['end_date']] : [now()->startOfMonth(), now()->endOfMonth()],
-            'year'  => [now()->startOfYear(), now()->endOfYear()],
-        ];
+        $today = [now()->startOfDay(), now()->endOfDay()];
+        $month = $hasRange ? [Carbon::parse($filters['start_date'])->startOfDay(), Carbon::parse($filters['end_date'])->endOfDay()] : [now()->startOfMonth()->startOfDay(), now()->endOfMonth()->endOfDay()];
+        $year = [now()->startOfYear()->startOfDay(), now()->endOfYear()->endOfDay()];
 
-        foreach ($periods as $period => $dates) {
-            $key = "sales_$period";
+        $salesCounts = Sale::forBranch($branchId)
+            ->selectRaw("
+                COUNT(CASE WHEN created_at BETWEEN ? AND ? THEN 1 END) as today_count,
+                COUNT(CASE WHEN created_at BETWEEN ? AND ? THEN 1 END) as month_count,
+                COUNT(CASE WHEN created_at BETWEEN ? AND ? THEN 1 END) as year_count
+            ", [
+                $today[0], $today[1],
+                $month[0], $month[1],
+                $year[0], $year[1]
+            ])
+            ->first();
 
-            // Cantidad de transacciones (Ventas)
-            $stats[$key]['number'] = Sale::forBranch($branchId)
-                ->whereBetween('created_at', $dates)
-                ->count();
+        $rate = $this->exchangeService->getCurrentDollarRate();
+        $usdValue = CurrencyType::USD->value;
+        $paymentExpression = "CASE WHEN payments.currency = '{$usdValue}' THEN payments.amount * {$rate} ELSE payments.amount END";
 
-            // Dinero real ingresado (Pagos)
-            $stats[$key]['secondaryNumber'] = Payment::where('paymentable_type', Sale::class)
-                ->whereBetween('created_at', $dates)
-                ->whereHasMorph('paymentable', [Sale::class], fn($q) => $q->forBranch($branchId))
-                ->selectRaw("{$this->getConvertedPaymentExpression()} as total")
-                ->value('total') ?? 0;
+        $paymentSums = Payment::where('paymentable_type', Sale::class)
+            ->whereHasMorph('paymentable', [Sale::class], fn($q) => $q->forBranch($branchId))
+            ->selectRaw("
+                SUM(CASE WHEN payments.created_at BETWEEN ? AND ? THEN {$paymentExpression} ELSE 0 END) as today_sum,
+                SUM(CASE WHEN payments.created_at BETWEEN ? AND ? THEN {$paymentExpression} ELSE 0 END) as month_sum,
+                SUM(CASE WHEN payments.created_at BETWEEN ? AND ? THEN {$paymentExpression} ELSE 0 END) as year_sum
+            ", [
+                $today[0], $today[1],
+                $month[0], $month[1],
+                $year[0], $year[1]
+            ])
+            ->first();
 
-            $stats[$key]['secondarySuffix'] = '$';
-        }
+        $stats['sales_today']['number'] = $salesCounts->today_count ?? 0;
+        $stats['sales_today']['secondaryNumber'] = $paymentSums->today_sum ?? 0;
+        $stats['sales_today']['secondarySuffix'] = '$';
+
+        $stats['sales_month']['number'] = $salesCounts->month_count ?? 0;
+        $stats['sales_month']['secondaryNumber'] = $paymentSums->month_sum ?? 0;
+        $stats['sales_month']['secondarySuffix'] = '$';
+
+        $stats['sales_year']['number'] = $salesCounts->year_count ?? 0;
+        $stats['sales_year']['secondaryNumber'] = $paymentSums->year_sum ?? 0;
+        $stats['sales_year']['secondarySuffix'] = '$';
 
         return $stats;
     }
@@ -96,18 +123,29 @@ class AnalyticsService
             $queryBase->where('expense_type_id', $expenseTypeId);
         }
 
-        // Usa el scope sumConverted del modelo (que usa el trait)
-        $boxes['expenses_today']['number'] = (clone $queryBase)
-            ->whereDate('date', today())
-            ->sumConverted();
+        $rate = app(CurrencyExchangeService::class)->getCurrentDollarRate();
+        $usdValue = CurrencyType::USD->value;
+        $expenseExpression = "CASE WHEN currency = {$usdValue} THEN amount * {$rate} ELSE amount END";
 
-        $boxes['expenses_month']['number'] = (clone $queryBase)
-            ->whereBetween('date', [$startDate, $endDate])
-            ->sumConverted();
+        $todayStr = today()->toDateString();
+        $yearStart = now()->startOfYear()->toDateString();
+        $yearEnd = now()->endOfYear()->toDateString();
 
-        $boxes['expenses_year']['number'] = (clone $queryBase)
-            ->whereYear('date', now()->year)
-            ->sumConverted();
+        $expenseSums = (clone $queryBase)
+            ->selectRaw("
+                SUM(CASE WHEN date = ? THEN {$expenseExpression} ELSE 0 END) as today_sum,
+                SUM(CASE WHEN date BETWEEN ? AND ? THEN {$expenseExpression} ELSE 0 END) as month_sum,
+                SUM(CASE WHEN date BETWEEN ? AND ? THEN {$expenseExpression} ELSE 0 END) as year_sum
+            ", [
+                $todayStr,
+                $startDate, $endDate,
+                $yearStart, $yearEnd
+            ])
+            ->first();
+
+        $boxes['expenses_today']['number'] = (float) ($expenseSums->today_sum ?? 0);
+        $boxes['expenses_month']['number'] = (float) ($expenseSums->month_sum ?? 0);
+        $boxes['expenses_year']['number'] = (float) ($expenseSums->year_sum ?? 0);
 
         return $boxes;
     }
@@ -122,34 +160,37 @@ class AnalyticsService
 
         $bankAccounts = \App\Models\BankAccount::with(['bank', 'user'])->get();
 
+        $salesTotals = Payment::where('paymentable_type', Sale::class)
+            ->where('payment_type', \App\Enums\PaymentType::Transfer->value)
+            ->whereBetween('created_at', [$start, $end])
+            ->whereHasMorph('paymentable', [Sale::class], fn($q) => $q->forBranch($branchId))
+            ->where('payment_method_type', \App\Models\BankAccount::class)
+            ->select('payment_method_id')
+            ->selectRaw("SUM(CASE WHEN currency = ? THEN amount ELSE 0 END) as sales_ars", [CurrencyType::ARS->value])
+            ->selectRaw("SUM(CASE WHEN currency = ? THEN amount ELSE 0 END) as sales_usd", [CurrencyType::USD->value])
+            ->groupBy('payment_method_id')
+            ->get()
+            ->keyBy('payment_method_id');
+
+        $expensesTotals = Expense::forBranch($branchId)
+            ->where('payment_type', \App\Enums\PaymentType::Transfer->value)
+            ->whereBetween('date', [$start, $end])
+            ->select('bank_account_id')
+            ->selectRaw("SUM(CASE WHEN currency = ? THEN amount ELSE 0 END) as expenses_ars", [CurrencyType::ARS->value])
+            ->selectRaw("SUM(CASE WHEN currency = ? THEN amount ELSE 0 END) as expenses_usd", [CurrencyType::USD->value])
+            ->groupBy('bank_account_id')
+            ->get()
+            ->keyBy('bank_account_id');
+
         $stats = [];
         foreach ($bankAccounts as $account) {
-            $salesQuery = Payment::where('paymentable_type', Sale::class)
-                ->where('payment_type', \App\Enums\PaymentType::Transfer->value)
-                ->where('payment_method_id', $account->id)
-                ->whereBetween('created_at', [$start, $end])
-                ->whereHasMorph('paymentable', [Sale::class], fn($q) => $q->forBranch($branchId));
+            $sales = $salesTotals->get($account->id);
+            $expenses = $expensesTotals->get($account->id);
 
-            $salesArs = (clone $salesQuery)
-                ->where('currency', CurrencyType::ARS->value)
-                ->sum('amount');
-
-            $salesUsd = (clone $salesQuery)
-                ->where('currency', CurrencyType::USD->value)
-                ->sum('amount');
-
-            $expensesQuery = Expense::forBranch($branchId)
-                ->where('payment_type', \App\Enums\PaymentType::Transfer->value)
-                ->where('bank_account_id', $account->id)
-                ->whereBetween('date', [$start, $end]);
-
-            $expensesArs = (clone $expensesQuery)
-                ->where('currency', CurrencyType::ARS->value)
-                ->sum('amount');
-
-            $expensesUsd = (clone $expensesQuery)
-                ->where('currency', CurrencyType::USD->value)
-                ->sum('amount');
+            $salesArs = (float)($sales?->sales_ars ?? 0);
+            $salesUsd = (float)($sales?->sales_usd ?? 0);
+            $expensesArs = (float)($expenses?->expenses_ars ?? 0);
+            $expensesUsd = (float)($expenses?->expenses_usd ?? 0);
 
             $stats[] = [
                 'account' => $account,
@@ -165,16 +206,125 @@ class AnalyticsService
         return $stats;
     }
 
+    private function getFilteredSalesTotal(array $filters): array
+    {
+        $branchId = $filters['branch_id'];
+        $hasRange = !empty($filters['start_date']) && !empty($filters['end_date']);
+        
+        $start = $hasRange ? Carbon::parse($filters['start_date'])->startOfDay() : now()->startOfMonth()->startOfDay();
+        $end = $hasRange ? Carbon::parse($filters['end_date'])->endOfDay() : now()->endOfMonth()->endOfDay();
+
+        $query = Payment::where('paymentable_type', Sale::class)
+            ->whereBetween('created_at', [$start, $end])
+            ->whereHasMorph('paymentable', [Sale::class], fn($q) => $q->forBranch($branchId));
+
+        if (!empty($filters['sales_payment_type'])) {
+            $query->where('payment_type', $filters['sales_payment_type']);
+            
+            if ((int)$filters['sales_payment_type'] === \App\Enums\PaymentType::Transfer->value && !empty($filters['sales_bank_account_id'])) {
+                $query->where('payment_method_id', $filters['sales_bank_account_id'])
+                      ->where('payment_method_type', \App\Models\BankAccount::class);
+            } elseif ((int)$filters['sales_payment_type'] === \App\Enums\PaymentType::Card->value && !empty($filters['sales_bank_id'])) {
+                $query->where('payment_method_id', $filters['sales_bank_id'])
+                      ->where('payment_method_type', \App\Models\Bank::class);
+            }
+        }
+
+        $totals = $query->selectRaw("
+            SUM(CASE WHEN currency = ? THEN amount ELSE 0 END) as ars,
+            SUM(CASE WHEN currency = ? THEN amount ELSE 0 END) as usd
+        ", [CurrencyType::ARS->value, CurrencyType::USD->value])->first();
+
+        return [
+            'ars' => (float)($totals->ars ?? 0),
+            'usd' => (float)($totals->usd ?? 0),
+        ];
+    }
+
+    private function getFilteredExpensesTotal(array $filters): array
+    {
+        $branchId = $filters['branch_id'];
+        $hasRange = !empty($filters['start_date']) && !empty($filters['end_date']);
+        
+        $start = $hasRange ? Carbon::parse($filters['start_date'])->startOfDay() : now()->startOfMonth()->startOfDay();
+        $end = $hasRange ? Carbon::parse($filters['end_date'])->endOfDay() : now()->endOfMonth()->endOfDay();
+
+        $query = Expense::forBranch($branchId)
+            ->whereBetween('date', [$start, $end]);
+
+        if (!empty($filters['expenses_expense_type_id'])) {
+            $query->where('expense_type_id', $filters['expenses_expense_type_id']);
+        }
+
+        if (!empty($filters['expenses_payment_type'])) {
+            $query->where('payment_type', $filters['expenses_payment_type']);
+
+            if ((int)$filters['expenses_payment_type'] === \App\Enums\PaymentType::Transfer->value && !empty($filters['expenses_bank_account_id'])) {
+                $query->where('bank_account_id', $filters['expenses_bank_account_id']);
+            }
+        }
+
+        $totals = $query->selectRaw("
+            SUM(CASE WHEN currency = ? THEN amount ELSE 0 END) as ars,
+            SUM(CASE WHEN currency = ? THEN amount ELSE 0 END) as usd
+        ", [CurrencyType::ARS->value, CurrencyType::USD->value])->first();
+
+        return [
+            'ars' => (float)($totals->ars ?? 0),
+            'usd' => (float)($totals->usd ?? 0),
+        ];
+    }
+
+    private function getBalanceTotals(array $filters, array $filteredSales, array $filteredExpenses): array
+    {
+        if (!empty($filters['balance_payment_type'])) {
+            // Ventas específicas para el balance
+            $salesFilters = array_merge($filters, [
+                'sales_payment_type'    => $filters['balance_payment_type'],
+                'sales_bank_account_id' => $filters['balance_bank_account_id'] ?? null,
+                'sales_bank_id'         => $filters['balance_bank_id'] ?? null,
+            ]);
+            $balanceSales = $this->getFilteredSalesTotal($salesFilters);
+
+            // Gastos específicos para el balance
+            $expensesFilters = array_merge($filters, [
+                'expenses_payment_type'    => $filters['balance_payment_type'],
+                'expenses_bank_account_id' => $filters['balance_bank_account_id'] ?? null,
+            ]);
+            $balanceExpenses = $this->getFilteredExpensesTotal($expensesFilters);
+
+            return [
+                'ars' => $balanceSales['ars'] - $balanceExpenses['ars'],
+                'usd' => $balanceSales['usd'] - $balanceExpenses['usd'],
+            ];
+        }
+
+        // Si no hay filtro específico de balance, usar la diferencia de los ya filtrados
+        return [
+            'ars' => $filteredSales['ars'] - $filteredExpenses['ars'],
+            'usd' => $filteredSales['usd'] - $filteredExpenses['usd'],
+        ];
+    }
+
     private function getCostOfGoodsSold(int $branchId, array $dates): float
     {
-        return \App\Models\SaleItem::whereHas('sale', function ($q) use ($branchId, $dates) {
+        $start = Carbon::parse($dates[0])->startOfDay();
+        $end = Carbon::parse($dates[1])->endOfDay();
+
+        $saleItems = \App\Models\SaleItem::whereHas('sale', function ($q) use ($branchId, $start, $end) {
             $q->where('branch_id', $branchId)
-              ->whereBetween('created_at', $dates)
+              ->whereBetween('created_at', [$start, $end])
               ->whereNull('deleted_at');
         })
-        ->get()
-        ->sum(function ($item) use ($branchId) {
-            $cost = $item->product->purchasePrice($branchId) ?? 0;
+        ->with([
+            'product' => fn($q) => $q->withTrashed(),
+            'product.productBranches' => fn($q) => $q->where('branch_id', $branchId),
+            'product.productBranches.prices'
+        ])
+        ->get();
+
+        return (float) $saleItems->sum(function ($item) use ($branchId) {
+            $cost = $item->product?->purchasePrice($branchId) ?? 0;
             return $cost * $item->quantity;
         });
     }
@@ -291,16 +441,24 @@ class AnalyticsService
         $rate = $this->exchangeService->getCurrentDollarRate();
         $usdValue = CurrencyType::USD->value;
 
+        $driver = DB::connection()->getDriverName();
+        $isSqlite = $driver === 'sqlite';
+
+        $monthPaymentExpr = $isSqlite ? 'CAST(strftime("%m", payments.created_at) AS INTEGER)' : 'MONTH(payments.created_at)';
+        $monthExpenseExpr = $isSqlite ? 'CAST(strftime("%m", date) AS INTEGER)' : 'MONTH(date)';
+        $yearPaymentExpr = $isSqlite ? 'CAST(strftime("%Y", payments.created_at) AS INTEGER)' : 'YEAR(payments.created_at)';
+        $yearExpenseExpr = $isSqlite ? 'CAST(strftime("%Y", date) AS INTEGER)' : 'YEAR(date)';
+
         // --- DATOS MENSUALES (Año actual) ---
         $paymentsMonth = Payment::where('paymentable_type', Sale::class)
             ->whereHasMorph('paymentable', [Sale::class], fn($q) => $q->forBranch($branchId))
             ->whereYear('created_at', $currentYear)
-            ->selectRaw('MONTH(created_at) as month, ' . $this->getConvertedPaymentExpression() . ' as total')
+            ->selectRaw($monthPaymentExpr . ' as month, ' . $this->getConvertedPaymentExpression() . ' as total')
             ->groupBy('month')->pluck('total', 'month');
 
         $expensesMonth = Expense::forBranch($branchId)
             ->whereYear('date', $currentYear)
-            ->selectRaw('MONTH(date) as month, SUM(CASE WHEN currency = ' . "'{$usdValue}'" . ' THEN amount * ' . $rate . ' ELSE amount END) as total')
+            ->selectRaw($monthExpenseExpr . ' as month, SUM(CASE WHEN currency = ' . "'{$usdValue}'" . ' THEN amount * ' . $rate . ' ELSE amount END) as total')
             ->groupBy('month')->pluck('total', 'month');
 
         // --- DATOS ANUALES (Últimos 5 años) ---
@@ -309,12 +467,12 @@ class AnalyticsService
         $paymentsYear = Payment::where('paymentable_type', Sale::class)
             ->whereHasMorph('paymentable', [Sale::class], fn($q) => $q->forBranch($branchId))
             ->whereBetween('created_at', [now()->subYears(4)->startOfYear(), now()->endOfYear()])
-            ->selectRaw('YEAR(created_at) as year, ' . $this->getConvertedPaymentExpression() . ' as total')
+            ->selectRaw($yearPaymentExpr . ' as year, ' . $this->getConvertedPaymentExpression() . ' as total')
             ->groupBy('year')->pluck('total', 'year');
 
         $expensesYear = Expense::forBranch($branchId)
             ->whereBetween('date', [now()->subYears(4)->startOfYear(), now()->endOfYear()])
-            ->selectRaw('YEAR(date) as year, SUM(CASE WHEN currency = ' . "'{$usdValue}'" . ' THEN amount * ' . $rate . ' ELSE amount END) as total')
+            ->selectRaw($yearExpenseExpr . ' as year, SUM(CASE WHEN currency = ' . "'{$usdValue}'" . ' THEN amount * ' . $rate . ' ELSE amount END) as total')
             ->groupBy('year')->pluck('total', 'year');
 
         $months = collect(range(1, 12));
