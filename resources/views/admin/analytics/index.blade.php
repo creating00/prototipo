@@ -4,18 +4,48 @@
 
 @push('styles')
     @vite('resources/css/modules/branches/branches-styles.css')
+    <style>
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .loading-overlay-content {
+            text-align: center;
+            color: #fff;
+        }
+    </style>
 @endpush
 
 @section('content')
-    {{-- BLOQUE DE FILTROS --}}
-    <x-adminlte.card title="Filtros de Reporte" type="white">
-        <x-slot:tools>
-            <a href="{{ route('web.analytics.index') }}" class="btn btn-sm btn-outline-secondary">
-                <i class="fas fa-sync-alt mr-1"></i> Restablecer
-            </a>
-        </x-slot:tools>
+    {{-- OVERLAY DE CARGA --}}
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-overlay-content">
+            <div class="spinner-border text-light mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <span class="sr-only">Cargando...</span>
+            </div>
+            <h5 class="text-white font-weight-bold">Aplicando filtros...</h5>
+            <p class="text-white-50 small mb-0">Por favor, espere un momento.</p>
+        </div>
+    </div>
 
-        <form method="GET" action="{{ route('web.analytics.index') }}">
+    <form method="GET" action="{{ route('web.analytics.index') }}" id="analytics-filters-form">
+        {{-- BLOQUE DE FILTROS --}}
+        <x-adminlte.card title="Filtros de Reporte" type="white">
+            <x-slot:tools>
+                <a href="{{ route('web.analytics.index') }}" class="btn btn-sm btn-outline-secondary"
+                   onclick="document.getElementById('loading-overlay').style.display = 'flex';">
+                    <i class="fas fa-sync-alt mr-1"></i> Restablecer
+                </a>
+            </x-slot:tools>
+
             <div class="row">
                 {{-- Filtro de Sucursal --}}
                 <div class="col-md-3">
@@ -47,70 +77,200 @@
                         value="{{ $currentFilters['end_date'] }}" onchange="this.form.submit()" />
                 </div>
             </div>
-        </form>
-    </x-adminlte.card>
+        </x-adminlte.card>
 
-    <h6 class="text-muted text-uppercase mb-2">Actividad</h6>
-    <div class="row mb-4">
-        @foreach ($infoboxes as $box)
-            <div class="col-12 col-sm-6 col-md-4">
-                <x-adminlte.infobox icon="{{ $box['icon'] }}" color="{{ $box['color'] }}" text="{{ $box['text'] }}"
-                    number="{{ $box['number'] ?? 0 }}" prefix="{{ $box['prefix'] ?? null }}"
-                    secondary-number="{{ $box['secondaryNumber'] ?? null }}"
-                    secondary-suffix="{{ $box['secondarySuffix'] ?? null }}" />
-            </div>
-        @endforeach
-    </div>
+        {{-- ACTIVIDAD (Ventas Hoy, Mes, Año) --}}
+        <h6 class="text-muted text-uppercase mb-2">Actividad</h6>
+        <div class="row mb-4">
+            @foreach ($infoboxes as $box)
+                <div class="col-12 col-sm-6 col-md-4">
+                    <x-adminlte.infobox icon="{{ $box['icon'] }}" color="{{ $box['color'] }}" text="{{ $box['text'] }}"
+                        number="{{ $box['number'] ?? 0 }}" prefix="{{ $box['prefix'] ?? null }}"
+                        secondary-number="{{ $box['secondaryNumber'] ?? null }}"
+                        secondary-suffix="{{ $box['secondarySuffix'] ?? null }}" />
+                </div>
+            @endforeach
+        </div>
 
-    {{-- CUENTAS DESTINO (SALDOS DISCRIMINADOS) --}}
-    <div class="row mb-4">
-        @foreach ($bankAccountBoxes as $box)
-            <div class="col-12 col-md-6 col-lg-4 mb-3">
-                <x-adminlte.card type="info" title="{{ $box['account']->full_description }}" icon="fas fa-university">
-                    <div class="row text-center py-2">
-                        <!-- ARS Column -->
-                        <div class="col-6 border-end">
-                            <h6 class="text-uppercase text-muted small fw-bold mb-2">Pesos (ARS)</h6>
-                            <div class="mb-1 text-success font-weight-bold" style="font-size: 0.85rem;">
-                                Ventas: +$ {{ number_format($box['sales_ars'], 2, ',', '.') }}
-                            </div>
-                            <div class="mb-1 text-danger font-weight-bold" style="font-size: 0.85rem;">
-                                Gastos: -$ {{ number_format($box['expenses_ars'], 2, ',', '.') }}
-                            </div>
-                            <hr class="my-2">
-                            <div class="font-weight-bold {{ $box['net_ars'] >= 0 ? 'text-success' : 'text-danger' }}" style="font-size: 1.15rem;">
-                                $ {{ number_format($box['net_ars'], 2, ',', '.') }}
-                            </div>
+        {{-- 3 NUEVAS TARJETAS DE ANALÍTICAS --}}
+        <div class="row mb-4" x-data="{ 
+            salesPaymentType: '{{ $currentFilters['sales_payment_type'] ?? '' }}',
+            expensesPaymentType: '{{ $currentFilters['expenses_payment_type'] ?? '' }}',
+            balancePaymentType: '{{ $currentFilters['balance_payment_type'] ?? '' }}'
+        }">
+            
+            {{-- Tarjeta 1: Ventas del Mes --}}
+            <div class="col-12 col-md-4 mb-3">
+                <x-adminlte.card type="success" title="Ventas del Mes" icon="fas fa-money-bill-wave">
+                    <div class="text-center py-2">
+                        <h4 class="font-weight-bold mb-0 text-success">
+                            $ {{ number_format($filteredSales['ars'], 2, ',', '.') }}
+                        </h4>
+                        <p class="text-muted mb-3" style="font-size: 0.9rem;">
+                            U$D {{ number_format($filteredSales['usd'], 2, ',', '.') }}
+                        </p>
+                    </div>
+                    <hr class="my-2">
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label class="small text-muted mb-1">Forma de Pago</label>
+                            <select name="sales_payment_type" class="form-control form-control-sm" 
+                                x-model="salesPaymentType" @change="salesPaymentType = $event.target.value; $nextTick(() => $el.form.submit())">
+                                <option value="">Todos los métodos</option>
+                                <option value="1">Efectivo</option>
+                                <option value="2">Tarjeta</option>
+                                <option value="3">Transferencia</option>
+                            </select>
                         </div>
-                        <!-- USD Column -->
-                        <div class="col-6">
-                            <h6 class="text-uppercase text-muted small fw-bold mb-2">Dólares (USD)</h6>
-                            <div class="mb-1 text-success font-weight-bold" style="font-size: 0.85rem;">
-                                Ventas: +U$D {{ number_format($box['sales_usd'], 2, ',', '.') }}
-                            </div>
-                            <div class="mb-1 text-danger font-weight-bold" style="font-size: 0.85rem;">
-                                Gastos: -U$D {{ number_format($box['expenses_usd'], 2, ',', '.') }}
-                            </div>
-                            <hr class="my-2">
-                            <div class="font-weight-bold {{ $box['net_usd'] >= 0 ? 'text-success' : 'text-danger' }}" style="font-size: 1.15rem;">
-                                U$D {{ number_format($box['net_usd'], 2, ',', '.') }}
-                            </div>
+                        
+                        {{-- Cuenta destino (Solo transferencia) --}}
+                        <div class="col-12 mt-2" x-show="salesPaymentType == '3'" x-cloak x-transition>
+                            <label class="small text-muted mb-1">Cuenta Destino</label>
+                            <select name="sales_bank_account_id" class="form-control form-control-sm" onchange="this.form.submit()">
+                                <option value="">Todas las cuentas</option>
+                                @foreach($bankAccounts as $id => $desc)
+                                    <option value="{{ $id }}" {{ ($currentFilters['sales_bank_account_id'] == $id) ? 'selected' : '' }}>
+                                        {{ $desc }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Banco (Solo tarjeta) --}}
+                        <div class="col-12 mt-2" x-show="salesPaymentType == '2'" x-cloak x-transition>
+                            <label class="small text-muted mb-1">Banco emisor</label>
+                            <select name="sales_bank_id" class="form-control form-control-sm" onchange="this.form.submit()">
+                                <option value="">Todos los bancos</option>
+                                @foreach($banks as $id => $name)
+                                    <option value="{{ $id }}" {{ ($currentFilters['sales_bank_id'] == $id) ? 'selected' : '' }}>
+                                        {{ $name }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                 </x-adminlte.card>
             </div>
-        @endforeach
-    </div>
 
-    {{-- RESULTADOS --}}
-    <div class="row mb-5 justify-content-center">
-        @foreach ($resultBoxes as $box)
-            <div class="col-12 col-sm-6 col-md-3">
-                <x-adminlte.infobox icon="{{ $box['icon'] }}" color="{{ $box['color'] }}" text="{{ $box['text'] }}"
-                    number="{{ $box['number'] ?? 0 }}" prefix="{{ $box['prefix'] ?? null }}" />
+            {{-- Tarjeta 2: Gastos del Mes --}}
+            <div class="col-12 col-md-4 mb-3">
+                <x-adminlte.card type="danger" title="Gastos del Mes" icon="fas fa-file-invoice-dollar">
+                    <div class="text-center py-2">
+                        <h4 class="font-weight-bold mb-0 text-danger">
+                            $ {{ number_format($filteredExpenses['ars'], 2, ',', '.') }}
+                        </h4>
+                        <p class="text-muted mb-3" style="font-size: 0.9rem;">
+                            U$D {{ number_format($filteredExpenses['usd'], 2, ',', '.') }}
+                        </p>
+                    </div>
+                    <hr class="my-2">
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label class="small text-muted mb-1">Motivo del gasto</label>
+                            <select name="expenses_expense_type_id" class="form-control form-control-sm" onchange="this.form.submit()">
+                                <option value="">Todos los motivos</option>
+                                @foreach($expenseTypes as $id => $name)
+                                    <option value="{{ $id }}" {{ ($currentFilters['expenses_expense_type_id'] == $id) ? 'selected' : '' }}>
+                                        {{ $name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-12 mt-2">
+                            <label class="small text-muted mb-1">Forma de Pago</label>
+                            <select name="expenses_payment_type" class="form-control form-control-sm" 
+                                x-model="expensesPaymentType" @change="expensesPaymentType = $event.target.value; $nextTick(() => $el.form.submit())">
+                                <option value="">Todos los métodos</option>
+                                <option value="1">Efectivo</option>
+                                <option value="2">Tarjeta</option>
+                                <option value="3">Transferencia</option>
+                                <option value="4">Cheque</option>
+                            </select>
+                        </div>
+
+                        {{-- Cuenta destino (Solo transferencia) --}}
+                        <div class="col-12 mt-2" x-show="expensesPaymentType == '3'" x-cloak x-transition>
+                            <label class="small text-muted mb-1">Cuenta Destino</label>
+                            <select name="expenses_bank_account_id" class="form-control form-control-sm" onchange="this.form.submit()">
+                                <option value="">Todas las cuentas</option>
+                                @foreach($bankAccounts as $id => $desc)
+                                    <option value="{{ $id }}" {{ ($currentFilters['expenses_bank_account_id'] == $id) ? 'selected' : '' }}>
+                                        {{ $desc }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </x-adminlte.card>
             </div>
-        @endforeach
-    </div>
+
+            {{-- Tarjeta 3: Balance del Mes --}}
+            <div class="col-12 col-md-4 mb-3">
+                <x-adminlte.card type="{{ $filteredBalance['ars'] >= 0 ? 'success' : 'danger' }}" title="Balance del Mes" icon="fas fa-balance-scale">
+                    <div class="text-center py-2">
+                        <h4 class="font-weight-bold mb-0 {{ $filteredBalance['ars'] >= 0 ? 'text-success' : 'text-danger' }}">
+                            $ {{ number_format($filteredBalance['ars'], 2, ',', '.') }}
+                        </h4>
+                        <p class="text-muted mb-3" style="font-size: 0.9rem;">
+                            U$D {{ number_format($filteredBalance['usd'], 2, ',', '.') }}
+                        </p>
+                    </div>
+                    <hr class="my-2">
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label class="small text-muted mb-1">Filtrar Balance por Pago</label>
+                            <select name="balance_payment_type" class="form-control form-control-sm" 
+                                x-model="balancePaymentType" @change="balancePaymentType = $event.target.value; $nextTick(() => $el.form.submit())">
+                                <option value="">Todos los métodos</option>
+                                <option value="1">Efectivo</option>
+                                <option value="2">Tarjeta</option>
+                                <option value="3">Transferencia</option>
+                            </select>
+                        </div>
+                        
+                        {{-- Cuenta destino (Solo transferencia) --}}
+                        <div class="col-12 mt-2" x-show="balancePaymentType == '3'" x-cloak x-transition>
+                            <label class="small text-muted mb-1">Cuenta Destino</label>
+                            <select name="balance_bank_account_id" class="form-control form-control-sm" onchange="this.form.submit()">
+                                <option value="">Todas las cuentas</option>
+                                @foreach($bankAccounts as $id => $desc)
+                                    <option value="{{ $id }}" {{ ($currentFilters['balance_bank_account_id'] == $id) ? 'selected' : '' }}>
+                                        {{ $desc }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Banco (Solo tarjeta) --}}
+                        <div class="col-12 mt-2" x-show="balancePaymentType == '2'" x-cloak x-transition>
+                            <label class="small text-muted mb-1">Banco emisor</label>
+                            <select name="balance_bank_id" class="form-control form-control-sm" onchange="this.form.submit()">
+                                <option value="">Todos los bancos</option>
+                                @foreach($banks as $id => $name)
+                                    <option value="{{ $id }}" {{ ($currentFilters['balance_bank_id'] == $id) ? 'selected' : '' }}>
+                                        {{ $name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </x-adminlte.card>
+            </div>
+            
+        </div>
+
+        {{-- RESULTADOS --}}
+        <h6 class="text-muted text-uppercase mb-2">Resultados</h6>
+        <div class="row mb-5 justify-content-center">
+            @foreach ($resultBoxes as $box)
+                <div class="col-12 col-sm-6 col-md-3">
+                    <x-adminlte.infobox icon="{{ $box['icon'] }}" color="{{ $box['color'] }}" text="{{ $box['text'] }}"
+                        number="{{ $box['number'] ?? 0 }}" prefix="{{ $box['prefix'] ?? null }}" />
+                </div>
+            @endforeach
+        </div>
+    </form>
 
     {{-- RECAUDACIÓN Y GANANCIAS --}}
     <div class="row mb-4">
@@ -222,6 +382,26 @@
 @push('scripts')
     <script>
         window.analyticsData = @json($chartData);
+        
+        const form = document.getElementById('analytics-filters-form');
+        if (form) {
+            const originalSubmit = form.submit;
+            form.submit = function() {
+                const overlay = document.getElementById('loading-overlay');
+                if (overlay) overlay.style.display = 'flex';
+                
+                if (typeof originalSubmit === 'function') {
+                    originalSubmit.call(form);
+                } else {
+                    HTMLFormElement.prototype.submit.call(form);
+                }
+            };
+            
+            form.addEventListener('submit', function() {
+                const overlay = document.getElementById('loading-overlay');
+                if (overlay) overlay.style.display = 'flex';
+            });
+        }
     </script>
     @vite('resources/js/pages/analytics-dashboard.js')
 @endpush
