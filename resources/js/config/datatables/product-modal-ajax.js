@@ -44,7 +44,10 @@ export function productModalAjax(data, callback, settings) {
  * 3. branch_id (origen)
  */
 export function getCurrentBranchId() {
-    // 1. Sucursal destinataria (traspasos / órdenes)
+    // 1. Sucursal solicitante / destinataria (órdenes / traspasos)
+    const customerSelect = document.querySelector('select[name="customer_id"]');
+    if (customerSelect?.value) return customerSelect.value;
+
     const recipient = document.querySelector(
         'select[name="branch_recipient_id"]'
     );
@@ -54,7 +57,7 @@ export function getCurrentBranchId() {
     const branchIdInput = document.getElementById("current_branch_id");
     if (branchIdInput?.value) return branchIdInput.value;
 
-    // 3. Sucursal origen
+    // 3. Sucursal origen / proveedora
     const sender = document.querySelector('select[name="branch_id"]');
     if (sender?.value) return sender.value;
 

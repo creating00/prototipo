@@ -38,15 +38,17 @@ class ProductController extends BaseProductController
         );
     }
 
-    private function resolvePriceModel(Product $product, string $branchId, string $context, bool $isRepair)
+    private function resolvePriceModel(Product $product, ?string $branchId, string $context, bool $isRepair)
     {
-        return match ($context) {
+        $price = match ($context) {
             'sale' => $isRepair
                 ? ($product->repairPriceModel($branchId) ?? $product->salePriceModel($branchId))
                 : $product->salePriceModel($branchId),
-            'order' => $product->purchasePriceModel($branchId),
+            'order' => $product->purchasePriceModel($branchId) ?? $product->salePriceModel($branchId),
             default => $product->salePriceModel($branchId),
         };
+
+        return $price ?? $product->salePriceModel(null) ?? $product->purchasePriceModel(null);
     }
 
     /**
@@ -61,32 +63,30 @@ class ProductController extends BaseProductController
         $context    = $request->get('context', 'order');
 
         if (!$branchId) {
-            return response()->json(['error' => 'Branch ID is required'], 400);
+            $branchId = auth()->user()?->branch_id;
         }
 
         $product = Product::where('code', $code)
             ->when($categoryId, fn($q) => $q->where('category_id', $categoryId))
             ->first();
 
-        if (!$product || !$product->branchContext($branchId)) {
-            return response()->json(['error' => 'Product not found'], 404);
+        if (!$product) {
+            return response()->json(['error' => 'Producto no encontrado'], 404);
         }
 
-        // Buscamos el modelo de precio según contexto
+        // Buscamos el modelo de precio según contexto con fallback
         $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair);
 
-        // Si no existe precio, devolvemos 0 y moneda por defecto (ARS)
         $finalPrice = $priceEntry?->amount ?? 0;
-
-
         $currency = $priceEntry?->currency ?? \App\Enums\CurrencyType::ARS;
+        $stock = $branchId ? $product->getStock($branchId) : 0;
 
         return response()->json([
             'product' => [
                 'id'         => $product->id,
                 'code'       => $product->code,
                 'name'       => $product->name,
-                'stock'      => $product->getStock($branchId),
+                'stock'      => $stock,
                 'sale_price' => $finalPrice,
                 'currency'   => [
                     'code'   => $currency->code(),
@@ -95,7 +95,7 @@ class ProductController extends BaseProductController
             ],
             'html' => view('admin.order.partials._item_row', [
                 'product'        => $product,
-                'stock'          => $product->getStock($branchId),
+                'stock'          => $stock,
                 'salePrice'      => $finalPrice,
                 'currency'       => $currency,
                 'item'           => null,
@@ -116,13 +116,10 @@ class ProductController extends BaseProductController
         $context    = $request->get('context', 'sale');
 
         if (!$branchId) {
-            return response()->json(['error' => 'Branch ID is required'], 400);
+            $branchId = auth()->user()?->branch_id;
         }
 
-        $query = Product::query()
-            ->with(['productBranches' => function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId)->with('prices');
-            }]);
+        $query = Product::query();
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -135,12 +132,7 @@ class ProductController extends BaseProductController
             $query->where('category_id', $categoryId);
         }
 
-        $products = $query
-            ->whereHas('productBranches', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId)->sellable();
-            })
-            ->limit(20)
-            ->get();
+        $products = $query->limit(20)->get();
 
         $response = $products->map(function ($product) use ($branchId, $context, $isRepair) {
             $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair);
@@ -149,7 +141,7 @@ class ProductController extends BaseProductController
                 'id'            => $product->id,
                 'code'          => $product->code,
                 'name'          => $product->name,
-                'stock'         => $product->getStock($branchId),
+                'stock'         => $branchId ? $product->getStock($branchId) : 0,
                 'price'         => $priceEntry?->amount ?? 0,
                 'price_display' => $priceEntry?->getFormattedAmount() ?? '$ 0,00',
             ];

@@ -211,15 +211,20 @@ trait DataTableFormatter
             'branch'     => $baseRow['branch'],
             'customer'   => $baseRow['customer'],
             'total'      => $baseRow['total'],
-            'source'     => '<span class="badge bg-info">' . $sourceLabel . '</span>',
-            'status'     => $baseRow['status'],
-            'created_at' => $baseRow['created_at'],
+            'source'         => '<span class="badge bg-info">' . $sourceLabel . '</span>',
+            'status'         => $baseRow['status'],
+            'payment_status' => sprintf('<span class="%s">%s</span>', $order->payment_status_badge_class, $order->payment_status_label),
+            'created_at'     => $baseRow['created_at'],
 
             // --- 2. ATRIBUTOS DE FILA ---
             '_row_attributes' => [
                 'id'                   => $baseRow['id'],
                 'status_raw'           => $baseRow['status_raw'],
                 'source_raw'           => $sourceRaw,
+                'is_stock_sent'        => $order->is_stock_sent ? 'true' : 'false',
+                'payment_status'       => $order->payment_status,
+                'payment_status_label' => $order->payment_status_label,
+                'payment_status_badge' => $order->payment_status_badge_class,
                 'phone'                => $baseRow['phone'],
                 'whatsapp-url'         => $baseRow['whatsapp-url'],
                 'customer_type'        => $baseRow['customer_type'],

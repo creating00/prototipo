@@ -19,6 +19,9 @@ class Order extends Model
         'branch_id',
         'user_id',
         'status',
+        'is_stock_sent',
+        'stock_sent_at',
+        'payment_status',
         'source',
         'sale_id',
         'exchange_rate',
@@ -33,7 +36,32 @@ class Order extends Model
         'source' => OrderSource::class,
         'totals' => 'array',
         'exchange_rate' => 'decimal:4',
+        'is_stock_sent' => 'boolean',
+        'stock_sent_at' => 'datetime',
+        'payment_status' => 'integer',
     ];
+
+    public function canBeEdited(): bool
+    {
+        return !$this->is_stock_sent;
+    }
+
+    public function isStockSent(): bool
+    {
+        return (bool) $this->is_stock_sent;
+    }
+
+    public function getPaymentStatusLabelAttribute(): string
+    {
+        return (int) $this->payment_status === 1 ? 'Pagado' : 'Pendiente';
+    }
+
+    public function getPaymentStatusBadgeClassAttribute(): string
+    {
+        return (int) $this->payment_status === 1
+            ? 'badge-custom badge-custom-pastel-green'
+            : 'badge-custom badge-custom-pastel-yellow';
+    }
 
     public function branch()
     {

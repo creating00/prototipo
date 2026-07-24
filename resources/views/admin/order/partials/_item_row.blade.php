@@ -42,8 +42,7 @@
 
     <td>
         <input type="number" name="items[INDEX][quantity]" class="form-control quantity" min="1"
-            max="{{ $stock }}" step="1" oninput="this.value = Math.min(this.value, this.max)"
-            value="{{ $quantity }}">
+            step="1" value="{{ $quantity }}">
     </td>
 
     <td>
