@@ -47,5 +47,3 @@
         <span>No se encontraron productos</span>
     </li>
 </template>
-
-@include('admin.product.partials._modal-create')
