@@ -38,7 +38,7 @@ class OrderWebController extends BaseOrderController
             ->get()
             ->pluck('full_description', 'id');
 
-        $headers = ['#', 'Pedido', 'Sucursal', 'Cliente', 'Total', 'Canal', 'Estado', 'Creado en:'];
+        $headers = ['#', 'Pedido', 'Sucursal', 'Cliente', 'Total', 'Canal', 'Estado', 'Estado Pago', 'Creado en:'];
         $hiddenFields = [
             'id',
             'status_raw',
@@ -81,10 +81,20 @@ class OrderWebController extends BaseOrderController
         // 3. Definimos la ruta de retorno específica
         $backUrl = route('web.orders.purchases');
 
+        $banks = \App\Models\Bank::query()
+            ->orderBy('name')
+            ->pluck('name', 'id');
+
+        $bankAccounts = \App\Models\BankAccount::with(['bank', 'user'])
+            ->get()
+            ->pluck('full_description', 'id');
+
         // 4. Retornamos la vista uniendo todo
         return view('admin.order.details', [
             'order'        => $order,
             'backUrl'      => $backUrl,
+            'banks'        => $banks,
+            'bankAccounts' => $bankAccounts,
             'rowData'      => $itemsData['rowData'],
             'headers'      => $itemsData['headers'],
             'hiddenFields' => $itemsData['hiddenFields'],
@@ -129,6 +139,7 @@ class OrderWebController extends BaseOrderController
             'Proveedor (Sucursal)',
             'Total',
             'Estado',
+            'Estado Pago',
             'Fecha Solicitud',
             'Fecha Recepción',
             'Recibido por'
@@ -264,10 +275,68 @@ class OrderWebController extends BaseOrderController
         }
     }
 
+    public function sendToStock(int $id)
+    {
+        try {
+            $order = $this->orderService->sendToStock($id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'El pedido fue enviado al stock e incrementó el inventario correctamente.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function updatePaymentStatus(Request $request, int $id)
+    {
+        $request->validate([
+            'payment_status' => 'required|integer|in:1,2',
+        ]);
+
+        try {
+            $order = $this->orderService->updatePaymentStatus($id, (int) $request->payment_status);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Estado de pago actualizado correctamente.',
+                'payment_status_label' => $order->payment_status_label,
+                'payment_status_badge' => $order->payment_status_badge_class,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function autoOrderItems(Request $request)
+    {
+        $receivingBranchId = (int) ($request->get('customer_id') ?: $this->currentBranchId());
+        $supplyingBranchId = (int) ($request->get('branch_id') ?: $this->currentBranchId());
+
+        $items = $this->orderService->getAutoOrderProducts($receivingBranchId, $supplyingBranchId);
+
+        return response()->json([
+            'success' => true,
+            'items'   => $items,
+        ]);
+    }
+
     public function edit($id)
     {
         $order = $this->orderService->getOrderById($id);
         $this->authorize('update', $order);
+
+        if (!$order->canBeEdited()) {
+            return redirect()->back()->with('error', 'El registro de este pedido está bloqueado porque ya fue enviado al stock.');
+        }
+
         $userBranchId = $this->currentBranchId();
 
         $isEdit = true;

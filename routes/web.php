@@ -146,6 +146,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('web.orders.purchases.details');
         Route::get('orders/{id}/details', [OrderWebController::class, 'show'])->name('web.orders.show');
         Route::post('orders/{id}/receive', [OrderWebController::class, 'receive'])->name('web.orders.receive');
+        Route::post('orders/{id}/send-to-stock', [OrderWebController::class, 'sendToStock'])->name('web.orders.send-to-stock');
+        Route::patch('orders/{id}/payment-status', [OrderWebController::class, 'updatePaymentStatus'])->name('web.orders.update-payment-status');
+        Route::get('orders/auto-order-items', [OrderWebController::class, 'autoOrderItems'])->name('web.orders.auto-order-items');
 
         resourceWithExtras('orders', OrderWebController::class, [
             'create-client' => 'createClient',

@@ -14,7 +14,78 @@ export default {
         if (!this.table) return;
 
         this.bindEvents();
+        this.bindAutoPedido();
         this.refreshTableState();
+    },
+
+    bindAutoPedido() {
+        const btnAuto = document.querySelector("#btn-auto-pedido");
+        if (!btnAuto) return;
+
+        btnAuto.addEventListener("click", async () => {
+            const customerId = document.querySelector("#customer_id")?.value;
+            const branchId = document.querySelector("#branch_id")?.value;
+
+            btnAuto.disabled = true;
+            btnAuto.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Cargando...';
+
+            try {
+                const url = new URL("/web/orders/auto-order-items", window.location.origin);
+                if (customerId) url.searchParams.append("customer_id", customerId);
+                if (branchId) url.searchParams.append("branch_id", branchId);
+
+                const res = await fetch(url.toString(), { headers: { Accept: "application/json" } });
+                const data = await res.json();
+
+                if (data.success && data.items.length > 0) {
+                    let count = 0;
+                    for (const item of data.items) {
+                        try {
+                            const bId = branchId || getCurrentBranchId();
+                            const prodData = await fetchProduct(item.code, bId, "order");
+                            if (prodData && prodData.html) {
+                                const existingRow = this.findRow(item.code);
+                                if (existingRow) {
+                                    const qtyInput = existingRow.querySelector(".quantity");
+                                    if (qtyInput) qtyInput.value = item.suggested_quantity;
+                                } else {
+                                    const row = this.addRow(prodData.html);
+                                    if (row) {
+                                        const qtyInput = row.querySelector(".quantity");
+                                        if (qtyInput) qtyInput.value = item.suggested_quantity;
+                                    }
+                                }
+                                count++;
+                            }
+                        } catch (err) {
+                            console.error("Error al cargar producto auto-pedido:", err);
+                        }
+                    }
+                    this.refreshTableState();
+                    Toast.fire({
+                        icon: "success",
+                        title: "Auto-Pedido cargado",
+                        text: `Se agregaron ${count} productos sugeridos.`,
+                    });
+                } else {
+                    Toast.fire({
+                        icon: "info",
+                        title: "Sin sugerencias",
+                        text: "No se encontraron productos por debajo del stock mínimo.",
+                    });
+                }
+            } catch (e) {
+                console.error("Error en auto-pedido:", e);
+                Toast.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "No se pudo procesar el auto-pedido.",
+                });
+            } finally {
+                btnAuto.disabled = false;
+                btnAuto.innerHTML = '<i class="fas fa-magic me-1"></i> Cargar Auto-Pedido por Stock';
+            }
+        });
     },
 
     bindEvents() {

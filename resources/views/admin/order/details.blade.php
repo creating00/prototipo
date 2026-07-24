@@ -30,12 +30,32 @@
                         {{ $order->branch->name }}
                     </div>
 
-                    {{-- ESTADO: Aquí usamos el Enum correctamente --}}
+                    {{-- ESTADO --}}
                     <div class="col-md-3">
-                        <strong><i class="fas fa-info-circle me-1"></i> Estado</strong><br>
+                        <strong><i class="fas fa-info-circle me-1"></i> Estado del Pedido</strong><br>
                         <span class="badge {{ $order->status->badgeClass() }}">
                             {{ $order->status->label() }}
                         </span>
+                        @if ($order->is_stock_sent)
+                            <span class="badge bg-success ms-1"><i class="fas fa-box-check me-1"></i> Enviado al Stock</span>
+                        @endif
+                    </div>
+
+                    {{-- ESTADO DE PAGO --}}
+                    <div class="col-md-4">
+                        <strong><i class="fas fa-money-bill-wave me-1"></i> Estado de Pago</strong><br>
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            <span id="payment-status-badge" class="{{ $order->payment_status_badge_class }}">
+                                {{ $order->payment_status_label }}
+                            </span>
+                            <select id="select-payment-status" class="form-select form-select-sm w-auto py-0 px-2">
+                                <option value="2" {{ (int)$order->payment_status === 2 ? 'selected' : '' }}>Pendiente</option>
+                                <option value="1" {{ (int)$order->payment_status === 1 ? 'selected' : '' }}>Pagado</option>
+                            </select>
+                            <button type="button" id="btn-save-payment-status" class="btn btn-sm btn-outline-success py-0 px-2" title="Guardar Estado de Pago">
+                                <i class="fas fa-save me-1"></i> Guardar
+                            </button>
+                        </div>
                     </div>
 
                     <div class="col-md-3">
@@ -104,30 +124,121 @@
                 <i class="fas fa-arrow-left me-1"></i> Volver al listado
             </a>
 
-            <div>
-                {{-- Caso 1: Si ya está convertido, mostramos el botón de imprimir --}}
+            <div class="d-flex gap-2">
+                {{-- Botón Enviar al Stock --}}
+                @if (!$order->is_stock_sent)
+                    <button type="button" id="btn-send-to-stock" class="btn btn-primary btn-sm">
+                        <i class="fas fa-boxes me-1"></i> Enviar al Stock
+                    </button>
+                @endif
+
+                @if ($order->canBeEdited())
+                    <a href="{{ route('web.orders.edit', $order->id) }}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit me-1"></i> Editar Pedido
+                    </a>
+                @endif
+
+                {{-- Caso 1: Si ya está convertido --}}
                 @if ($order->status === \App\Enums\OrderStatus::ConvertedToSale && $order->sale_id)
                     <x-adminlte.button color="info" size="sm" icon="fas fa-print" class="btn-print"
-                        title="Imprimir Comprobante" data-id="{{ $order->id }}" {{-- Forzamos a que sea un string o null para que el JS no se rompa --}}
+                        title="Imprimir Comprobante" data-id="{{ $order->id }}"
                         data-sale_id="{{ $order->sale_id ?? '' }}">
                         Imprimir Comprobante
                     </x-adminlte.button>
-
-                    {{-- Caso 2: Si NO está cancelado y NO está convertido, mostramos el de convertir --}}
                 @elseif ($order->status !== \App\Enums\OrderStatus::Cancelled)
                     <x-adminlte.button color="success" size="sm" icon="fas fa-file-invoice-dollar"
-                        class="me-1 btn-convert" title="Convertir a Venta" data-id="{{ $order->id }}"
+                        class="btn-convert" title="Convertir a Venta" data-id="{{ $order->id }}"
                         data-totals_json="{{ json_encode($order->totals) }}"
                         data-customer_name="{{ $order->customer_name }}" data-customer_type="{{ $order->customer_type }}"
                         data-exchange_rate="{{ $order->exchange_rate }}" data-api-url="{{ route('web.orders.index') }}">
                         Convertir a Venta
                     </x-adminlte.button>
                 @endif
-
-                {{-- Caso 3: Si está Cancelled, no entra en ninguno de los anteriores y no muestra nada --}}
             </div>
         </div>
     </div>
+
+    @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const btnSendStock = document.getElementById('btn-send-to-stock');
+                if (btnSendStock) {
+                    btnSendStock.addEventListener('click', async () => {
+                        if (!confirm('¿Desea enviar este pedido al stock? Se incrementará el inventario según las cantidades cargadas y no se podrá modificar el registro del pedido.')) {
+                            return;
+                        }
+
+                        btnSendStock.disabled = true;
+                        try {
+                            const response = await fetch('{{ route('web.orders.send-to-stock', $order->id) }}', {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                    'Accept': 'application/json'
+                                }
+                            });
+                            const data = await response.json();
+                            if (response.ok && data.success) {
+                                alert(data.message);
+                                window.location.reload();
+                            } else {
+                                alert(data.message || 'Error al enviar al stock.');
+                                btnSendStock.disabled = false;
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert('Error de conexión al enviar al stock.');
+                            btnSendStock.disabled = false;
+                        }
+                    });
+                }
+
+                const selectPayment = document.getElementById('select-payment-status');
+                const btnSavePayment = document.getElementById('btn-save-payment-status');
+
+                async function savePaymentStatus() {
+                    if (!selectPayment) return;
+                    const newStatus = selectPayment.value;
+                    if (btnSavePayment) btnSavePayment.disabled = true;
+
+                    try {
+                        const response = await fetch('{{ route('web.orders.update-payment-status', $order->id) }}', {
+                            method: 'PATCH',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ payment_status: newStatus })
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.success) {
+                            const badge = document.getElementById('payment-status-badge');
+                            if (badge) {
+                                badge.className = data.payment_status_badge;
+                                badge.textContent = data.payment_status_label;
+                            }
+                            alert('Estado de pago guardado correctamente: ' + data.payment_status_label);
+                        } else {
+                            alert(data.message || 'Error al actualizar el estado de pago.');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('Error de conexión al actualizar el estado de pago.');
+                    } finally {
+                        if (btnSavePayment) btnSavePayment.disabled = false;
+                    }
+                }
+
+                if (btnSavePayment) {
+                    btnSavePayment.addEventListener('click', savePaymentStatus);
+                }
+                if (selectPayment) {
+                    selectPayment.addEventListener('change', savePaymentStatus);
+                }
+            });
+        </script>
+    @endpush
     @include('admin.order.partials._convert_to_sale_modal')
     @include('admin.sales.partials._modal-print')
 @endsection

@@ -1,0 +1,170 @@
+<?php
+
+use App\Enums\CurrencyType;
+use App\Enums\OrderStatus;
+use App\Models\Branch;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\Province;
+use App\Models\User;
+use App\Services\OrderService;
+use App\Services\Product\ProductStockService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+function createTestBranch(string $name = 'Sucursal Test'): Branch {
+    $province = Province::firstOrCreate(
+        ['name' => 'Buenos Aires'],
+        ['api_id' => '06', 'name_long' => 'Provincia de Buenos Aires']
+    );
+
+    return Branch::create([
+        'province_id' => $province->id,
+        'name' => $name,
+        'phone' => '123456789',
+        'address' => 'Calle Falsa 123',
+    ]);
+}
+
+function createTestProduct(string $name = 'Producto Test'): Product {
+    return Product::create([
+        'code' => 'PROD-' . rand(1000, 9999),
+        'name' => $name,
+        'description' => 'Descripción test',
+    ]);
+}
+
+test('inter-branch order is created in pending state without deducting stock', function () {
+    $branch1 = createTestBranch('Sucursal Origen');
+    $branch2 = createTestBranch('Sucursal Destino');
+    $user = User::factory()->create(['branch_id' => $branch1->id]);
+    $product = createTestProduct();
+
+    // Stock inicial 10 en branch1
+    app(ProductStockService::class)->addStock($product, 10, $branch1->id);
+
+    $orderService = app(OrderService::class);
+
+    $orderData = [
+        'branch_id'     => $branch1->id,
+        'customer_id'   => $branch2->id,
+        'customer_type' => Branch::class,
+        'source'        => 1,
+        'status'        => OrderStatus::Pending->value,
+        'user_id'       => $user->id,
+        'exchange_rate' => 1000,
+        'items'         => [
+            [
+                'product_id' => $product->id,
+                'quantity'   => 5,
+                'unit_price' => 100,
+                'currency'   => CurrencyType::ARS->value,
+            ]
+        ]
+    ];
+
+    $order = $orderService->createOrder($orderData);
+
+    expect($order)->toBeInstanceOf(Order::class)
+        ->and($order->status)->toBe(OrderStatus::Pending)
+        ->and($order->is_stock_sent)->toBeFalse();
+
+    // El stock no debió cambiar en la sucursal al crear la orden
+    expect($product->getStock($branch1->id))->toBe(10);
+});
+
+test('send to stock increases receiving branch stock and locks order modification', function () {
+    $branch1 = createTestBranch('Sucursal Origen');
+    $branch2 = createTestBranch('Sucursal Destino');
+    $user = User::factory()->create(['branch_id' => $branch1->id]);
+    $product = createTestProduct();
+
+    $orderService = app(OrderService::class);
+
+    $order = $orderService->createOrder([
+        'branch_id'     => $branch1->id,
+        'customer_id'   => $branch2->id,
+        'customer_type' => Branch::class,
+        'source'        => 1,
+        'status'        => OrderStatus::Pending->value,
+        'user_id'       => $user->id,
+        'exchange_rate' => 1000,
+        'items'         => [
+            [
+                'product_id' => $product->id,
+                'quantity'   => 15,
+                'unit_price' => 200,
+                'currency'   => CurrencyType::ARS->value,
+            ]
+        ]
+    ]);
+
+    expect($product->getStock($branch2->id))->toBe(0);
+
+    // Ejecutar enviar al stock
+    $updatedOrder = $orderService->sendToStock($order->id);
+
+    expect($updatedOrder->is_stock_sent)->toBeTrue()
+        ->and($updatedOrder->canBeEdited())->toBeFalse();
+
+    // Verificar que el stock de la sucursal solicitante aumentó en 15
+    expect($product->getStock($branch2->id))->toBe(15);
+
+    // Intentar modificar el pedido bloqueado debe lanzar excepción
+    expect(fn() => $orderService->updateOrder($order->id, [
+        'branch_id'     => $branch1->id,
+        'customer_id'   => $branch2->id,
+        'customer_type' => Branch::class,
+        'source'        => 1,
+        'status'        => OrderStatus::Pending->value,
+        'user_id'       => $user->id,
+        'items'         => [
+            [
+                'product_id' => $product->id,
+                'quantity'   => 20,
+                'unit_price' => 200,
+                'currency'   => CurrencyType::ARS->value,
+            ]
+        ]
+    ]))->toThrow(Exception::class, 'No se puede modificar un pedido que ya ha sido enviado al stock.');
+});
+
+test('payment status can be updated even after order is sent to stock', function () {
+    $branch1 = createTestBranch('Sucursal Origen');
+    $branch2 = createTestBranch('Sucursal Destino');
+    $user = User::factory()->create(['branch_id' => $branch1->id]);
+    $product = createTestProduct();
+
+    $orderService = app(OrderService::class);
+
+    $order = $orderService->createOrder([
+        'branch_id'     => $branch1->id,
+        'customer_id'   => $branch2->id,
+        'customer_type' => Branch::class,
+        'source'        => 1,
+        'status'        => OrderStatus::Pending->value,
+        'user_id'       => $user->id,
+        'exchange_rate' => 1000,
+        'items'         => [
+            [
+                'product_id' => $product->id,
+                'quantity'   => 2,
+                'unit_price' => 50,
+                'currency'   => CurrencyType::ARS->value,
+            ]
+        ]
+    ]);
+
+    $orderService->sendToStock($order->id);
+
+    // Actualizar estado de pago a Pagado (1)
+    $paidOrder = $orderService->updatePaymentStatus($order->id, 1);
+    expect($paidOrder->payment_status)->toBe(1)
+        ->and($paidOrder->payment_status_label)->toBe('Pagado');
+
+    // Volver a cambiar a Pendiente (2)
+    $pendingOrder = $orderService->updatePaymentStatus($order->id, 2);
+    expect($pendingOrder->payment_status)->toBe(2)
+        ->and($pendingOrder->payment_status_label)->toBe('Pendiente');
+});
