@@ -65,19 +65,31 @@ class ProductStockService
      */
     public function addStock(Product $product, int $quantity, int $branchId): void
     {
-        $productBranch = $product->productBranches()->updateOrCreate(
-            ['branch_id' => $branchId],
-            [
-                'status' => ProductStatus::Available,
-            ]
-        );
+        $productBranch = ProductBranch::withTrashed()
+            ->where('product_id', $product->id)
+            ->where('branch_id', $branchId)
+            ->lockForUpdate()
+            ->first();
+
+        if ($productBranch) {
+            if ($productBranch->trashed()) {
+                $productBranch->restore();
+            }
+        } else {
+            $productBranch = ProductBranch::create([
+                'product_id' => $product->id,
+                'branch_id'  => $branchId,
+                'stock'      => 0,
+                'status'     => ProductStatus::Available,
+            ]);
+        }
 
         $productBranch->increment('stock', $quantity);
 
-        // Seguridad extra por si estaba en OutOfStock
-        if ($productBranch->stock > 0 && $productBranch->status !== ProductStatus::Available) {
-            $productBranch->status = ProductStatus::Available;
-            $productBranch->save();
+        $freshBranch = $productBranch->fresh();
+        if ($freshBranch) {
+            $this->syncStatus($freshBranch);
+            $freshBranch->save();
         }
     }
 

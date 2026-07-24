@@ -268,10 +268,44 @@ export default {
     },
 
     showEmptyState() {
-        if (this.templateEmpty) {
-            const clone = this.templateEmpty.content.cloneNode(true);
-            this.instance.resultsList.appendChild(clone);
-            this.instance.showResults();
+        const list = this.instance.resultsList;
+        if (!list) return;
+
+        const query = (this.instance.input?.value || "").trim();
+
+        list.innerHTML = `
+            <li class="p-3 text-center">
+                <div class="text-muted mb-2">
+                    <i class="fas fa-exclamation-circle text-warning fa-2x mb-1 d-block"></i>
+                    <div style="font-size: 0.9rem;">No se encontró <strong>"${query || "el producto"}"</strong></div>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm mt-1" id="btn-trigger-quick-product">
+                    <i class="fas fa-plus-circle me-1"></i> Registrar Producto Nuevo
+                </button>
+            </li>
+        `;
+        this.instance.showResults();
+
+        const btnTrigger = list.querySelector("#btn-trigger-quick-product");
+        if (btnTrigger) {
+            btnTrigger.addEventListener("click", (e) => {
+                e.preventDefault();
+                this.instance.hideResults();
+                const modalEl = document.getElementById("modalQuickProduct");
+                if (modalEl) {
+                    const form = modalEl.querySelector("#formQuickProduct");
+                    if (form) {
+                        const nameInput = form.querySelector('input[name="name"]');
+                        const codeInput = form.querySelector('input[name="code"]');
+                        if (nameInput) nameInput.value = query;
+                        if (codeInput && !codeInput.value) {
+                            codeInput.value = "PRD-" + Math.floor(1000 + Math.random() * 9000);
+                        }
+                    }
+                    const modal = window.bootstrap?.Modal?.getOrCreateInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    modal.show();
+                }
+            });
         }
     },
 
@@ -279,10 +313,55 @@ export default {
         const btnSearch = document.querySelector("#btn-search-product");
         if (btnSearch) {
             btnSearch.addEventListener("click", () => {
-                // Notificamos que se requiere abrir la búsqueda avanzada
                 document.dispatchEvent(
                     new CustomEvent("product:openAdvancedSearch"),
                 );
+            });
+        }
+
+        const formQuick = document.getElementById("formQuickProduct");
+        if (formQuick && !formQuick.dataset.listenerAttached) {
+            formQuick.dataset.listenerAttached = "true";
+            formQuick.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const btnSave = document.getElementById("btnSaveQuickProduct");
+                if (btnSave) btnSave.disabled = true;
+
+                const formData = new FormData(formQuick);
+                const currentBranchSelect = document.querySelector('select[name="customer_id"]') || document.querySelector('select[name="branch_id"]');
+                if (currentBranchSelect?.value) {
+                    formData.set('branch_id', currentBranchSelect.value);
+                }
+
+                try {
+                    const response = await fetch("/api/products", {
+                        method: "POST",
+                        headers: {
+                            "Accept": "application/json",
+                            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content || ""
+                        },
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    if (response.ok && data.code) {
+                        const modalEl = document.getElementById("modalQuickProduct");
+                        if (modalEl) {
+                            const modal = window.bootstrap?.Modal?.getInstance(modalEl);
+                            if (modal) modal.hide();
+                        }
+                        formQuick.reset();
+                        this.selectProduct(data.code);
+                    } else {
+                        const errorMsg = data.messages ? Object.values(data.messages).flat().join("\n") : (data.error || "Error al crear el producto.");
+                        alert(errorMsg);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("Error de conexión al guardar el producto.");
+                } finally {
+                    if (btnSave) btnSave.disabled = false;
+                }
             });
         }
     },
