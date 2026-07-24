@@ -328,32 +328,41 @@ export default {
                 if (btnSave) btnSave.disabled = true;
 
                 const formData = new FormData(formQuick);
-                const currentBranchSelect = document.querySelector('select[name="customer_id"]') || document.querySelector('select[name="branch_id"]');
-                if (currentBranchSelect?.value) {
-                    formData.set('branch_id', currentBranchSelect.value);
+
+                // Si no hay branch_id especificado en el formulario, intentar obtener del selector de la orden
+                if (!formData.get('branch_id')) {
+                    const branchSelect = document.querySelector('select[name="customer_id"]') || document.querySelector('select[name="branch_id"]');
+                    if (branchSelect?.value) {
+                        formData.set('branch_id', branchSelect.value);
+                    }
                 }
 
                 try {
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ||
+                                      document.querySelector('input[name="_token"]')?.value || "";
+
                     const response = await fetch("/api/products", {
                         method: "POST",
                         headers: {
                             "Accept": "application/json",
-                            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content || ""
+                            "X-CSRF-TOKEN": csrfToken
                         },
                         body: formData
                     });
 
                     const data = await response.json();
-                    if (response.ok && data.code) {
+                    if ((response.ok || response.status === 201) && data.code) {
                         const modalEl = document.getElementById("modalQuickProduct");
                         if (modalEl) {
-                            const modal = window.bootstrap?.Modal?.getInstance(modalEl);
+                            const modal = window.bootstrap?.Modal?.getInstance(modalEl) || window.bootstrap?.Modal?.getOrCreateInstance(modalEl);
                             if (modal) modal.hide();
                         }
                         formQuick.reset();
                         this.selectProduct(data.code);
                     } else {
-                        const errorMsg = data.messages ? Object.values(data.messages).flat().join("\n") : (data.error || "Error al crear el producto.");
+                        const errorMsg = data.messages
+                            ? Object.values(data.messages).flat().join("\n")
+                            : (data.error || "Error al crear el producto.");
                         alert(errorMsg);
                     }
                 } catch (err) {

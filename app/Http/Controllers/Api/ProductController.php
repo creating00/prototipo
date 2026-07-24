@@ -156,16 +156,31 @@ class ProductController extends BaseProductController
     public function store(Request $request)
     {
         try {
+            $data = $request->except(['removeImage']);
+
+            if ($request->hasFile('imageFile')) {
+                $data['imageFile'] = $request->file('imageFile');
+            }
+
+            if (empty($data['branch_id'])) {
+                $data['branch_id'] = auth()->user()?->branch_id;
+            }
+
             $product = $this->productService->create(
-                $request->except(['imageFile', 'imageUrl']),
-                $request->file('imageFile'),
-                $request->get('imageUrl')
+                data: $data,
+                imageFile: $request->file('imageFile'),
+                imageUrl: $request->input('imageUrl')
             );
 
-            return response()->json(
-                $product->load(['branches', 'category']),
-                201
-            );
+            $branchId = $data['branch_id'] ?? auth()->user()?->branch_id;
+
+            return response()->json([
+                'id'    => $product->id,
+                'code'  => $product->code,
+                'name'  => $product->name,
+                'stock' => $branchId ? $product->getStock($branchId) : 0,
+                'price' => $branchId ? $product->salePrice($branchId) : 0,
+            ], 201);
         } catch (ValidationException $e) {
             return response()->json([
                 'error' => 'Validation Failed',
