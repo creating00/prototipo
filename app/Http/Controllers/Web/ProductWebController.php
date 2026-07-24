@@ -31,7 +31,7 @@ class ProductWebController extends BaseProductController
         return view('admin.product.index', compact('rowData', 'headers', 'hiddenFields'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $this->authorize('create', Product::class);
         $branchUserId = $this->currentBranchId();
@@ -53,8 +53,16 @@ class ProductWebController extends BaseProductController
         // Importante: colección vacía para evitar nulls
         $productBranch->setRelation('prices', collect());
 
+        $product = null;
+        if ($request->filled('name') || $request->filled('code')) {
+            $product = new Product([
+                'name' => $request->get('name'),
+                'code' => $request->get('code'),
+            ]);
+        }
+
         $formData = new ProductFormData(
-            product: null,
+            product: $product,
             productBranch: $productBranch,
             statusOptions: ProductStatus::forSelect(),
             currencyOptions: CurrencyType::forSelect(),

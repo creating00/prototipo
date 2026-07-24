@@ -10,9 +10,12 @@
         </span>
         <input type="text" id="product_search_input" class="form-control compact-input border-start-0 ps-0"
             placeholder="Escriba código o nombre..." autocomplete="off">
+        <button type="button" class="btn btn-outline-success border-start-0" id="btn-open-quick-product" data-bs-toggle="modal" data-bs-target="#modalQuickProduct" title="Registrar Producto Nuevo">
+            <i class="fas fa-plus me-1"></i> Nuevo
+        </button>
 
         <div id="search-spinner" class="position-absolute"
-            style="right: 10px; top: 50%; transform: translateY(-50%); display: none; z-index: 1060;">
+            style="right: 80px; top: 50%; transform: translateY(-50%); display: none; z-index: 1060;">
             <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
         </div>
     </div>
@@ -44,3 +47,5 @@
         <span>No se encontraron productos</span>
     </li>
 </template>
+
+@include('admin.product.partials._modal-create')
