@@ -37,8 +37,8 @@
         ])
     </x-adminlte.form>
 
-    {{-- @include('admin.product.partials._modal_product_search') --}}
     @include('admin.client.partials._modal-create')
+    @include('admin.product.partials._modal-create')
 @endsection
 
 @push('scripts')
