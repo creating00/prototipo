@@ -39,7 +39,7 @@ Route::prefix('inventory')->group(function () {
     Route::get('list', [ProductController::class, 'list']);
     Route::get('by-code', [ProductController::class, 'findByCode']);
 });
-Route::apiResource('products', ProductController::class);
+Route::apiResource('products', ProductController::class)->middleware('web');
 Route::apiResource('promotions', PromotionImageController::class);
 
 Route::get('providers/search', [ProviderController::class, 'search'])->name('providers.search');
