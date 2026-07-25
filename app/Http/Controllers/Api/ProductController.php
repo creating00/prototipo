@@ -163,7 +163,29 @@ class ProductController extends BaseProductController
             }
 
             if (empty($data['branch_id'])) {
-                $data['branch_id'] = auth()->user()?->branch_id;
+                $data['branch_id'] = auth()->user()?->branch_id ?? \App\Models\Branch::first()?->id;
+            }
+
+            if (!isset($data['stock']) || $data['stock'] === '') {
+                $data['stock'] = 0;
+            }
+
+            if (empty($data['status'])) {
+                $data['status'] = \App\Enums\ProductStatus::Available->value;
+            }
+
+            if (!isset($data['purchase_price_amount']) || $data['purchase_price_amount'] === '') {
+                $data['purchase_price_amount'] = 0;
+            }
+            if (empty($data['purchase_price_currency'])) {
+                $data['purchase_price_currency'] = 1;
+            }
+
+            if (!isset($data['sale_price_amount']) || $data['sale_price_amount'] === '') {
+                $data['sale_price_amount'] = 0;
+            }
+            if (empty($data['sale_price_currency'])) {
+                $data['sale_price_currency'] = 1;
             }
 
             $product = $this->productService->create(
@@ -172,7 +194,7 @@ class ProductController extends BaseProductController
                 imageUrl: $request->input('imageUrl')
             );
 
-            $branchId = $data['branch_id'] ?? auth()->user()?->branch_id;
+            $branchId = (int)$data['branch_id'];
 
             return response()->json([
                 'id'    => $product->id,

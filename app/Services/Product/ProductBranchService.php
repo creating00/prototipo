@@ -78,23 +78,22 @@ class ProductBranchService
         return $branch;
     }
 
-    /**
-     * Resuelve el estado basado en el stock.
-     */
     private function resolveStatus(array $data): ProductStatus
     {
-        // Si el stock es 0, retornamos la instancia del Enum directamente
         if (isset($data['stock']) && (int)$data['stock'] === 0) {
             return ProductStatus::OutOfStock;
         }
 
-        // Si $data['status'] ya es una instancia del Enum, la retornamos
-        if ($data['status'] instanceof ProductStatus) {
+        if (isset($data['status']) && $data['status'] instanceof ProductStatus) {
             return $data['status'];
         }
 
-        // Convertimos el string/value que viene del request a una instancia del Enum
-        return ProductStatus::from($data['status']);
+        if (isset($data['status'])) {
+            $val = is_numeric($data['status']) ? (int)$data['status'] : $data['status'];
+            return ProductStatus::tryFrom($val) ?? ProductStatus::Available;
+        }
+
+        return ProductStatus::Available;
     }
 
     public function deleteBranchData(Product $product, int $branchId): bool

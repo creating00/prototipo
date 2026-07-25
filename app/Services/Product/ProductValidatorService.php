@@ -11,6 +11,30 @@ class ProductValidatorService
 {
     public function validateProductData(array $data, ?int $ignoreId = null): array
     {
+        if (isset($data['category_id']) && ($data['category_id'] === '' || $data['category_id'] === 'null')) {
+            $data['category_id'] = null;
+        }
+
+        if (isset($data['status'])) {
+            $data['status'] = is_numeric($data['status']) ? (int)$data['status'] : $data['status'];
+        }
+
+        if (isset($data['purchase_price_currency'])) {
+            $data['purchase_price_currency'] = (int)$data['purchase_price_currency'];
+        }
+
+        if (isset($data['sale_price_currency'])) {
+            $data['sale_price_currency'] = (int)$data['sale_price_currency'];
+        }
+
+        if (isset($data['wholesale_price_currency']) && $data['wholesale_price_currency'] !== '') {
+            $data['wholesale_price_currency'] = (int)$data['wholesale_price_currency'];
+        }
+
+        if (isset($data['repair_price_currency']) && $data['repair_price_currency'] !== '') {
+            $data['repair_price_currency'] = (int)$data['repair_price_currency'];
+        }
+
         $rules = [
             'code' => 'required|string|unique:products,code' . ($ignoreId ? ",$ignoreId" : ''),
             'name' => 'required|string',
@@ -33,7 +57,6 @@ class ProductValidatorService
 
             // Precio Mayorista (Opcional)
             'wholesale_price_amount' => 'nullable|numeric|min:0',
-            // La moneda mayorista solo es requerida si se envió el monto
             'wholesale_price_currency' => 'required_with:wholesale_price_amount|integer|in:1,2',
 
             // Precio de Reparación (Opcional)

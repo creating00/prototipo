@@ -58,8 +58,11 @@ class ProductService
     {
         $service = app(ProviderProductService::class);
 
+        $providerIds = array_filter(array_map('intval', $providerIds));
+
         $currentIds = \App\Models\ProviderProduct::where('product_id', $product->id)
             ->pluck('provider_id')
+            ->map(fn($id) => (int)$id)
             ->toArray();
 
         // Eliminar obsoletos
