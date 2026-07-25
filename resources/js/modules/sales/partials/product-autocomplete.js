@@ -73,6 +73,7 @@ export default {
         }
 
         setupFiltersChangeListener(this.instance, this);
+        this.setupExtraActions();
     },
 
     updatePlaceholder() {
@@ -319,59 +320,71 @@ export default {
             });
         }
 
-        const formQuick = document.getElementById("formQuickProduct");
-        if (formQuick && !formQuick.dataset.listenerAttached) {
-            formQuick.dataset.listenerAttached = "true";
-            formQuick.addEventListener("submit", async (e) => {
-                e.preventDefault();
-                const btnSave = document.getElementById("btnSaveQuickProduct");
-                if (btnSave) btnSave.disabled = true;
+        if (document.datasetQuickProductBound) return;
+        document.datasetQuickProductBound = true;
 
-                const formData = new FormData(formQuick);
+        document.addEventListener("submit", async (e) => {
+            const formQuick = e.target.closest("#formQuickProduct");
+            if (!formQuick) return;
 
-                // Si no hay branch_id especificado en el formulario, intentar obtener del selector de la orden
-                if (!formData.get('branch_id')) {
-                    const branchSelect = document.querySelector('select[name="customer_id"]') || document.querySelector('select[name="branch_id"]');
-                    if (branchSelect?.value) {
-                        formData.set('branch_id', branchSelect.value);
-                    }
+            e.preventDefault();
+            e.stopPropagation();
+
+            const btnSave = document.getElementById("btnSaveQuickProduct");
+            const originalHtml = btnSave ? btnSave.innerHTML : "";
+
+            if (btnSave) {
+                btnSave.disabled = true;
+                btnSave.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Guardando...';
+            }
+
+            const formData = new FormData(formQuick);
+
+            // Si no hay branch_id especificado en el formulario, intentar obtener del selector de la orden
+            if (!formData.get('branch_id')) {
+                const branchSelect = document.querySelector('select[name="customer_id"]') || document.querySelector('select[name="branch_id"]');
+                if (branchSelect?.value) {
+                    formData.set('branch_id', branchSelect.value);
                 }
+            }
 
-                try {
-                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ||
-                                      document.querySelector('input[name="_token"]')?.value || "";
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ||
+                                  document.querySelector('input[name="_token"]')?.value || "";
 
-                    const response = await fetch("/api/products", {
-                        method: "POST",
-                        headers: {
-                            "Accept": "application/json",
-                            "X-CSRF-TOKEN": csrfToken
-                        },
-                        body: formData
-                    });
+                const response = await fetch("/api/products", {
+                    method: "POST",
+                    headers: {
+                        "Accept": "application/json",
+                        "X-CSRF-TOKEN": csrfToken
+                    },
+                    body: formData
+                });
 
-                    const data = await response.json();
-                    if ((response.ok || response.status === 201) && data.code) {
-                        const modalEl = document.getElementById("modalQuickProduct");
-                        if (modalEl) {
-                            const modal = window.bootstrap?.Modal?.getInstance(modalEl) || window.bootstrap?.Modal?.getOrCreateInstance(modalEl);
-                            if (modal) modal.hide();
-                        }
-                        formQuick.reset();
-                        this.selectProduct(data.code);
-                    } else {
-                        const errorMsg = data.messages
-                            ? Object.values(data.messages).flat().join("\n")
-                            : (data.error || "Error al crear el producto.");
-                        alert(errorMsg);
+                const data = await response.json();
+                if ((response.ok || response.status === 201) && data.code) {
+                    const modalEl = document.getElementById("modalQuickProduct");
+                    if (modalEl) {
+                        const modal = window.bootstrap?.Modal?.getInstance(modalEl) || window.bootstrap?.Modal?.getOrCreateInstance(modalEl);
+                        if (modal) modal.hide();
                     }
-                } catch (err) {
-                    console.error(err);
-                    alert("Error de conexión al guardar el producto.");
-                } finally {
-                    if (btnSave) btnSave.disabled = false;
+                    formQuick.reset();
+                    this.selectProduct(data.code);
+                } else {
+                    const errorMsg = data.messages
+                        ? Object.values(data.messages).flat().join("\n")
+                        : (data.error || "Error al crear el producto.");
+                    alert(errorMsg);
                 }
-            });
-        }
+            } catch (err) {
+                console.error(err);
+                alert("Error de conexión al guardar el producto.");
+            } finally {
+                if (btnSave) {
+                    btnSave.disabled = false;
+                    btnSave.innerHTML = originalHtml || '<i class="fas fa-check-circle me-1"></i> Guardar y Agregar al Pedido';
+                }
+            }
+        });
     },
 };

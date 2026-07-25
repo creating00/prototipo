@@ -9,28 +9,37 @@ export default class ShortcutManager {
     }
 
     handleKeyDown(e) {
+        if (!e || !e.key) return;
+
         const isInput =
-            e.target.tagName === "INPUT" ||
-            e.target.tagName === "TEXTAREA" ||
-            e.target.isContentEditable;
+            e.target &&
+            (e.target.tagName === "INPUT" ||
+             e.target.tagName === "TEXTAREA" ||
+             e.target.isContentEditable);
 
-        this.shortcuts.forEach((shortcut) => {
-            const keyMatch = e.key.toLowerCase() === shortcut.key.toLowerCase();
-            const ctrlMatch = shortcut.ctrl ? e.ctrlKey : true;
-            const shiftMatch = shortcut.shift ? e.shiftKey : true;
+        if (Array.isArray(this.shortcuts)) {
+            this.shortcuts.forEach((shortcut) => {
+                if (!shortcut || !shortcut.key || typeof shortcut.key !== "string") return;
 
-            if (keyMatch && ctrlMatch && shiftMatch) {
-                if (isInput && !shortcut.allowInInputs) return;
+                const keyMatch = e.key.toLowerCase() === shortcut.key.toLowerCase();
+                const ctrlMatch = shortcut.ctrl ? e.ctrlKey : true;
+                const shiftMatch = shortcut.shift ? e.shiftKey : true;
 
-                e.preventDefault();
-                shortcut.action();
-            }
-        });
+                if (keyMatch && ctrlMatch && shiftMatch) {
+                    if (isInput && !shortcut.allowInInputs) return;
+
+                    e.preventDefault();
+                    if (typeof shortcut.action === "function") {
+                        shortcut.action();
+                    }
+                }
+            });
+        }
 
         if (e.key === "Escape") {
             const openModalElement = document.querySelector(".modal.show");
             if (openModalElement) {
-                const instance = bootstrap.Modal.getInstance(openModalElement);
+                const instance = window.bootstrap?.Modal?.getInstance(openModalElement);
                 if (instance) instance.hide();
             }
         }

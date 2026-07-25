@@ -154,8 +154,8 @@ export default {
             const clone = this.rowTemplate.content.cloneNode(true);
             const row = clone.querySelector("tr");
 
-            row.querySelector(".col-name").textContent = p.business_name;
-            row.querySelector(".col-tax-id").textContent = p.tax_id;
+            row.querySelector(".col-name").textContent = p.business_name || p.name || "Proveedor";
+            row.querySelector(".col-tax-id").textContent = p.tax_id || p.cuit || "-";
             row.querySelector(".col-phone").textContent = p.phone ?? "-";
 
             const input = row.querySelector('input[name="providers[]"]');
