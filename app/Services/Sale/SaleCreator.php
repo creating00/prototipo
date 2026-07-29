@@ -74,17 +74,20 @@ class SaleCreator
 
     protected function generateInternalNumber(int $branchId): int
     {
-        DB::table('sales_internal_numbers')->updateOrInsert(
-            ['branch_id' => $branchId],
-            ['value' => DB::raw('COALESCE(value, 0)')]
-        );
+        $exists = DB::table('sales_internal_numbers')->where('branch_id', $branchId)->exists();
+        if (!$exists) {
+            DB::table('sales_internal_numbers')->insert([
+                'branch_id' => $branchId,
+                'value'     => 0,
+            ]);
+        }
 
         DB::table('sales_internal_numbers')
             ->where('branch_id', $branchId)
             ->lockForUpdate()
             ->increment('value');
 
-        return DB::table('sales_internal_numbers')
+        return (int) DB::table('sales_internal_numbers')
             ->where('branch_id', $branchId)
             ->value('value');
     }

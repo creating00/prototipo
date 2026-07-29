@@ -11,6 +11,11 @@
             display: none !important;
         }
 
+        /* Ocultar botón convertir si la sucursal actual es la compradora/solicitante */
+        tr[data-is_purchaser_branch="true"] .btn-convert {
+            display: none !important;
+        }
+
         tr:not([data-customer_type*="Client"]) .btn-whatsapp {
             display: none !important;
         }

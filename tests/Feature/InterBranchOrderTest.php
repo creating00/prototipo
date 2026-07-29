@@ -168,3 +168,114 @@ test('payment status can be updated even after order is sent to stock', function
     expect($pendingOrder->payment_status)->toBe(2)
         ->and($pendingOrder->payment_status_label)->toBe('Pendiente');
 });
+
+test('convert to sale automatically deducts product stock from supplying branch', function () {
+    $branch1 = createTestBranch('Sucursal Proveedora');
+    $branch2 = createTestBranch('Sucursal Solicitante');
+    $user = User::factory()->create(['branch_id' => $branch1->id]);
+    $product = createTestProduct('Módulo A15');
+
+    // Stock inicial 20 en la sucursal proveedora
+    app(ProductStockService::class)->addStock($product, 20, $branch1->id);
+    expect($product->getStock($branch1->id))->toBe(20);
+
+    $orderService = app(OrderService::class);
+
+    $order = $orderService->createOrder([
+        'branch_id'     => $branch1->id,
+        'customer_id'   => $branch2->id,
+        'customer_type' => Branch::class,
+        'source'        => 1,
+        'status'        => OrderStatus::Pending->value,
+        'user_id'       => $user->id,
+        'exchange_rate' => 1000,
+        'items'         => [
+            [
+                'product_id' => $product->id,
+                'quantity'   => 5,
+                'unit_price' => 100,
+                'currency'   => CurrencyType::ARS->value,
+            ]
+        ]
+    ]);
+
+    // Convertir la orden a venta
+    $sale = $orderService->convertToSale($order->id, [
+        'user_id'          => $user->id,
+        'total_amount'     => 500,
+        'payment_type_1'   => 1,
+        'amount_received_1'=> 500,
+    ]);
+
+    expect($sale)->toBeInstanceOf(\App\Models\Sale::class);
+
+    // Verificar que el estado de la orden cambió a Convertida a Venta (4)
+    $freshOrder = $order->fresh();
+    expect($freshOrder->status->value)->toBe(OrderStatus::ConvertedToSale->value);
+
+    // Verificar que el stock en la sucursal proveedora fue descontado de 20 a 15
+    $product->refresh();
+    expect($product->getStock($branch1->id))->toBe(15);
+});
+
+test('inter-branch order queries isolate purchased orders by branch context', function () {
+    $branch1 = createTestBranch('General Paz');
+    $branch2 = createTestBranch('Cofico');
+
+    $user1 = User::factory()->create(['branch_id' => $branch1->id]);
+    $user2 = User::factory()->create(['branch_id' => $branch2->id]);
+
+    $product = createTestProduct();
+
+    $orderService = app(OrderService::class);
+
+    // Pedido A: General Paz (Branch 1) solicita a Cofico (Branch 2)
+    $orderA = $orderService->createOrder([
+        'branch_id'     => $branch2->id,
+        'customer_id'   => $branch1->id,
+        'customer_type' => Branch::class,
+        'source'        => 1,
+        'status'        => OrderStatus::Pending->value,
+        'user_id'       => $user1->id,
+        'exchange_rate' => 1000,
+        'items'         => [
+            [
+                'product_id' => $product->id,
+                'quantity'   => 2,
+                'unit_price' => 100,
+                'currency'   => CurrencyType::ARS->value,
+            ]
+        ]
+    ]);
+
+    // Pedido B: Cofico (Branch 2) solicita a General Paz (Branch 1)
+    $orderB = $orderService->createOrder([
+        'branch_id'     => $branch1->id,
+        'customer_id'   => $branch2->id,
+        'customer_type' => Branch::class,
+        'source'        => 1,
+        'status'        => OrderStatus::Pending->value,
+        'user_id'       => $user2->id,
+        'exchange_rate' => 1000,
+        'items'         => [
+            [
+                'product_id' => $product->id,
+                'quantity'   => 3,
+                'unit_price' => 150,
+                'currency'   => CurrencyType::ARS->value,
+            ]
+        ]
+    ]);
+
+    // Simular contexto de General Paz (user1)
+    $this->actingAs($user1);
+    $purchases1 = $orderService->getPurchasedOrders();
+    expect($purchases1->pluck('id')->toArray())->toContain($orderA->id)
+        ->and($purchases1->pluck('id')->toArray())->not->toContain($orderB->id);
+
+    // Simular contexto de Cofico (user2)
+    $this->actingAs($user2);
+    $purchases2 = $orderService->getPurchasedOrders();
+    expect($purchases2->pluck('id')->toArray())->toContain($orderB->id)
+        ->and($purchases2->pluck('id')->toArray())->not->toContain($orderA->id);
+});

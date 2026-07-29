@@ -103,6 +103,18 @@ class Product extends Model
             ->first();
     }
 
+    public function clearBranchCache(): self
+    {
+        $this->branchCache = [];
+        return $this;
+    }
+
+    public function refresh()
+    {
+        $this->branchCache = [];
+        return parent::refresh();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Price getters (simple values)

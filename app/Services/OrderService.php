@@ -281,8 +281,6 @@ class OrderService
                 'amount_received'   => (float)($options['amount_received_1'] ?? 0),
                 'payment_method_id' => $options['bank_account_id_1'] ?? $options['bank_id_1'] ?? null,
                 'payment_notes'     => $options['payment_notes'] ?? null,
-
-                'skip_stock_movement' => true,
             ];
 
             // Pago 2: Solo si es dual
@@ -372,11 +370,15 @@ class OrderService
     {
         $branchId = $this->currentBranchId();
 
-        return Order::with(['branch', 'customer', 'user'])
-            ->where('customer_id', $branchId)
+        $query = Order::with(['branch', 'customer', 'user'])
             ->where('customer_type', \App\Models\Branch::class)
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->orderBy('created_at', 'desc');
+
+        if ($branchId) {
+            $query->where('customer_id', $branchId);
+        }
+
+        return $query->get();
     }
 
     /**
