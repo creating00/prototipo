@@ -16,7 +16,16 @@ class OrderPolicy extends BasePolicy
 
     public function view(User $user, Order $order): bool
     {
-        return $this->can($user, 'view');
+        if (!$this->can($user, 'view')) {
+            return false;
+        }
+
+        if ($user->hasRole('admin') || !$user->branch_id) {
+            return true;
+        }
+
+        return (int)$order->branch_id === (int)$user->branch_id
+            || ($order->isInterBranch() && (int)$order->customer_id === (int)$user->branch_id);
     }
 
     public function viewOwn(User $user): bool
@@ -36,16 +45,43 @@ class OrderPolicy extends BasePolicy
 
     public function update(User $user, Order $order): bool
     {
-        return $this->can($user, 'update');
+        if (!$this->can($user, 'update')) {
+            return false;
+        }
+
+        if ($user->hasRole('admin') || !$user->branch_id) {
+            return true;
+        }
+
+        return (int)$order->branch_id === (int)$user->branch_id
+            || ($order->isInterBranch() && (int)$order->customer_id === (int)$user->branch_id);
     }
 
     public function approve(User $user, Order $order): bool
     {
-        return $this->can($user, 'approve');
+        if (!$this->can($user, 'approve')) {
+            return false;
+        }
+
+        if ($user->hasRole('admin') || !$user->branch_id) {
+            return true;
+        }
+
+        return (int)$order->branch_id === (int)$user->branch_id
+            || ($order->isInterBranch() && (int)$order->customer_id === (int)$user->branch_id);
     }
 
     public function cancel(User $user, Order $order): bool
     {
-        return $this->can($user, 'cancel');
+        if (!$this->can($user, 'cancel')) {
+            return false;
+        }
+
+        if ($user->hasRole('admin') || !$user->branch_id) {
+            return true;
+        }
+
+        return (int)$order->branch_id === (int)$user->branch_id
+            || ($order->isInterBranch() && (int)$order->customer_id === (int)$user->branch_id);
     }
 }

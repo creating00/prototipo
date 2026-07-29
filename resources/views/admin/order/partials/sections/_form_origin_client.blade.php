@@ -4,7 +4,12 @@
         <label class="compact-select-label fw-bold small">
             Sucursal (Origen) <span class="text-danger">*</span>
         </label>
-        <x-adminlte.select name="branch_id" label="" :options="$branches->pluck('name', 'id')->toArray()" :value="old('branch_id', $order->branch_id ?? auth()->user()->branch_id)" required />
+        @if (auth()->user()?->hasRole('admin') || !auth()->user()?->branch_id)
+            <x-adminlte.select name="branch_id" label="" :options="$branches->pluck('name', 'id')->toArray()" :value="old('branch_id', $order->branch_id ?? auth()->user()->branch_id)" required />
+        @else
+            <input type="text" class="form-control form-control-sm bg-light fw-bold" value="{{ auth()->user()?->branch?->name ?? 'Mi Sucursal' }}" readonly>
+            <input type="hidden" name="branch_id" value="{{ auth()->user()->branch_id }}">
+        @endif
     </div>
 
     {{-- Cliente Destinatario --}}

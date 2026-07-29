@@ -279,3 +279,57 @@ test('inter-branch order queries isolate purchased orders by branch context', fu
     expect($purchases2->pluck('id')->toArray())->toContain($orderB->id)
         ->and($purchases2->pluck('id')->toArray())->not->toContain($orderA->id);
 });
+
+test('manual orders are strictly isolated to the creating branch and invisible to other branches', function () {
+    $branch1 = createTestBranch('General Paz');
+    $branch2 = createTestBranch('Cofico');
+
+    $user1 = User::factory()->create(['branch_id' => $branch1->id]);
+    $user2 = User::factory()->create(['branch_id' => $branch2->id]);
+
+    $client = \App\Models\Client::create([
+        'branch_id' => $branch1->id,
+        'full_name' => 'Cliente Test',
+        'document'  => '12345678',
+        'phone'     => '12345678',
+    ]);
+    $product = createTestProduct();
+
+    $orderService = app(OrderService::class);
+
+    // Crear un Pedido Manual en General Paz (Branch 1)
+    $manualOrder = $orderService->createOrder([
+        'branch_id'     => $branch1->id,
+        'client_id'     => $client->id,
+        'customer_id'   => $client->id,
+        'customer_type' => \App\Models\Client::class,
+        'source'        => 1,
+        'status'        => OrderStatus::Pending->value,
+        'user_id'       => $user1->id,
+        'exchange_rate' => 1000,
+        'items'         => [
+            [
+                'product_id' => $product->id,
+                'quantity'   => 1,
+                'unit_price' => 100,
+                'currency'   => CurrencyType::ARS->value,
+            ]
+        ]
+    ]);
+
+    // En General Paz (Branch 1): El pedido manual aparece en getAllOrders() y NO en getPurchasedOrders()
+    $this->actingAs($user1);
+    $ordersBranch1 = $orderService->getAllOrders($user1);
+    expect($ordersBranch1->pluck('id')->toArray())->toContain($manualOrder->id);
+
+    $purchasesBranch1 = $orderService->getPurchasedOrders();
+    expect($purchasesBranch1->pluck('id')->toArray())->not->toContain($manualOrder->id);
+
+    // En Cofico (Branch 2): El pedido manual NO debe aparecer NI en getAllOrders() NI en getPurchasedOrders()
+    $this->actingAs($user2);
+    $ordersBranch2 = $orderService->getAllOrders($user2);
+    expect($ordersBranch2->pluck('id')->toArray())->not->toContain($manualOrder->id);
+
+    $purchasesBranch2 = $orderService->getPurchasedOrders();
+    expect($purchasesBranch2->pluck('id')->toArray())->not->toContain($manualOrder->id);
+});
