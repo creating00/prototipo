@@ -203,6 +203,10 @@ trait DataTableFormatter
 
         $sourceRaw   = is_object($order->source) ? $order->source->value : $order->source;
         $sourceLabel = is_object($order->source) ? $order->source->label() : $order->source;
+        $userBranchId = $this->currentBranchId();
+        $isInterBranch = $order->isInterBranch();
+        $isPurchaserBranch = $isInterBranch && $userBranchId && ((int)$order->customer_id === (int)$userBranchId);
+        $isSupplierBranch = !$isInterBranch || !$userBranchId || ((int)$order->branch_id === (int)$userBranchId);
         $sourceBadgeClass = match ((int)$sourceRaw) {
             \App\Enums\OrderSource::Ecommerce->value => 'bg-info',
             \App\Enums\OrderSource::Manual->value    => 'bg-purple text-white',
