@@ -32,6 +32,13 @@ const TABLE_CONFIG = {
                 window.location.href = `${baseUrl}/${id}/details`;
             },
         },
+        edit: {
+            selector: ".btn-edit",
+            handler: (row) => {
+                const { id } = row.dataset;
+                window.location.href = `${originUrl}/${id}/edit`;
+            },
+        },
         print: {
             selector: ".btn-print",
             handler: (row, baseUrl) => {

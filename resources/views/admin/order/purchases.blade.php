@@ -4,14 +4,18 @@
 
 @push('styles')
     <style>
-        /* 1. Ocultar botón receive de forma general */
+        /* 1. Ocultar botón receive si ya fue enviado al stock / recibido */
         .btn-receive {
             display: none !important;
         }
 
-        /* 2. Mostrar SOLO cuando el status_raw es 4 Y no ha sido recibido aún */
-        tr[data-status_raw="4"][data-is_received="false"] .btn-receive {
+        tr[data-is_received="false"] .btn-receive {
             display: inline-block !important;
+        }
+
+        /* 2. Ocultar botón editar si ya fue enviado al stock (can_edit = false) */
+        tr[data-can_edit="false"] .btn-edit {
+            display: none !important;
         }
 
         /* 3. Reglas de WhatsApp (sin cambios) */
@@ -35,9 +39,11 @@
                 <x-slot name="actions">
                     <div class="d-flex justify-content-center gap-1">
                         <x-adminlte.button color="custom-jade" size="sm" icon="fas fa-eye" class="btn-view"
-                            title="Ver" />
+                            title="Ver detalles" />
+                        <x-adminlte.button color="warning" size="sm" icon="fas fa-edit" class="btn-edit"
+                            title="Editar Pedido" />
                         <x-adminlte.button color="success" size="sm" icon="fas fa-check-double" class="btn-receive"
-                            title="Recibir" />
+                            title="Enviar al Stock / Recibir" />
                         <x-adminlte.button color="info" size="sm" icon="fas fa-print" class="btn-print"
                             title="Imprimir" />
                     </div>
@@ -51,7 +57,7 @@
                         Volver a Gestión de Ventas
                     </x-adminlte.button>
 
-                    {{-- Botón para iniciar un nuevo pedido (opcional) --}}
+                    {{-- Botón para iniciar un nuevo pedido a sucursal --}}
                     <x-adminlte.button color="primary" icon="fas fa-plus" class="btn-header-new-branch"
                         onclick="window.location.href='{{ route('web.orders.create-branch') }}'">
                         Nuevo Pedido a Sucursal

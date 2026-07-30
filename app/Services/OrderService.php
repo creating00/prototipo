@@ -370,8 +370,11 @@ class OrderService
     {
         $branchId = $this->currentBranchId();
 
-        $query = Order::with(['branch', 'customer', 'user'])
-            ->where('customer_type', \App\Models\Branch::class)
+        $query = Order::with(['branch', 'customer', 'user', 'reception'])
+            ->where(function ($q) {
+                $q->where('customer_type', \App\Models\Branch::class)
+                  ->orWhere('source', OrderSource::Manual);
+            })
             ->orderBy('created_at', 'desc');
 
         if ($branchId) {
@@ -389,11 +392,13 @@ class OrderService
         return $this->getPurchasedOrders()->map(function ($order, $index) {
             $reception = $order->reception;
             $statusSource = $reception ?? $order;
+            $isStockSent = $order->is_stock_sent || (bool)$reception;
 
             return [
                 'id'            => $order->id,
                 'status_raw'    => is_object($statusSource->status) ? $statusSource->status->value : $statusSource->status,
-                'is_received'   => $reception ? 'true' : 'false',
+                'source_raw'    => is_object($order->source) ? $order->source->value : $order->source,
+                'is_received'   => $isStockSent ? 'true' : 'false',
                 'customer'      => $this->resolveCustomerName($order),
                 'customer_type' => $order->customer_type,
                 'phone'         => $this->cleanPhoneNumber($order->customer?->phone),
@@ -406,8 +411,15 @@ class OrderService
                 'status'         => $this->resolveStatus($statusSource, ['currencyClass' => 'fw-bold text-info']), // Estado
                 'payment_status' => sprintf('<span class="%s">%s</span>', $order->payment_status_badge_class, $order->payment_status_label), // Estado Pago
                 'created_at'     => $order->created_at->format('d-m-Y'),         // Fecha Solicitud
-                'received_at'    => $reception ? $reception->received_at->format('d-m-Y H:i') : '---', // Fecha Recepción
-                'received_by'    => $order->user->name ?? ($reception?->user?->name ?? '---'), // Recibido por / Usuario que realizó el pedido
+                'received_at'    => $reception ? $reception->received_at->format('d-m-Y H:i') : ($order->stock_sent_at ? $order->stock_sent_at->format('d-m-Y H:i') : '---'),
+                'received_by'    => $order->user->name ?? ($reception?->user?->name ?? '---'),
+                '_row_attributes' => [
+                    'id'            => $order->id,
+                    'status_raw'    => is_object($statusSource->status) ? $statusSource->status->value : $statusSource->status,
+                    'source_raw'    => is_object($order->source) ? $order->source->value : $order->source,
+                    'is_received'   => $isStockSent ? 'true' : 'false',
+                    'can_edit'      => $order->canBeEdited() ? 'true' : 'false',
+                ]
             ];
         })->toArray();
     }
