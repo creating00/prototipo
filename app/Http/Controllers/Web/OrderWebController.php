@@ -208,7 +208,9 @@ class OrderWebController extends BaseOrderController
     {
         $this->authorize('create_client', Order::class);
         $currentBranchId = $this->currentBranchId();
-        $branches = collect(app(BranchService::class)->getAllBranches());
+        $branchService = app(BranchService::class);
+        $branches = collect($branchService->getAllBranches());
+        $destinationBranches = collect($branchService->getAllBranchesExcept($currentBranchId));
         $clients = collect(app(ClientService::class)->getAllClients($currentBranchId));
         $statusOptions = OrderStatus::forSale();
         $customer_type = 'App\Models\Client';
@@ -219,6 +221,7 @@ class OrderWebController extends BaseOrderController
         return view('admin.order.create-client', compact(
             'customer_type',
             'branches',
+            'destinationBranches',
             'clients',
             'statusOptions',
             'defaultClientId',
