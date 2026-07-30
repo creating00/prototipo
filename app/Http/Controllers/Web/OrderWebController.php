@@ -257,7 +257,7 @@ class OrderWebController extends BaseOrderController
 
         try {
             $data = $request->all();
-            if ($request->customer_type === 'App\Models\Branch') {
+            if ($request->customer_type === 'App\Models\Branch' || (isset($data['source']) && $data['source'] == OrderSource::Manual->value)) {
                 $data['source'] = OrderSource::Manual->value;
             } else {
                 $data['source'] = $data['source'] ?? OrderSource::Backoffice->value;
@@ -265,11 +265,11 @@ class OrderWebController extends BaseOrderController
             $data['user_id'] = $this->userId();
             $order = $this->orderService->createOrder($data);
 
-            // Si el destino es una sucursal, es un "Pedido Manual / Compra"
-            if ($request->customer_type === 'App\Models\Branch') {
+            // Si es un Pedido Manual o Pedido a Sucursal, redirigimos a "Mis Pedidos Realizados"
+            if ($data['source'] == OrderSource::Manual->value || $request->customer_type === 'App\Models\Branch') {
                 return redirect()
                     ->route('web.orders.purchases')
-                    ->with('success', 'Pedido manual a sucursal solicitado correctamente.');
+                    ->with('success', 'Pedido manual registrado correctamente.');
             }
 
             return redirect()

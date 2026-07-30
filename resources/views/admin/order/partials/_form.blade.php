@@ -25,11 +25,12 @@
 @php
     $customerType = old('customer_type', $customer_type ?? ($order->customer_type ?? 'App\Models\Client'));
     $customerId = old('customer_id', $order->customer_id ?? null);
+    $sourceValue = old('source', $source ?? ($order->source->value ?? \App\Enums\OrderSource::Manual->value));
 @endphp
 
 {{-- Campos ocultos base --}}
 <input type="hidden" name="user_id" value="{{ auth()->id() }}">
-<input type="hidden" name="source" value="1">
+<input type="hidden" name="source" value="{{ $sourceValue }}">
 <input type="hidden" id="customer_type" name="customer_type" value="{{ $customerType }}">
 <input type="hidden" id="is_edit" value="{{ isset($order) ? '1' : '0' }}">
 

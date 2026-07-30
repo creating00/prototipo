@@ -58,6 +58,7 @@ class OrderService
         $branchId = $this->currentBranchId();
 
         $query = Order::with(['branch', 'customer', 'user'])
+            ->where('source', '!=', OrderSource::Manual)
             ->orderBy('created_at', 'desc');
 
         // Filtro por sucursal proveedora / vendedora
