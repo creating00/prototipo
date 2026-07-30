@@ -230,7 +230,7 @@ trait DataTableFormatter
                 'id'                   => $baseRow['id'],
                 'status_raw'           => $baseRow['status_raw'],
                 'source_raw'           => $sourceRaw,
-                'is_stock_sent'        => $order->is_stock_sent ? 'true' : 'false',
+                'is_stock_sent'        => ($order->is_stock_sent || $order->reception()->exists()) ? 'true' : 'false',
                 'is_inter_branch'      => $isInterBranch ? 'true' : 'false',
                 'is_purchaser_branch'  => $isPurchaserBranch ? 'true' : 'false',
                 'is_supplier_branch'   => $isSupplierBranch ? 'true' : 'false',
