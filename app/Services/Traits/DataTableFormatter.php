@@ -209,7 +209,7 @@ trait DataTableFormatter
         $isSupplierBranch = !$isInterBranch || !$userBranchId || ((int)$order->branch_id === (int)$userBranchId);
         $sourceBadgeClass = match ((int)$sourceRaw) {
             \App\Enums\OrderSource::Ecommerce->value => 'bg-info',
-            \App\Enums\OrderSource::Manual->value    => 'bg-purple text-white',
+            \App\Enums\OrderSource::Manual->value    => 'badge-purple',
             default                                  => 'bg-secondary',
         };
 

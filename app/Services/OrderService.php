@@ -405,7 +405,7 @@ class OrderService
             $sourceLabel = is_object($order->source) ? $order->source->label() : $order->source;
             $sourceBadgeClass = match ((int)$sourceRaw) {
                 \App\Enums\OrderSource::Ecommerce->value => 'bg-info',
-                \App\Enums\OrderSource::Manual->value    => 'bg-purple text-white',
+                \App\Enums\OrderSource::Manual->value    => 'badge-purple',
                 default                                  => 'bg-secondary',
             };
 

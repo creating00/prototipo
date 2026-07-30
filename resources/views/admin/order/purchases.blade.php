@@ -4,6 +4,11 @@
 
 @push('styles')
     <style>
+        .badge-purple {
+            background-color: #6f42c1 !important;
+            color: #ffffff !important;
+        }
+
         /* 1. Ocultar botón receive si ya fue enviado al stock / recibido */
         .btn-receive {
             display: none !important;
@@ -55,7 +60,7 @@
             </div>
 
             {{-- DataTable de Compras Realizadas --}}
-            <x-adminlte.data-table tableId="purchases-table" title="Pedidos realizados a otras sucursales" :headers="$headers"
+            <x-adminlte.data-table tableId="purchases-table" title="Pedidos realizados a otras sucursales" size="sm-orders" :headers="$headers"
                 :rowData="$rowData" :hiddenFields="$hiddenFields" withActions="true">
 
                 <x-slot name="actions">

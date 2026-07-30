@@ -6,6 +6,11 @@
     @vite('resources/css/modules/sales/sales-styles.css')
     {{-- @vite('resources/css/modules/sales/payment-dual-styles.css') --}}
     <style>
+        .badge-purple {
+            background-color: #6f42c1 !important;
+            color: #ffffff !important;
+        }
+
         /* Ocultar botón convertir si ya fue convertida (status 4) */
         tr[data-status_raw="4"] .btn-convert {
             display: none !important;
