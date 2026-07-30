@@ -119,14 +119,21 @@
             :rowData="$rowData" :hiddenFields="$hiddenFields" :withActions="false">
         </x-adminlte.data-table>
 
+        @php
+            $userBranchId = auth()->user()?->branch_id;
+            $isManual = $order->source === \App\Enums\OrderSource::Manual;
+            $isPurchaser = $isManual || ($order->isInterBranch() && $userBranchId && ((int)$order->customer_id === (int)$userBranchId));
+            $isSupplier = !$isManual && (!$order->isInterBranch() || !$userBranchId || ((int)$order->branch_id === (int)$userBranchId));
+        @endphp
+
         <div class="mt-3 d-flex justify-content-between">
             <a href="{{ $backUrl ?? route('web.orders.index') }}" class="btn btn-default">
                 <i class="fas fa-arrow-left me-1"></i> Volver al listado
             </a>
 
             <div class="d-flex gap-2">
-                {{-- Botón Enviar al Stock --}}
-                @if (!$order->is_stock_sent)
+                {{-- Botón Enviar al Stock (Para sucursal compradora o pedido manual) --}}
+                @if ($isPurchaser && !$order->is_stock_sent && $order->status !== \App\Enums\OrderStatus::Cancelled)
                     <button type="button" id="btn-send-to-stock" class="btn btn-primary btn-sm">
                         <i class="fas fa-boxes me-1"></i> Enviar al Stock
                     </button>
@@ -145,7 +152,7 @@
                         data-sale_id="{{ $order->sale_id ?? '' }}">
                         Imprimir Comprobante
                     </x-adminlte.button>
-                @elseif ($order->status !== \App\Enums\OrderStatus::Cancelled)
+                @elseif ($isSupplier && $order->status !== \App\Enums\OrderStatus::Cancelled)
                     <x-adminlte.button color="success" size="sm" icon="fas fa-file-invoice-dollar"
                         class="btn-convert" title="Convertir a Venta" data-id="{{ $order->id }}"
                         data-totals_json="{{ json_encode($order->totals) }}"

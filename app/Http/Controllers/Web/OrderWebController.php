@@ -138,6 +138,7 @@ class OrderWebController extends BaseOrderController
             '#',
             'Proveedor (Sucursal)',
             'Total',
+            'Canal',
             'Estado',
             'Estado Pago',
             'Fecha Solicitud',
@@ -148,6 +149,7 @@ class OrderWebController extends BaseOrderController
         $hiddenFields = [
             'id',
             'status_raw',
+            'source_raw',
             'customer',
             'phone',
             'whatsapp-url',
@@ -206,7 +208,9 @@ class OrderWebController extends BaseOrderController
     {
         $this->authorize('create_client', Order::class);
         $currentBranchId = $this->currentBranchId();
-        $branches = collect(app(BranchService::class)->getAllBranches());
+        $branchService = app(BranchService::class);
+        $branches = collect($branchService->getAllBranches());
+        $destinationBranches = collect($branchService->getAllBranchesExcept($currentBranchId));
         $clients = collect(app(ClientService::class)->getAllClients($currentBranchId));
         $statusOptions = OrderStatus::forSale();
         $customer_type = 'App\Models\Client';
@@ -217,6 +221,7 @@ class OrderWebController extends BaseOrderController
         return view('admin.order.create-client', compact(
             'customer_type',
             'branches',
+            'destinationBranches',
             'clients',
             'statusOptions',
             'defaultClientId',
@@ -256,15 +261,23 @@ class OrderWebController extends BaseOrderController
 
         try {
             $data = $request->all();
-            $data['source'] = OrderSource::Backoffice->value;
+
+            // Si el formulario solicita explícitamente source = Manual (3), mantenemos Manual.
+            // De lo contrario, asignamos Backoffice.
+            if (isset($data['source']) && (int)$data['source'] === OrderSource::Manual->value) {
+                $data['source'] = OrderSource::Manual->value;
+            } else {
+                $data['source'] = isset($data['source']) ? (int)$data['source'] : OrderSource::Backoffice->value;
+            }
+
             $data['user_id'] = $this->userId();
             $order = $this->orderService->createOrder($data);
 
-            // Si el destino es una sucursal, es una "Compra"
-            if ($request->customer_type === 'App\Models\Branch') {
+            // Redirección inteligente: si es pedido a sucursal o manual, va a Mis Pedidos Realizados
+            if ((int)$data['source'] === OrderSource::Manual->value || $request->customer_type === 'App\Models\Branch') {
                 return redirect()
                     ->route('web.orders.purchases')
-                    ->with('success', 'Pedido a sucursal solicitado correctamente.');
+                    ->with('success', 'Pedido solicitado correctamente.');
             }
 
             return redirect()

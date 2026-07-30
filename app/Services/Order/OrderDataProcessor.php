@@ -80,8 +80,25 @@ class OrderDataProcessor
         $data['customer_type'] = $data['customer_type'] ?? Client::class;
 
         if ($data['customer_type'] === Client::class) {
-            $data['customer_id'] = $data['client_id'];
-            $data['branch_id'] = $data['branch_id'] ?? $this->currentBranchId();
+            $data['customer_id'] = $data['client_id'] ?? $data['customer_id'] ?? null;
+            $userBranchId = $this->currentBranchId();
+            if ($userBranchId) {
+                // Forzar que el pedido manual pertenezca únicamente a la sucursal del usuario (Origen de los productos)
+                $data['branch_id'] = $userBranchId;
+            } else {
+                $data['branch_id'] = $data['branch_id'] ?? null;
+            }
+
+            // Registrar sucursal de referencia si fue seleccionada
+            if (!empty($data['target_branch_id'])) {
+                $targetBranch = \App\Models\Branch::find($data['target_branch_id']);
+                if ($targetBranch) {
+                    $refNote = "[Pedido a sucursal: {$targetBranch->name}]";
+                    $data['notes'] = isset($data['notes']) && trim($data['notes']) !== ''
+                        ? $refNote . "\n" . $data['notes']
+                        : $refNote;
+                }
+            }
         } else {
             // FLUJO DE SUCURSALES
             $myBranchId = $this->currentBranchId();
@@ -93,7 +110,6 @@ class OrderDataProcessor
             }
             // Si no existe, es un UPDATE o ya viene con customer_id definido
             else {
-                // Validamos que existan los campos necesarios
                 $data['branch_id'] = $data['branch_id'] ?? null;
                 $data['customer_id'] = $data['customer_id'] ?? $myBranchId;
             }

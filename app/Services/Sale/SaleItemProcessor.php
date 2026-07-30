@@ -74,11 +74,6 @@ class SaleItemProcessor extends BaseItemProcessor
             default                     => null,
         };
 
-        if (!$unitPrice) {
-            $typeName = $model->sale_type->label();
-            throw new \Exception("No se encontró un precio de {$typeName} para {$product->name} en la sucursal {$model->branch_id}");
-        }
-
-        return (float) $unitPrice;
+        return (float) ($unitPrice ?? 0.0);
     }
 }

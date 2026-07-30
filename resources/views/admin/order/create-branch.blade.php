@@ -35,6 +35,7 @@
                     'branches' => $originBranch,
                     'destinationBranches' => $destinationBranches,
                     'statusOptions' => $statusOptions,
+                    'source' => \App\Enums\OrderSource::Backoffice->value,
                 ])
 
             </x-adminlte.form>

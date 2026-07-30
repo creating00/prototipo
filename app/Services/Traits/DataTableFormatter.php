@@ -201,8 +201,17 @@ trait DataTableFormatter
     {
         $baseRow = $this->formatForDataTable($order, $index);
 
-        $sourceLabel = is_object($order->source) ? $order->source->label() : $order->source;
         $sourceRaw   = is_object($order->source) ? $order->source->value : $order->source;
+        $sourceLabel = is_object($order->source) ? $order->source->label() : $order->source;
+        $userBranchId = $this->currentBranchId();
+        $isInterBranch = $order->isInterBranch();
+        $isPurchaserBranch = $isInterBranch && $userBranchId && ((int)$order->customer_id === (int)$userBranchId);
+        $isSupplierBranch = !$isInterBranch || !$userBranchId || ((int)$order->branch_id === (int)$userBranchId);
+        $sourceBadgeClass = match ((int)$sourceRaw) {
+            \App\Enums\OrderSource::Ecommerce->value => 'bg-info',
+            \App\Enums\OrderSource::Manual->value    => 'badge-purple',
+            default                                  => 'bg-secondary',
+        };
 
         return [
             // --- 1. CELDAS VISIBLES (El orden aquí ES el orden de las columnas) ---
@@ -211,7 +220,7 @@ trait DataTableFormatter
             'branch'     => $baseRow['branch'],
             'customer'   => $baseRow['customer'],
             'total'      => $baseRow['total'],
-            'source'         => '<span class="badge bg-info">' . $sourceLabel . '</span>',
+            'source'         => '<span class="badge ' . $sourceBadgeClass . '">' . $sourceLabel . '</span>',
             'status'         => $baseRow['status'],
             'payment_status' => sprintf('<span class="%s">%s</span>', $order->payment_status_badge_class, $order->payment_status_label),
             'created_at'     => $baseRow['created_at'],
@@ -222,6 +231,9 @@ trait DataTableFormatter
                 'status_raw'           => $baseRow['status_raw'],
                 'source_raw'           => $sourceRaw,
                 'is_stock_sent'        => $order->is_stock_sent ? 'true' : 'false',
+                'is_inter_branch'      => $isInterBranch ? 'true' : 'false',
+                'is_purchaser_branch'  => $isPurchaserBranch ? 'true' : 'false',
+                'is_supplier_branch'   => $isSupplierBranch ? 'true' : 'false',
                 'payment_status'       => $order->payment_status,
                 'payment_status_label' => $order->payment_status_label,
                 'payment_status_badge' => $order->payment_status_badge_class,

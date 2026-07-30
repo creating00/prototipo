@@ -279,39 +279,57 @@ export function setupOrderFilters(api) {
         const month = document.getElementById("filter-month")?.value;
 
         DataTable.ext.search.push((settings, data, dataIndex) => {
-            if (!settings.nTable.classList.contains("datatable-sm-orders")) {
+            const tableId = settings.nTable.id;
+            const isOrderTable =
+                settings.nTable.classList.contains("datatable-sm-orders") ||
+                tableId === "purchases-table" ||
+                tableId === "orders-table";
+
+            if (!isOrderTable) {
                 return true;
             }
 
-            const row = api.row(dataIndex).node();
+            const row = settings.aoData[dataIndex]?.nTr || (api && api.row ? api.row(dataIndex).node() : null);
             if (!row) return true;
 
             const ds = row.dataset;
 
             // Filtro por Estado
-            if (status && ds.status_raw !== status) return false;
+            if (status && status !== "" && String(ds.status_raw) !== String(status)) {
+                return false;
+            }
 
             // Filtro por Origen
-            if (source && ds.source_raw !== source) return false;
+            if (source && source !== "" && String(ds.source_raw) !== String(source)) {
+                return false;
+            }
 
-            // Filtro por Mes (asume formato YYYY-MM en el filtro y YYYY-MM-DD en data-created_at)
-            if (month && ds.created_at && !ds.created_at.startsWith(month)) {
+            // Filtro por Mes
+            if (month && month !== "" && ds.created_at && !ds.created_at.startsWith(month)) {
                 return false;
             }
 
             return true;
         });
 
-        api.draw();
+        if (api && typeof api.draw === "function") {
+            api.draw();
+        } else {
+            window.jQuery?.(".datatable-sm-orders, #purchases-table").DataTable().draw();
+        }
+
         DataTable.ext.search.pop();
     };
 
     const ids = ["filter-status", "filter-source"];
     setupCommonUI(filterTable, ids);
 
-    ids.forEach((id) =>
-        document.getElementById(id)?.addEventListener("change", filterTable),
-    );
+    ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener("change", filterTable);
+        }
+    });
 }
 
 export function updateOrderFooter(api) {

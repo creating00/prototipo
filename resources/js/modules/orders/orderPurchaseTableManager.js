@@ -32,6 +32,13 @@ const TABLE_CONFIG = {
                 window.location.href = `${baseUrl}/${id}/details`;
             },
         },
+        edit: {
+            selector: ".btn-edit",
+            handler: (row) => {
+                const { id } = row.dataset;
+                window.location.href = `${originUrl}/${id}/edit`;
+            },
+        },
         print: {
             selector: ".btn-print",
             handler: (row, baseUrl) => {
@@ -106,8 +113,14 @@ const TABLE_CONFIG = {
     },
 };
 
+import { setupOrderFilters } from "../../config/dt-filters";
+
 export function initOrderPurchaseTable() {
-    return TableManager.initTable(TABLE_CONFIG);
+    const manager = TableManager.initTable(TABLE_CONFIG);
+    if (manager && manager.table) {
+        setupOrderFilters(manager.table);
+    }
+    return manager;
 }
 
 export default {

@@ -58,11 +58,18 @@ class OrderService
         $branchId = $this->currentBranchId();
 
         $query = Order::with(['branch', 'customer', 'user'])
+            ->where('source', '!=', OrderSource::Manual)
             ->orderBy('created_at', 'desc');
 
-        // Filtro por sucursal (si aplica)
+        // Filtro por sucursal proveedora / vendedora
         if ($branchId) {
-            $query->forBranch($branchId);
+            $query->where('branch_id', $branchId)
+                ->where(function ($q) use ($branchId) {
+                    // Excluir compras / autopedidos donde la sucursal actual es la compradora
+                    $q->where('customer_type', '!=', \App\Models\Branch::class)
+                      ->orWhereNull('customer_type')
+                      ->orWhere('customer_id', '!=', $branchId);
+                });
         }
 
         // Lógica de Rol: Si es Seller, solo ve pedidos de Clientes
@@ -281,8 +288,6 @@ class OrderService
                 'amount_received'   => (float)($options['amount_received_1'] ?? 0),
                 'payment_method_id' => $options['bank_account_id_1'] ?? $options['bank_id_1'] ?? null,
                 'payment_notes'     => $options['payment_notes'] ?? null,
-
-                'skip_stock_movement' => true,
             ];
 
             // Pago 2: Solo si es dual
@@ -372,11 +377,18 @@ class OrderService
     {
         $branchId = $this->currentBranchId();
 
-        return Order::with(['branch', 'customer', 'user'])
-            ->where('customer_id', $branchId)
-            ->where('customer_type', \App\Models\Branch::class)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $query = Order::with(['branch', 'customer', 'user', 'reception'])
+            ->where(function ($q) {
+                $q->where('customer_type', \App\Models\Branch::class)
+                  ->orWhere('source', OrderSource::Manual);
+            })
+            ->orderBy('created_at', 'desc');
+
+        if ($branchId) {
+            $query->where('customer_id', $branchId);
+        }
+
+        return $query->get();
     }
 
     /**
@@ -387,11 +399,21 @@ class OrderService
         return $this->getPurchasedOrders()->map(function ($order, $index) {
             $reception = $order->reception;
             $statusSource = $reception ?? $order;
+            $isStockSent = $order->is_stock_sent || (bool)$reception;
+
+            $sourceRaw   = is_object($order->source) ? $order->source->value : $order->source;
+            $sourceLabel = is_object($order->source) ? $order->source->label() : $order->source;
+            $sourceBadgeClass = match ((int)$sourceRaw) {
+                \App\Enums\OrderSource::Ecommerce->value => 'bg-info',
+                \App\Enums\OrderSource::Manual->value    => 'badge-purple',
+                default                                  => 'bg-secondary',
+            };
 
             return [
                 'id'            => $order->id,
                 'status_raw'    => is_object($statusSource->status) ? $statusSource->status->value : $statusSource->status,
-                'is_received'   => $reception ? 'true' : 'false',
+                'source_raw'    => $sourceRaw,
+                'is_received'   => $isStockSent ? 'true' : 'false',
                 'customer'      => $this->resolveCustomerName($order),
                 'customer_type' => $order->customer_type,
                 'phone'         => $this->cleanPhoneNumber($order->customer?->phone),
@@ -401,11 +423,19 @@ class OrderService
                 'total' => collect($order->totals)
                     ->map(fn($v, $k) => $this->formatCurrency($v, CurrencyType::from($k)))
                     ->implode(' / '),
+                'source'         => '<span class="badge ' . $sourceBadgeClass . '">' . $sourceLabel . '</span>', // Canal
                 'status'         => $this->resolveStatus($statusSource, ['currencyClass' => 'fw-bold text-info']), // Estado
                 'payment_status' => sprintf('<span class="%s">%s</span>', $order->payment_status_badge_class, $order->payment_status_label), // Estado Pago
                 'created_at'     => $order->created_at->format('d-m-Y'),         // Fecha Solicitud
-                'received_at'    => $reception ? $reception->received_at->format('d-m-Y H:i') : '---', // Fecha Recepción
-                'received_by'    => $order->user->name ?? ($reception?->user?->name ?? '---'), // Recibido por / Usuario que realizó el pedido
+                'received_at'    => $reception ? $reception->received_at->format('d-m-Y H:i') : ($order->stock_sent_at ? $order->stock_sent_at->format('d-m-Y H:i') : '---'),
+                'received_by'    => $order->user->name ?? ($reception?->user?->name ?? '---'),
+                '_row_attributes' => [
+                    'id'            => $order->id,
+                    'status_raw'    => is_object($statusSource->status) ? $statusSource->status->value : $statusSource->status,
+                    'source_raw'    => $sourceRaw,
+                    'is_received'   => $isStockSent ? 'true' : 'false',
+                    'can_edit'      => $order->canBeEdited() ? 'true' : 'false',
+                ]
             ];
         })->toArray();
     }
@@ -418,7 +448,7 @@ class OrderService
         $rules = [
             'branch_id' => 'nullable|exists:branches,id',
             'status' => 'required|integer',
-            'source' => 'required|integer|in:1,2',
+            'source' => 'required|integer|in:1,2,3',
             'sale_id' => 'nullable|exists:sales,id',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
@@ -447,8 +477,8 @@ class OrderService
             $rules['customer_id'] = 'required_without:branch_recipient_id|exists:branches,id';
         }
 
-        // El user_id solo es obligatorio si viene del Backoffice
-        if ($source == OrderSource::Backoffice->value) {
+        // El user_id solo es obligatorio si viene del Backoffice o Manual
+        if ($source == OrderSource::Backoffice->value || $source == OrderSource::Manual->value) {
             $rules['user_id'] = 'required|exists:users,id';
         }
 

@@ -6,12 +6,14 @@ enum OrderSource: int
 {
     case Backoffice = 1;
     case Ecommerce = 2;
+    case Manual = 3;
 
     public function label(): string
     {
         return match ($this) {
             self::Backoffice => 'Backoffice',
-            self::Ecommerce => 'E-commerce',
+            self::Ecommerce  => 'E-commerce',
+            self::Manual     => 'Pedido Manual',
         };
     }
 
