@@ -138,6 +138,7 @@ class OrderWebController extends BaseOrderController
             '#',
             'Proveedor (Sucursal)',
             'Total',
+            'Canal',
             'Estado',
             'Estado Pago',
             'Fecha Solicitud',

@@ -401,10 +401,18 @@ class OrderService
             $statusSource = $reception ?? $order;
             $isStockSent = $order->is_stock_sent || (bool)$reception;
 
+            $sourceRaw   = is_object($order->source) ? $order->source->value : $order->source;
+            $sourceLabel = is_object($order->source) ? $order->source->label() : $order->source;
+            $sourceBadgeClass = match ((int)$sourceRaw) {
+                \App\Enums\OrderSource::Ecommerce->value => 'bg-info',
+                \App\Enums\OrderSource::Manual->value    => 'bg-purple text-white',
+                default                                  => 'bg-secondary',
+            };
+
             return [
                 'id'            => $order->id,
                 'status_raw'    => is_object($statusSource->status) ? $statusSource->status->value : $statusSource->status,
-                'source_raw'    => is_object($order->source) ? $order->source->value : $order->source,
+                'source_raw'    => $sourceRaw,
                 'is_received'   => $isStockSent ? 'true' : 'false',
                 'customer'      => $this->resolveCustomerName($order),
                 'customer_type' => $order->customer_type,
@@ -415,6 +423,7 @@ class OrderService
                 'total' => collect($order->totals)
                     ->map(fn($v, $k) => $this->formatCurrency($v, CurrencyType::from($k)))
                     ->implode(' / '),
+                'source'         => '<span class="badge ' . $sourceBadgeClass . '">' . $sourceLabel . '</span>', // Canal
                 'status'         => $this->resolveStatus($statusSource, ['currencyClass' => 'fw-bold text-info']), // Estado
                 'payment_status' => sprintf('<span class="%s">%s</span>', $order->payment_status_badge_class, $order->payment_status_label), // Estado Pago
                 'created_at'     => $order->created_at->format('d-m-Y'),         // Fecha Solicitud
@@ -423,7 +432,7 @@ class OrderService
                 '_row_attributes' => [
                     'id'            => $order->id,
                     'status_raw'    => is_object($statusSource->status) ? $statusSource->status->value : $statusSource->status,
-                    'source_raw'    => is_object($order->source) ? $order->source->value : $order->source,
+                    'source_raw'    => $sourceRaw,
                     'is_received'   => $isStockSent ? 'true' : 'false',
                     'can_edit'      => $order->canBeEdited() ? 'true' : 'false',
                 ]
