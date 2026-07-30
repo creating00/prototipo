@@ -60,9 +60,15 @@ class OrderService
         $query = Order::with(['branch', 'customer', 'user'])
             ->orderBy('created_at', 'desc');
 
-        // Filtro por sucursal (si aplica)
+        // Filtro por sucursal proveedora / vendedora
         if ($branchId) {
-            $query->forBranch($branchId);
+            $query->where('branch_id', $branchId)
+                ->where(function ($q) use ($branchId) {
+                    // Excluir compras / autopedidos donde la sucursal actual es la compradora
+                    $q->where('customer_type', '!=', \App\Models\Branch::class)
+                      ->orWhereNull('customer_type')
+                      ->orWhere('customer_id', '!=', $branchId);
+                });
         }
 
         // Lógica de Rol: Si es Seller, solo ve pedidos de Clientes

@@ -148,6 +148,7 @@ class OrderWebController extends BaseOrderController
         $hiddenFields = [
             'id',
             'status_raw',
+            'source_raw',
             'customer',
             'phone',
             'whatsapp-url',
