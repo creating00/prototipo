@@ -34,6 +34,7 @@
             'branches' => $branches,
             'clients' => $clients,
             'statusOptions' => $statusOptions,
+            'source' => \App\Enums\OrderSource::Manual->value,
         ])
     </x-adminlte.form>
 

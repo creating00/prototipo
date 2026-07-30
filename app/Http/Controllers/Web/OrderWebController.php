@@ -258,19 +258,23 @@ class OrderWebController extends BaseOrderController
 
         try {
             $data = $request->all();
-            if ($request->customer_type === 'App\Models\Branch' || (isset($data['source']) && $data['source'] == OrderSource::Manual->value)) {
+
+            // Si el formulario solicita explícitamente source = Manual (3), mantenemos Manual.
+            // De lo contrario, asignamos Backoffice.
+            if (isset($data['source']) && (int)$data['source'] === OrderSource::Manual->value) {
                 $data['source'] = OrderSource::Manual->value;
             } else {
-                $data['source'] = $data['source'] ?? OrderSource::Backoffice->value;
+                $data['source'] = isset($data['source']) ? (int)$data['source'] : OrderSource::Backoffice->value;
             }
+
             $data['user_id'] = $this->userId();
             $order = $this->orderService->createOrder($data);
 
-            // Si es un Pedido Manual o Pedido a Sucursal, redirigimos a "Mis Pedidos Realizados"
-            if ($data['source'] == OrderSource::Manual->value || $request->customer_type === 'App\Models\Branch') {
+            // Redirección inteligente: si es pedido a sucursal o manual, va a Mis Pedidos Realizados
+            if ((int)$data['source'] === OrderSource::Manual->value || $request->customer_type === 'App\Models\Branch') {
                 return redirect()
                     ->route('web.orders.purchases')
-                    ->with('success', 'Pedido manual registrado correctamente.');
+                    ->with('success', 'Pedido solicitado correctamente.');
             }
 
             return redirect()
