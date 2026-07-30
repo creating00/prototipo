@@ -439,7 +439,7 @@ class OrderService
         $rules = [
             'branch_id' => 'nullable|exists:branches,id',
             'status' => 'required|integer',
-            'source' => 'required|integer|in:1,2',
+            'source' => 'required|integer|in:1,2,3',
             'sale_id' => 'nullable|exists:sales,id',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
@@ -468,8 +468,8 @@ class OrderService
             $rules['customer_id'] = 'required_without:branch_recipient_id|exists:branches,id';
         }
 
-        // El user_id solo es obligatorio si viene del Backoffice
-        if ($source == OrderSource::Backoffice->value) {
+        // El user_id solo es obligatorio si viene del Backoffice o Manual
+        if ($source == OrderSource::Backoffice->value || $source == OrderSource::Manual->value) {
             $rules['user_id'] = 'required|exists:users,id';
         }
 
