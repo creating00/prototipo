@@ -201,6 +201,7 @@ trait DataTableFormatter
     {
         $baseRow = $this->formatForDataTable($order, $index);
 
+        $sourceRaw   = is_object($order->source) ? $order->source->value : $order->source;
         $sourceLabel = is_object($order->source) ? $order->source->label() : $order->source;
         $sourceBadgeClass = match ((int)$sourceRaw) {
             \App\Enums\OrderSource::Ecommerce->value => 'bg-info',
