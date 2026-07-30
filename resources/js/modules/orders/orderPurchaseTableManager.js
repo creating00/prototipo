@@ -113,8 +113,14 @@ const TABLE_CONFIG = {
     },
 };
 
+import { setupOrderFilters } from "../../config/dt-filters";
+
 export function initOrderPurchaseTable() {
-    return TableManager.initTable(TABLE_CONFIG);
+    const manager = TableManager.initTable(TABLE_CONFIG);
+    if (manager && manager.table) {
+        setupOrderFilters(manager.table);
+    }
+    return manager;
 }
 
 export default {

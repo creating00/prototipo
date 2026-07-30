@@ -32,6 +32,28 @@
         <x-adminlte.alert-manager />
 
         <div id="orders-container" data-base-url-origin="{{ route('web.orders.index') }}">
+            {{-- Filtros de tabla --}}
+            <div class="row align-items-center mb-3 g-2">
+                <div class="col-md-3 col-sm-6">
+                    <x-bootstrap.select name="filter_status" id="filter-status" :options="\App\Enums\OrderStatus::forSelect()"
+                        placeholder="Todos los Estados" class="form-select-sm" container-class="mb-0" />
+                </div>
+
+                <div class="col-md-3 col-sm-6">
+                    <x-bootstrap.select name="filter_source" id="filter-source" :options="[
+                        '1' => 'Pedidos entre Sucursales (Backoffice)',
+                        '3' => 'Pedidos Manuales',
+                    ]"
+                        placeholder="Todos los Orígenes" class="form-select-sm" container-class="mb-0" />
+                </div>
+
+                <div class="col-md-2 col-sm-6 d-flex align-items-center gap-2">
+                    <button type="button" id="btn-reset-filters" class="btn btn-outline-secondary btn-sm me-2">
+                        <i class="fas fa-times-circle me-1"></i> Limpiar
+                    </button>
+                </div>
+            </div>
+
             {{-- DataTable de Compras Realizadas --}}
             <x-adminlte.data-table tableId="purchases-table" title="Pedidos realizados a otras sucursales" :headers="$headers"
                 :rowData="$rowData" :hiddenFields="$hiddenFields" withActions="true">

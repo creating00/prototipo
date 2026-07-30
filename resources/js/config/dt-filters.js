@@ -279,7 +279,9 @@ export function setupOrderFilters(api) {
         const month = document.getElementById("filter-month")?.value;
 
         DataTable.ext.search.push((settings, data, dataIndex) => {
-            if (!settings.nTable.classList.contains("datatable-sm-orders")) {
+            const tableId = settings.nTable.id;
+            const isOrderTable = settings.nTable.classList.contains("datatable-sm-orders") || tableId === "purchases-table";
+            if (!isOrderTable) {
                 return true;
             }
 
