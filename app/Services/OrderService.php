@@ -399,7 +399,7 @@ class OrderService
         return $this->getPurchasedOrders()->map(function ($order, $index) {
             $reception = $order->reception;
             $statusSource = $reception ?? $order;
-            $isStockSent = $order->is_stock_sent || (bool)$reception;
+            $isStockSent = (bool)$order->is_stock_sent || (bool)$reception;
 
             $sourceRaw   = is_object($order->source) ? $order->source->value : $order->source;
             $sourceLabel = is_object($order->source) ? $order->source->label() : $order->source;
@@ -434,10 +434,117 @@ class OrderService
                     'status_raw'    => is_object($statusSource->status) ? $statusSource->status->value : $statusSource->status,
                     'source_raw'    => $sourceRaw,
                     'is_received'   => $isStockSent ? 'true' : 'false',
-                    'can_edit'      => $order->canBeEdited() ? 'true' : 'false',
+                    'can_edit'      => ($order->canBeEdited() && !$isStockSent) ? 'true' : 'false',
                 ]
             ];
         })->toArray();
+    }
+
+    /**
+     * Registra la recepción física del pedido por parte de la sucursal solicitante.
+     */
+    public function registerReception(int $orderId, array $data): OrderReception
+    {
+        return DB::transaction(function () use ($orderId, $data) {
+            // 1. Cargar el pedido con sus ítems y productos
+            $order = Order::with('items.product')->findOrFail($orderId);
+
+            // 2. Validaciones de integridad
+            if ($order->customer_type !== \App\Models\Branch::class) {
+                throw new \Exception("Solo los pedidos entre sucursales requieren registro de recepción.");
+            }
+
+            if ($order->is_stock_sent || $order->reception()->exists()) {
+                throw new \Exception("Este pedido ya fue enviado al stock / recibido anteriormente.");
+            }
+
+            // 3. Determinar el estado basado en la observación
+            // Si hay texto en 'observation', usamos ReceivedWithIssues, de lo contrario Received
+            $status = !empty($data['observation'])
+                ? \App\Enums\OrderReceptionStatus::ReceivedWithIssues
+                : \App\Enums\OrderReceptionStatus::Received;
+
+            // 4. Crear el registro de recepción
+            $reception = $order->reception()->create([
+                'user_id'     => $this->userId() ?? $data['user_id'],
+                'status'      => $status,
+                'received_at' => now(),
+                'observation' => $data['observation'] ?? null,
+            ]);
+
+            // 5. Aumentar stock en la sucursal que recibe (customer_id)
+            foreach ($order->items as $item) {
+                // Bloqueamos para evitar condiciones de carrera
+                $product = \App\Models\Product::where('id', $item->product_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $this->stockService->addStock($product, $item->quantity, $order->customer_id);
+
+                $this->stockService->updatePurchasePrice(
+                    $product,
+                    $order->customer_id,
+                    (float)$item->unit_price,
+                    is_object($item->currency) ? $item->currency->value : $item->currency
+                );
+            }
+
+            // 6. Actualizar el estado del Pedido a enviado al stock y confirmado
+            $order->update([
+                'is_stock_sent' => true,
+                'stock_sent_at' => now(),
+                'status'        => OrderStatus::Confirmed,
+            ]);
+
+            return $reception;
+        });
+    }
+
+    /**
+     * Incrementa el stock de la sucursal según el pedido y bloquea la orden para modificaciones.
+     */
+    public function sendToStock(int $id): Order
+    {
+        $order = $this->getOrderById($id);
+
+        if ($order->is_stock_sent || $order->reception()->exists()) {
+            throw new \Exception("Este pedido ya fue enviado al stock / recibido anteriormente.");
+        }
+
+        return DB::transaction(function () use ($order) {
+            // Sucursal que recibe el incremento de stock
+            $targetBranchId = ($order->customer_type === \App\Models\Branch::class && $order->customer_id)
+                ? $order->customer_id
+                : $order->branch_id;
+
+            foreach ($order->items as $item) {
+                if ($item->product) {
+                    $this->stockService->addStock($item->product, $item->quantity, $targetBranchId);
+                }
+            }
+
+            $order->update([
+                'is_stock_sent' => true,
+                'stock_sent_at' => now(),
+                'status'        => OrderStatus::Confirmed,
+            ]);
+
+            return $order->fresh(['items', 'customer']);
+        });
+    }
+
+    /**
+     * Actualiza el estado de pago del pedido (1 = Pagado, 2 = Pendiente)
+     */
+    public function updatePaymentStatus(int $id, int $paymentStatus): Order
+    {
+        $order = $this->getOrderById($id);
+
+        $order->update([
+            'payment_status' => $paymentStatus,
+        ]);
+
+        return $order;
     }
 
     protected function getValidationRules(array $data): array
@@ -541,108 +648,7 @@ class OrderService
         $order->update($data);
     }
 
-    /**
-     * Registra la recepción física del pedido por parte de la sucursal solicitante.
-     */
-    public function registerReception(int $orderId, array $data): OrderReception
-    {
-        return DB::transaction(function () use ($orderId, $data) {
-            // 1. Cargar el pedido con sus ítems y productos
-            $order = Order::with('items.product')->findOrFail($orderId);
 
-            // 2. Validaciones de integridad
-            if ($order->customer_type !== \App\Models\Branch::class) {
-                throw new \Exception("Solo los pedidos entre sucursales requieren registro de recepción.");
-            }
-
-            if ($order->reception()->exists()) {
-                throw new \Exception("Este pedido ya cuenta con un registro de recepción.");
-            }
-
-            // 3. Determinar el estado basado en la observación
-            // Si hay texto en 'observation', usamos ReceivedWithIssues, de lo contrario Received
-            $status = !empty($data['observation'])
-                ? \App\Enums\OrderReceptionStatus::ReceivedWithIssues
-                : \App\Enums\OrderReceptionStatus::Received;
-
-            // 4. Crear el registro de recepción
-            $reception = $order->reception()->create([
-                'user_id'     => $this->userId() ?? $data['user_id'],
-                'status'      => $status,
-                'received_at' => now(),
-                'observation' => $data['observation'] ?? null,
-            ]);
-
-            // 5. Aumentar stock en la sucursal que recibe (customer_id)
-            foreach ($order->items as $item) {
-                // Bloqueamos para evitar condiciones de carrera
-                $product = \App\Models\Product::where('id', $item->product_id)
-                    ->lockForUpdate()
-                    ->firstOrFail();
-
-                $this->stockService->addStock($product, $item->quantity, $order->customer_id);
-
-                $this->stockService->updatePurchasePrice(
-                    $product,
-                    $order->customer_id,
-                    (float)$item->unit_price,
-                    is_object($item->currency) ? $item->currency->value : $item->currency
-                );
-            }
-
-            // 6. Opcional: Actualizar el estado del Pedido a 'Completado'
-            // $order->update(['status' => \App\Enums\OrderStatus::Completed]);
-
-            return $reception;
-        });
-    }
-
-    /**
-     * Incrementa el stock de la sucursal según el pedido y bloquea la orden para modificaciones.
-     */
-    public function sendToStock(int $id): Order
-    {
-        $order = $this->getOrderById($id);
-
-        if ($order->is_stock_sent) {
-            throw new \Exception("Este pedido ya fue enviado al stock.");
-        }
-
-        return DB::transaction(function () use ($order) {
-            // Sucursal que recibe el incremento de stock
-            $targetBranchId = ($order->customer_type === \App\Models\Branch::class && $order->customer_id)
-                ? $order->customer_id
-                : $order->branch_id;
-
-            foreach ($order->items as $item) {
-                if ($item->product) {
-                    $this->stockService->addStock($item->product, $item->quantity, $targetBranchId);
-                }
-            }
-
-            $order->update([
-                'is_stock_sent' => true,
-                'stock_sent_at' => now(),
-                'status'        => OrderStatus::Confirmed,
-            ]);
-
-            return $order->fresh(['items', 'customer']);
-        });
-    }
-
-    /**
-     * Actualiza el estado de pago del pedido (1 = Pagado, 2 = Pendiente)
-     */
-    public function updatePaymentStatus(int $id, int $paymentStatus): Order
-    {
-        $order = $this->getOrderById($id);
-
-        $order->update([
-            'payment_status' => $paymentStatus,
-        ]);
-
-        return $order->fresh();
-    }
 
     /**
      * Consulta productos de la sucursal activa e identifica sugerencias de auto-pedido.

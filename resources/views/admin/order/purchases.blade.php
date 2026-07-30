@@ -18,8 +18,13 @@
             display: inline-block !important;
         }
 
-        /* 2. Ocultar botón editar si ya fue enviado al stock (can_edit = false) */
-        tr[data-can_edit="false"] .btn-edit {
+        tr[data-is_received="true"] .btn-receive {
+            display: none !important;
+        }
+
+        /* 2. Ocultar botón editar si ya fue enviado al stock (can_edit = false o is_received = true) */
+        tr[data-can_edit="false"] .btn-edit,
+        tr[data-is_received="true"] .btn-edit {
             display: none !important;
         }
 
