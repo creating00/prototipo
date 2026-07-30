@@ -37,29 +37,29 @@ export function productModalAjax(data, callback, settings) {
 }
 
 /**
- * Obtiene el ID de sucursal que debe usarse para filtrar stock.
+ * Obtiene el ID de sucursal que debe usarse para filtrar stock y buscar productos.
  * Prioridad:
- * 1. branch_recipient_id (si existe)
+ * 1. branch_id (sucursal proveedora / origen donde está el stock)
  * 2. current_branch_id (ventas)
- * 3. branch_id (origen)
+ * 3. branch_recipient_id / customer_id (sucursal solicitante)
  */
 export function getCurrentBranchId() {
-    // 1. Sucursal solicitante / destinataria (órdenes / traspasos)
-    const customerSelect = document.querySelector('select[name="customer_id"]');
-    if (customerSelect?.value) return customerSelect.value;
-
-    const recipient = document.querySelector(
-        'select[name="branch_recipient_id"]'
-    );
-    if (recipient?.value) return recipient.value;
+    // 1. Sucursal origen / proveedora (donde están los productos y el stock)
+    const sender = document.querySelector('select[name="branch_id"]');
+    if (sender?.value) return sender.value;
 
     // 2. Input explícito (ventas)
     const branchIdInput = document.getElementById("current_branch_id");
     if (branchIdInput?.value) return branchIdInput.value;
 
-    // 3. Sucursal origen / proveedora
-    const sender = document.querySelector('select[name="branch_id"]');
-    if (sender?.value) return sender.value;
+    // 3. Sucursal destinataria / solicitante (órdenes / traspasos)
+    const recipient = document.querySelector(
+        'select[name="branch_recipient_id"]'
+    );
+    if (recipient?.value) return recipient.value;
+
+    const customerSelect = document.querySelector('select[name="customer_id"]');
+    if (customerSelect?.value) return customerSelect.value;
 
     return null;
 }
