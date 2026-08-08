@@ -21,6 +21,9 @@
             <!-- Messages Dropdown Menu -->
             {{-- <x-adminlte.dropdown-menu /> --}}
 
+            <!-- Branch Context Dropdown -->
+            <x-adminlte.branch-context-dropdown />
+
             <!-- Notifications Dropdown -->
             <x-adminlte.notifications-dropdown />
 

@@ -13,9 +13,17 @@ class ClientService
     /**
      * Punto central para consultas filtradas por sucursal.
      */
-    private function branchQuery(int $branchId)
+    private function branchQuery(?int $branchId = null, array $accessibleBranchIds = [])
     {
-        return Client::forBranch($branchId);
+        $query = Client::query();
+
+        if ($branchId) {
+            return $query->forBranch($branchId);
+        } elseif (!empty($accessibleBranchIds)) {
+            return $query->whereIn('branch_id', $accessibleBranchIds);
+        }
+
+        return $query;
     }
 
     public function createClient(array $data): Client
@@ -24,10 +32,9 @@ class ClientService
         return Client::create($validated);
     }
 
-    public function getAllClients(int $branchId)
+    public function getAllClients(?int $branchId = null, array $accessibleBranchIds = [])
     {
-        // Usamos el helper centralizado
-        return $this->branchQuery($branchId)
+        return $this->branchQuery($branchId, $accessibleBranchIds)
             ->orderBy('full_name')
             ->get();
     }
@@ -123,21 +130,20 @@ class ClientService
         return Client::with('orders')->get();
     }
 
-    public function getAllClientsForDataTable(int $branchId)
+    public function getAllClientsForDataTable(?int $branchId = null, array $accessibleBranchIds = [])
     {
-        // Reutilizamos el método que ya filtra por branch
-        $clients = $this->getAllClients($branchId);
+        $clients = $this->getAllClients($branchId, $accessibleBranchIds);
 
         return $clients->map(function ($client, $index) {
             return [
-                'id' => $client->id,                    // Oculto pero disponible como data-id
+                'id' => $client->id,
                 'is_system' => $client->is_system ? 1 : 0,
-                'number' => $index + 1,                 // Número incremental visible
-                'document' => $client->document,        // Visible
-                'full_name' => $client->full_name,      // Visible
-                'phone' => $client->phone,              // Visible
-                'email' => $client->email,              // Visible
-                'created_at' => $client->created_at->format('Y-m-d'), // Visible
+                'number' => $index + 1,
+                'document' => $client->document,
+                'full_name' => $client->full_name,
+                'phone' => $client->phone,
+                'email' => $client->email,
+                'created_at' => $client->created_at->format('Y-m-d'),
             ];
         })->toArray();
     }

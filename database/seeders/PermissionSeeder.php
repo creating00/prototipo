@@ -162,11 +162,20 @@ class PermissionSeeder extends Seeder
         // Crear el Admin (Siempre activo)
         $this->setupAdminRole();
 
-        // Crear el Manager (Comentado por petición del cliente)
-        // $this->setupManagerRole();
+        // Crear el Administrador Provincial
+        $this->setupProvincialAdminRole();
 
         // Crear el Seller (Siempre activo)
         $this->setupSellerRole();
+    }
+
+    /**
+     * Configura el rol de Administrador Provincial.
+     */
+    private function setupProvincialAdminRole(): void
+    {
+        $provincialAdmin = Role::firstOrCreate(['name' => \App\Enums\RoleLabel::PROVINCIAL_ADMIN->value, 'guard_name' => 'web']);
+        $provincialAdmin->syncPermissions(Permission::all());
     }
 
     /**

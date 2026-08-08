@@ -43,7 +43,11 @@ class SaleService
 
     public function getAllSales()
     {
+        $branchId = $this->currentBranchId();
+        $accessibleBranchIds = $this->getAccessibleBranchIds();
+
         return Sale::with(['branch', 'customer'])
+            ->forBranch($branchId ?: $accessibleBranchIds)
             ->orderBy('created_at', 'desc')
             ->get();
     }
@@ -57,9 +61,10 @@ class SaleService
     public function getAllSalesForDataTable(): array
     {
         $branchId = $this->currentBranchId();
+        $accessibleBranchIds = $this->getAccessibleBranchIds();
 
         return Sale::with(['branch', 'customer', 'payments'])
-            ->forBranch($branchId)
+            ->forBranch($branchId ?: $accessibleBranchIds)
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(fn(Sale $sale, $index) => $this->formatSaleForDataTable($sale, $index))

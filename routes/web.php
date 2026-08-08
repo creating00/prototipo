@@ -32,7 +32,8 @@ use App\Http\Controllers\Web\{
     PriceModificationWebController,
     PromotionImageWebController,
     PromotionWebController,
-    RepairAmountWebController
+    RepairAmountWebController,
+    BranchContextWebController
 };
 use App\Models\Sale;
 
@@ -54,6 +55,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
     Route::prefix('web')->group(function () {
+        Route::post('branch-context/switch', [BranchContextWebController::class, 'switchContext'])
+            ->name('web.branch-context.switch');
+
         Route::get('products/template', [ProductImportController::class, 'downloadTemplate'])->name('web.products.template');
         Route::get('providers/template', [ProviderImportController::class, 'downloadTemplate'])->name('web.providers.template');
         Route::get('expenses/template', [ExpenseImportController::class, 'downloadTemplate'])->name('web.expenses.template');
