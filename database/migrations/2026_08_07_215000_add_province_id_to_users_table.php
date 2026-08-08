@@ -19,6 +19,13 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->nullOnDelete();
         });
+
+        if (class_exists(\Spatie\Permission\Models\Role::class)) {
+            \Spatie\Permission\Models\Role::firstOrCreate([
+                'name' => \App\Enums\RoleLabel::PROVINCIAL_ADMIN->value,
+                'guard_name' => 'web'
+            ]);
+        }
     }
 
     /**
