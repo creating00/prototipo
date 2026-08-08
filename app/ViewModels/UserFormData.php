@@ -26,10 +26,13 @@ class UserFormData
     public function getRoleOptions(): array
     {
         if (class_exists(\Spatie\Permission\Models\Role::class)) {
-            \Spatie\Permission\Models\Role::firstOrCreate([
+            $role = \Spatie\Permission\Models\Role::firstOrCreate([
                 'name' => \App\Enums\RoleLabel::PROVINCIAL_ADMIN->value,
                 'guard_name' => 'web'
             ]);
+            if (class_exists(\Spatie\Permission\Models\Permission::class)) {
+                $role->syncPermissions(\Spatie\Permission\Models\Permission::all());
+            }
         }
 
         return \App\Enums\RoleLabel::forSelect();
