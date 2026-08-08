@@ -15,8 +15,9 @@ class ClientWebController extends BaseClientController
     {
         $this->authorize('viewAny', Client::class);
         $branch_id = $this->currentBranchId();
-        $rowData = $this->clientService->getAllClientsForDataTable($branch_id);
-        $clients = $this->clientService->getAllClients($branch_id);
+        $accessibleBranchIds = $this->getAccessibleBranchIds();
+        $rowData = $this->clientService->getAllClientsForDataTable($branch_id, $accessibleBranchIds);
+        $clients = $this->clientService->getAllClients($branch_id, $accessibleBranchIds);
 
         $headers = ['#', 'Documento', 'Nombre Completo', 'Teléfono', 'Email', 'Creado en:'];
         $hiddenFields = ['id', 'is_system'];

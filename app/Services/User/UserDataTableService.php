@@ -4,6 +4,7 @@ namespace App\Services\User;
 
 use App\Models\User;
 use App\Traits\HasStatusBadge;
+use App\Enums\RoleLabel;
 
 class UserDataTableService
 {
@@ -14,20 +15,30 @@ class UserDataTableService
      */
     public function getAllUsersForDataTable(): array
     {
-        $users = User::with(['branch'])
+        $users = User::with(['branch.province', 'province', 'roles'])
             ->where('email', '!=', 'ecommerce@system.com')
             ->orderByDesc('created_at')
             ->get();
 
         return $users->map(function ($user, $index) {
+            $branchDisplay = '<span class="text-muted">Sin asignar</span>';
+
+            if ($user->hasRole('admin')) {
+                $branchDisplay = '<span class="badge bg-primary">Todas las sucursales</span>';
+            } elseif ($user->hasRole(RoleLabel::PROVINCIAL_ADMIN->value)) {
+                $provName = $user->province?->name ?? $user->branch?->province?->name ?? 'Córdoba';
+                $branchDisplay = sprintf('<span class="badge bg-info text-dark"><i class="bi bi-geo-alt me-1"></i>Provincial (%s)</span>', e($provName));
+            } elseif ($user->branch) {
+                $branchDisplay = e($user->branch->name);
+            }
+
             return [
                 'id'         => $user->id,
                 'number'     => $index + 1,
                 'name'       => $user->name,
                 'email'      => $this->formatEmail($user->email),
-                'branch'     => $user->branch->name ?? '<span class="text-muted">Sin asignar</span>',
-                //'status'     => $this->formatUserStatus($user->status ?? 'active'),
-                'created_at' => $user->created_at->format('d/m/Y H:i'),
+                'branch'     => $branchDisplay,
+                'created_at' => $user->created_at?->format('d/m/Y H:i') ?? '-',
             ];
         })->toArray();
     }
@@ -39,7 +50,6 @@ class UserDataTableService
     {
         $label = $status === 'active' ? 'Activo' : 'Inactivo';
 
-        // Se asume que HasStatusBadge maneja la lógica de colores según el texto o clase
         return $this->formatStatusBadge($label, $status === 'active' ? 'success' : 'danger');
     }
 
@@ -50,7 +60,7 @@ class UserDataTableService
     {
         return sprintf(
             '<i class="far fa-envelope text-muted me-1"></i> %s',
-            $email
+            e($email)
         );
     }
 }

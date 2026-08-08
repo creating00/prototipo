@@ -222,11 +222,19 @@ class ProductService
 
     public function getAllForDataTable(): array
     {
-        $branchId = $branchId ?? $this->currentBranchId();
+        $branchId = $this->currentBranchId();
+        $accessibleBranchIds = $this->getAccessibleBranchIds();
+
         $products = Product::with([
             'category',
             'providers',
-            'productBranches' => fn($q) => $q->where('branch_id', $branchId),
+            'productBranches' => function ($q) use ($branchId, $accessibleBranchIds) {
+                if ($branchId) {
+                    $q->where('branch_id', $branchId);
+                } elseif (!empty($accessibleBranchIds)) {
+                    $q->whereIn('branch_id', $accessibleBranchIds);
+                }
+            },
             'productBranches.prices',
         ])->get();
 
