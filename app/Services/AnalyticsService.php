@@ -56,7 +56,20 @@ class AnalyticsService
         ];
     }
 
-    private function getSalesInfoboxes(int $branchId, array $filters): array
+    private function applyBranchFilter($query, string|int|array|null $branchId, string $column = 'branch_id')
+    {
+        if (is_array($branchId)) {
+            return $query->whereIn($column, $branchId);
+        }
+
+        if ($branchId !== null && $branchId !== '' && $branchId !== 'all') {
+            return $query->where($column, (int) $branchId);
+        }
+
+        return $query;
+    }
+
+    private function getSalesInfoboxes(string|int|array|null $branchId, array $filters): array
     {
         $stats = config('analytics.infoboxes');
         $hasRange = !empty($filters['start_date']) && !empty($filters['end_date']);
@@ -109,7 +122,7 @@ class AnalyticsService
         return $stats;
     }
 
-    private function getExpenseInfoboxes(int $branchId, array $filters): array
+    private function getExpenseInfoboxes(string|int|array|null $branchId, array $filters): array
     {
         $boxes = config('analytics.expense_infoboxes');
         $hasRange = !empty($filters['start_date']) && !empty($filters['end_date']);
@@ -306,30 +319,31 @@ class AnalyticsService
         ];
     }
 
-    private function getCostOfGoodsSold(int $branchId, array $dates): float
+    private function getCostOfGoodsSold(string|int|array|null $branchId, array $dates): float
     {
         $start = Carbon::parse($dates[0])->startOfDay();
         $end = Carbon::parse($dates[1])->endOfDay();
+        $effectiveBranch = is_array($branchId) ? ($branchId[0] ?? null) : $branchId;
 
         $saleItems = \App\Models\SaleItem::whereHas('sale', function ($q) use ($branchId, $start, $end) {
-            $q->where('branch_id', $branchId)
+            $q->forBranch($branchId)
               ->whereBetween('created_at', [$start, $end])
               ->whereNull('deleted_at');
         })
         ->with([
             'product' => fn($q) => $q->withTrashed(),
-            'product.productBranches' => fn($q) => $q->where('branch_id', $branchId),
+            'product.productBranches' => fn($q) => $this->applyBranchFilter($q, $branchId),
             'product.productBranches.prices'
         ])
         ->get();
 
-        return (float) $saleItems->sum(function ($item) use ($branchId) {
-            $cost = $item->product?->purchasePrice($branchId) ?? 0;
+        return (float) $saleItems->sum(function ($item) use ($effectiveBranch) {
+            $cost = $item->product?->purchasePrice($effectiveBranch) ?? 0;
             return $cost * $item->quantity;
         });
     }
 
-    private function calculateResultBoxes(array $salesInfo, array $expenseInfo, int $branchId, array $filters): array
+    private function calculateResultBoxes(array $salesInfo, array $expenseInfo, string|int|array|null $branchId, array $filters): array
     {
         $results = config('analytics.result_infoboxes');
         $hasRange = !empty($filters['start_date']) && !empty($filters['end_date']);
@@ -354,13 +368,16 @@ class AnalyticsService
 
     private function getTopProducts(array $filters, int $limit = 5)
     {
+        $branchId = $filters['branch_id'] ?? null;
+
         $query = Product::select('products.name')
             ->selectRaw('SUM(sale_items.quantity) as units')
             ->selectRaw('SUM(sale_items.subtotal) as total')
             ->join('sale_items', 'sale_items.product_id', '=', 'products.id')
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
-            ->whereNull('sales.deleted_at')
-            ->where('sales.branch_id', $filters['branch_id']);
+            ->whereNull('sales.deleted_at');
+
+        $this->applyBranchFilter($query, $branchId, 'sales.branch_id');
 
         if (!empty($filters['category_id'])) {
             $query->where('products.category_id', $filters['category_id']);
@@ -375,9 +392,9 @@ class AnalyticsService
 
     private function getTopClients(array $filters, int $limit = 5)
     {
-        $branchId = $filters['branch_id'];
+        $branchId = $filters['branch_id'] ?? null;
 
-        return Client::forBranch($branchId)
+        $query = Client::forBranch($branchId)
             ->select('clients.full_name as name')
             ->selectRaw('COUNT(DISTINCT sales.id) as orders')
             ->selectRaw("{$this->getConvertedPaymentExpression()} as total")
@@ -388,25 +405,29 @@ class AnalyticsService
                     ->where('payments.paymentable_type', Sale::class);
             })
             ->where('sales.customer_type', Client::class)
-            ->where('sales.branch_id', $branchId)
-            ->whereNull('sales.deleted_at')
-            ->groupBy('clients.id', 'clients.full_name')
+            ->whereNull('sales.deleted_at');
+
+        $this->applyBranchFilter($query, $branchId, 'sales.branch_id');
+
+        return $query->groupBy('clients.id', 'clients.full_name')
             ->orderByDesc('total')
             ->limit($limit)
             ->get();
     }
 
-    private function getStockReport(int $branchId)
+    private function getStockReport(string|int|array|null $branchId)
     {
         // Margen de aviso preventivo sobre el umbral
         $alertMargin = 10;
 
-        return ProductBranch::with('product')
-            ->where('branch_id', $branchId)
+        $query = ProductBranch::with('product')
             ->whereHas('product')
             ->where('status', '!=', ProductStatus::Discontinued)
-            ->whereRaw('stock <= (low_stock_threshold + ?)', [$alertMargin])
-            ->get()
+            ->whereRaw('stock <= (low_stock_threshold + ?)', [$alertMargin]);
+
+        $this->applyBranchFilter($query, $branchId, 'branch_id');
+
+        return $query->get()
             ->map(fn($pb) => [
                 'name'      => $pb->product->name,
                 'stock'     => $pb->stock,
@@ -415,16 +436,19 @@ class AnalyticsService
                 'is_near'   => $pb->stock > $pb->low_stock_threshold
             ]);
     }
-    private function getStockReportOld(int $branchId)
+
+    private function getStockReportOld(string|int|array|null $branchId)
     {
         // Margen de aviso preventivo sobre el umbral
         $alertMargin = 10;
 
-        return ProductBranch::with(['product' => fn($q) => $q->withTrashed()])
-            ->where('branch_id', $branchId)
+        $query = ProductBranch::with(['product' => fn($q) => $q->withTrashed()])
             ->where('status', '!=', ProductStatus::Discontinued)
-            ->whereRaw('stock <= (low_stock_threshold + ?)', [$alertMargin])
-            ->get()
+            ->whereRaw('stock <= (low_stock_threshold + ?)', [$alertMargin]);
+
+        $this->applyBranchFilter($query, $branchId, 'branch_id');
+
+        return $query->get()
             ->filter(fn($pb) => $pb->product !== null) // Seguridad extra
             ->map(fn($pb) => [
                 'name'      => $pb->product->name ?? 'Producto no encontrado',
@@ -435,7 +459,7 @@ class AnalyticsService
             ]);
     }
 
-    private function getMonthlyChartData(int $branchId): array
+    private function getMonthlyChartData(string|int|array|null $branchId): array
     {
         $currentYear = now()->year;
         $rate = $this->exchangeService->getCurrentDollarRate();
