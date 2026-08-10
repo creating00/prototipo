@@ -74,6 +74,14 @@ class SaleWebController extends BaseSaleController
         $discountService = app(\App\Services\DiscountService::class);
         $repairAmountService = app(\App\Services\RepairAmountService::class);
         $userBranchId = $this->currentBranchId();
+        $user = $this->currentUser();
+        $accessibleBranches = $user ? $branchService->getAccessibleBranchesForUser($user) : collect();
+
+        $originBranch = ($userBranchId ? $branchService->getUserBranch($userBranchId) : null)
+            ?? $accessibleBranches->first()
+            ?? \App\Models\Branch::first();
+
+        $effectiveBranchId = $originBranch?->id;
 
         $isDollarSale = false;
         if ($sale) {
@@ -82,7 +90,7 @@ class SaleWebController extends BaseSaleController
         }
 
         $activeRepairAmounts = \App\Models\RepairAmount::query()
-            ->forBranch($userBranchId)
+            ->forBranch($userBranchId ?: $this->getAccessibleBranchIds())
             ->active()
             ->get()
             ->pluck('amount', 'repair_type.value') // [type_id => amount]
@@ -122,35 +130,32 @@ class SaleWebController extends BaseSaleController
             'bankAccounts' => \App\Models\BankAccount::with(['bank', 'user'])
                 ->get()
                 ->pluck('full_description', 'id'),
-            'currentBranchId' =>  $userBranchId,
+            'currentBranchId' =>  $effectiveBranchId,
         ];
 
         if ($customerType === 'App\Models\Client') {
             $clientService = app(\App\Services\ClientService::class);
 
-            $originBranch = $branchService->getUserBranch($userBranchId);
             if (!$originBranch) {
                 abort(404, 'Sucursal de origen no encontrada.');
             }
 
-            $data['branches'] = collect([$originBranch]);
+            $data['branches'] = $accessibleBranches->isNotEmpty() ? $accessibleBranches : collect([$originBranch]);
 
-            $data['clients'] = $clientService->getAllClients($userBranchId);
+            $data['clients'] = $clientService->getAllClients($userBranchId, $this->getAccessibleBranchIds());
 
             $defaultDoc = config('app.default_client_document');
             $data['defaultClientId'] = $data['clients']
                 ->where('document', $defaultDoc)
                 ->first()?->id;
         } else {
-            $originBranch = $branchService->getUserBranch($userBranchId);
-
             if (!$originBranch) {
                 abort(404, 'Sucursal de origen no encontrada.');
             }
 
             $data['originBranch'] = $originBranch;
-            $data['branches'] = $branchService->getAllBranches();
-            $data['destinationBranches'] = $branchService->getAllBranchesExcept($userBranchId);
+            $data['branches'] = $accessibleBranches->isNotEmpty() ? $accessibleBranches : $branchService->getAllBranches();
+            $data['destinationBranches'] = $branchService->getAllBranchesExcept($effectiveBranchId);
         }
 
         return $data;

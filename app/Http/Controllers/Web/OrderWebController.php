@@ -234,10 +234,15 @@ class OrderWebController extends BaseOrderController
         $this->authorize('create_branch', Order::class);
         $userBranchId = $this->currentBranchId();
         $branchService = app(BranchService::class);
-        $currentBranchId = $this->currentBranchId();
+        $user = $this->currentUser();
+        $accessibleBranches = $user ? $branchService->getAccessibleBranchesForUser($user) : collect();
 
-        $originBranch = $branchService->getUserBranch($userBranchId);
-        $destinationBranches = collect($branchService->getAllBranchesExcept($userBranchId));
+        $originBranch = ($userBranchId ? $branchService->getUserBranch($userBranchId) : null)
+            ?? $accessibleBranches->first()
+            ?? \App\Models\Branch::first();
+
+        $currentBranchId = $originBranch?->id;
+        $destinationBranches = collect($branchService->getAllBranchesExcept($currentBranchId));
 
         $statusOptions = OrderStatus::forInternalOrder();
         $customer_type = 'App\Models\Branch';
