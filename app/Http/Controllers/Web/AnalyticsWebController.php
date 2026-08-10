@@ -25,10 +25,15 @@ class AnalyticsWebController extends Controller
     {
         $this->authorize('view', 'analytics');
 
+        $userBranchId = $this->currentBranchId();
+        $accessibleBranchIds = $this->getAccessibleBranchIds();
+
         // 1. Determinar Branch ID
-        $branchId = $request->input('branch_id')
+        $inputBranchId = $request->input('branch_id')
             ?? session('analytics_branch_id')
-            ?? $this->currentBranchId();
+            ?? $userBranchId;
+
+        $branchId = ($inputBranchId === 'all' || !$inputBranchId) ? $accessibleBranchIds : (int) $inputBranchId;
 
         // 2. Construir filtros unificados
         $filters = [

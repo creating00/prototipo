@@ -185,3 +185,29 @@ test('getUserBranch handles null branchId without TypeError', function () {
     \App\Models\Branch::create(['name' => 'Test Branch', 'code' => 'TB', 'address' => 'Test', 'province_id' => $provId]);
     expect($branchService->getAllBranchesExcept(null))->not->toBeEmpty();
 });
+
+test('analytics service handles consolidated branch mode without TypeError', function () {
+    $provId = DB::table('provinces')->insertGetId([
+        'api_id' => '100',
+        'name' => 'Analytics Prov',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $user = User::factory()->create([
+        'province_id' => $provId,
+    ]);
+    $user->assignRole(RoleLabel::PROVINCIAL_ADMIN->value);
+
+    $this->actingAs($user);
+    session(['active_branch_id' => 'all']);
+
+    $analyticsService = app(\App\Services\AnalyticsService::class);
+    $data = $analyticsService->getBranchStats([
+        'branch_id' => [$provId],
+        'start_date' => null,
+        'end_date' => null,
+    ]);
+
+    expect($data)->toBeArray();
+});
