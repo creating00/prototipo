@@ -20,7 +20,7 @@ class OrderPolicy extends BasePolicy
             return false;
         }
 
-        if ($user->hasRole('admin') || !$user->branch_id) {
+        if ($user->hasRole('admin') || $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value) || !$user->branch_id) {
             return true;
         }
 
@@ -49,7 +49,7 @@ class OrderPolicy extends BasePolicy
             return false;
         }
 
-        if ($user->hasRole('admin') || !$user->branch_id) {
+        if ($user->hasRole('admin') || $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value) || !$user->branch_id) {
             return true;
         }
 
@@ -63,7 +63,7 @@ class OrderPolicy extends BasePolicy
             return false;
         }
 
-        if ($user->hasRole('admin') || !$user->branch_id) {
+        if ($user->hasRole('admin') || $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value) || !$user->branch_id) {
             return true;
         }
 
@@ -77,7 +77,7 @@ class OrderPolicy extends BasePolicy
             return false;
         }
 
-        if ($user->hasRole('admin') || !$user->branch_id) {
+        if ($user->hasRole('admin') || $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value) || !$user->branch_id) {
             return true;
         }
 
