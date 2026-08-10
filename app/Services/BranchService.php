@@ -51,16 +51,23 @@ class BranchService
         return Branch::orderBy('name')->get();
     }
 
-    public function getUserBranch(int $userBranchId)
+    public function getUserBranch(?int $userBranchId)
     {
-        // Usamos first() para obtener el objeto, no una colección
+        if (!$userBranchId) {
+            return null;
+        }
+
         return Branch::where('id', $userBranchId)
             ->orderBy('name')
             ->first();
     }
 
-    public function getAllBranchesExcept(int $excludeBranchId)
+    public function getAllBranchesExcept(?int $excludeBranchId)
     {
+        if (!$excludeBranchId) {
+            return $this->getAllBranches();
+        }
+
         return Branch::where('id', '!=', $excludeBranchId)
             ->orderBy('name')
             ->get();

@@ -170,3 +170,18 @@ test('sale service and scopeForBranch handle consolidated mode and array branchI
 
     expect($data)->toBeArray();
 });
+
+test('getUserBranch handles null branchId without TypeError', function () {
+    $branchService = app(\App\Services\BranchService::class);
+    expect($branchService->getUserBranch(null))->toBeNull();
+
+    $provId = DB::table('provinces')->insertGetId([
+        'api_id' => '99',
+        'name' => 'Test Prov',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    \App\Models\Branch::create(['name' => 'Test Branch', 'code' => 'TB', 'address' => 'Test', 'province_id' => $provId]);
+    expect($branchService->getAllBranchesExcept(null))->not->toBeEmpty();
+});
