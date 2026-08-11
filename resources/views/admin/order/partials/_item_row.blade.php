@@ -2,7 +2,7 @@
     $quantity = $item?->quantity ?? 1;
     $unitPrice = $item?->unit_price ?? ($salePrice ?? 0);
     $subtotal = $item?->subtotal ?? $quantity * $unitPrice;
-    $allowEditPrice = $allowEditPrice ?? false;
+    $allowEditPrice = ($allowEditPrice ?? false) && auth()->user()?->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
     $currentCurrency = $currency ?? ($item?->currency ?? \App\Enums\CurrencyType::ARS);
     $colorClass = "bg-{$currentCurrency->color()} text-white";
 @endphp
