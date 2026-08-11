@@ -37,6 +37,14 @@ class AppServiceProvider extends ServiceProvider
                 return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
             }
 
+            $isUserTarget = $target === \App\Models\User::class 
+                || $target instanceof \App\Models\User 
+                || str_starts_with($ability, 'users.');
+
+            if ($isUserTarget) {
+                return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
+            }
+
             if ($user->hasRole('admin') || $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value)) {
                 return true;
             }

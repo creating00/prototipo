@@ -10,7 +10,8 @@ class UserWebRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $ability = $this->isMethod('post') ? 'create' : 'update';
+        return $this->user()?->can($ability, \App\Models\User::class) ?? false;
     }
 
     public function rules(): array

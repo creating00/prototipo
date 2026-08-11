@@ -10,36 +10,36 @@ class UserPolicy extends BasePolicy
 
     public function viewAny(User $user): bool
     {
-        return $this->can($user, 'view');
+        return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
     }
 
     public function view(User $user, User $model): bool
     {
-        return $this->can($user, 'view');
+        return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
     }
 
     public function create(User $user): bool
     {
-        return $this->can($user, 'create');
+        return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
     }
 
     public function update(User $user, User $model): bool
     {
-        return $this->can($user, 'update');
+        return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
     }
 
     public function delete(User $user, User $model): bool
     {
-        return $this->can($user, 'delete');
+        return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
     }
 
     public function assignRoles(User $user, User $model): bool
     {
-        return $this->can($user, 'assign_roles');
+        return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
     }
 
     public function resetPassword(User $user, User $model): bool
     {
-        return $this->can($user, 'reset_password');
+        return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
     }
 }

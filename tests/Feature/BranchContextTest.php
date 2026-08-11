@@ -104,7 +104,7 @@ test('existing user can be edited to become a provincial admin for a specific pr
     ]);
 
     $adminUser = User::factory()->create();
-    $adminUser->assignRole('admin');
+    $adminUser->assignRole(RoleLabel::PROVINCIAL_ADMIN->value);
 
     $targetUser = User::factory()->create([
         'name' => 'Juan Perez',
