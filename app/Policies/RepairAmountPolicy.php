@@ -21,16 +21,16 @@ class RepairAmountPolicy extends BasePolicy
 
     public function create(User $user): bool
     {
-        return $this->can($user, 'create');
+        return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
     }
 
     public function update(User $user, RepairAmount $repairAmount): bool
     {
-        return $this->can($user, 'update');
+        return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
     }
 
     public function delete(User $user, RepairAmount $repairAmount): bool
     {
-        return $this->can($user, 'delete');
+        return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
     }
 }

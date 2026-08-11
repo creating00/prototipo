@@ -9,22 +9,26 @@ class ProductBranchPriceService
 {
     public function createPricesForBranch(ProductBranch $branch, array $data): void
     {
+        /** @var \App\Models\User|null $user */
+        $user = auth()->user();
+        $isProvincialAdmin = $user && $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
+
         // Precio de Compra
         $branch->prices()->create([
             'type'     => PriceType::PURCHASE,
-            'currency' => $data['purchase_price_currency'],
-            'amount'   => $data['purchase_price_amount'],
+            'currency' => $data['purchase_price_currency'] ?? 1,
+            'amount'   => $isProvincialAdmin ? ($data['purchase_price_amount'] ?? 0) : 0,
         ]);
 
         // Precio de Venta
         $branch->prices()->create([
             'type'     => PriceType::SALE,
-            'currency' => $data['sale_price_currency'],
-            'amount'   => $data['sale_price_amount'],
+            'currency' => $data['sale_price_currency'] ?? 1,
+            'amount'   => $isProvincialAdmin ? ($data['sale_price_amount'] ?? 0) : 0,
         ]);
 
         // Precio Mayorista (Opcional)
-        if (!empty($data['wholesale_price_amount'])) {
+        if ($isProvincialAdmin && !empty($data['wholesale_price_amount'])) {
             $branch->prices()->create([
                 'type'     => PriceType::WHOLESALE,
                 'currency' => $data['wholesale_price_currency'],
@@ -33,7 +37,7 @@ class ProductBranchPriceService
         }
 
         // Precio de Reparación (Opcional)
-        if (!empty($data['repair_price_amount'])) {
+        if ($isProvincialAdmin && !empty($data['repair_price_amount'])) {
             $branch->prices()->create([
                 'type'     => PriceType::REPAIR,
                 'currency' => $data['repair_price_currency'],
@@ -44,20 +48,30 @@ class ProductBranchPriceService
 
     public function updatePricesForBranch(ProductBranch $branch, array $data): void
     {
+        /** @var \App\Models\User|null $user */
+        $user = auth()->user();
+        if (!$user || !$user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value)) {
+            return;
+        }
+
         // Compra
-        $this->upsertPrice($branch, PriceType::PURCHASE, $data['purchase_price_currency'], $data['purchase_price_amount']);
+        if (isset($data['purchase_price_currency'], $data['purchase_price_amount'])) {
+            $this->upsertPrice($branch, PriceType::PURCHASE, (int)$data['purchase_price_currency'], (float)$data['purchase_price_amount']);
+        }
 
         // Venta
-        $this->upsertPrice($branch, PriceType::SALE, $data['sale_price_currency'], $data['sale_price_amount']);
+        if (isset($data['sale_price_currency'], $data['sale_price_amount'])) {
+            $this->upsertPrice($branch, PriceType::SALE, (int)$data['sale_price_currency'], (float)$data['sale_price_amount']);
+        }
 
         // Mayorista (opcional)
-        if (!empty($data['wholesale_price_amount'])) {
-            $this->upsertPrice($branch, PriceType::WHOLESALE, $data['wholesale_price_currency'], $data['wholesale_price_amount']);
+        if (isset($data['wholesale_price_currency'], $data['wholesale_price_amount'])) {
+            $this->upsertPrice($branch, PriceType::WHOLESALE, (int)$data['wholesale_price_currency'], (float)$data['wholesale_price_amount']);
         }
 
         // Reparación (opcional)
-        if (!empty($data['repair_price_amount'])) {
-            $this->upsertPrice($branch, PriceType::REPAIR, $data['repair_price_currency'], $data['repair_price_amount']);
+        if (isset($data['repair_price_currency'], $data['repair_price_amount'])) {
+            $this->upsertPrice($branch, PriceType::REPAIR, (int)$data['repair_price_currency'], (float)$data['repair_price_amount']);
         }
     }
 

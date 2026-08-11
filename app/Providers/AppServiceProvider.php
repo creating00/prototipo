@@ -27,7 +27,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::before(function ($user, $ability) {
+        Gate::before(function ($user, string $ability, array $arguments = []) {
+            $target = $arguments[0] ?? null;
+            $isRepairAmountTarget = $target === \App\Models\RepairAmount::class 
+                || $target instanceof \App\Models\RepairAmount 
+                || str_starts_with($ability, 'repair_amounts.');
+
+            if ($isRepairAmountTarget && in_array($ability, ['create', 'update', 'delete', 'repair_amounts.create', 'repair_amounts.update', 'repair_amounts.delete'])) {
+                return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
+            }
+
             if ($user->hasRole('admin') || $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value)) {
                 return true;
             }
