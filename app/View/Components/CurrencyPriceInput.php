@@ -42,6 +42,12 @@ class CurrencyPriceInput extends Component
      * Define si los inputs del componente son obligatorios.
      * @var bool
      */
+    public $required;
+
+    /**
+     * Define si los inputs están deshabilitados/solo lectura.
+     * @var bool
+     */
     public $disabled;
 
     public function __construct(
