@@ -45,23 +45,19 @@ class CurrencyPriceInput extends Component
     public $required;
 
     /**
-     * Crea una nueva instancia del componente.
-     *
-     * @param string $name Nombre base del campo (ej: 'purchase_price').
-     * @param string $label Etiqueta para el grupo.
-     * @param mixed $amountValue Valor del input de monto.
-     * @param mixed $currencyValue Valor del select de moneda.
-     * @param array $currencyOptions Opciones del select.
-     * @param bool $required Define si los campos son obligatorios (true por defecto).
-     * @return void
+     * Define si los inputs están deshabilitados/solo lectura.
+     * @var bool
      */
+    public $disabled;
+
     public function __construct(
         string $name,
         string $label,
         $amountValue = null,
         $currencyValue = 1, // Default currency if not provided
         array $currencyOptions = [],
-        bool $required = true
+        bool $required = true,
+        ?bool $disabled = null
     ) {
         $this->name = $name;
         // Permite la inyección de valores antiguos de Laravel (old input helper)
@@ -71,6 +67,11 @@ class CurrencyPriceInput extends Component
         $this->label = $label;
         $this->currencyOptions = $currencyOptions;
         $this->required = $required;
+
+        /** @var \App\Models\User|null $user */
+        $user = auth()->user();
+        $isProvincialAdmin = $user && $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
+        $this->disabled = $disabled ?? !$isProvincialAdmin;
     }
 
     /**

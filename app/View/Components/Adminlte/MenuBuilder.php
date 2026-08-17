@@ -31,7 +31,14 @@ class MenuBuilder extends Component
                 ->count();
         }
 
-        foreach ($items as &$item) {
+        $filteredItems = [];
+
+        foreach ($items as $item) {
+            // Ocultar sección de Usuarios si el usuario no tiene permiso de verlos
+            if (isset($item['label']) && $item['label'] === 'Usuarios' && (!$user || !$user->can('viewAny', \App\Models\User::class))) {
+                continue;
+            }
+
             // Resolver Href
             if (isset($item['href'])) {
                 $item['href'] = $this->resolveHref($item['href']);
@@ -54,9 +61,11 @@ class MenuBuilder extends Component
             if (isset($item['children']) && is_array($item['children'])) {
                 $item['children'] = $this->processItems($item['children']);
             }
+
+            $filteredItems[] = $item;
         }
 
-        return $items;
+        return $filteredItems;
     }
 
     private function resolveHref($href)

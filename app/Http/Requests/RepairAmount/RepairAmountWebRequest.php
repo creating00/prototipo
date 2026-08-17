@@ -9,7 +9,7 @@ class RepairAmountWebRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('create', \App\Models\RepairAmount::class) ?? false;
     }
 
     public function rules(): array

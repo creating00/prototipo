@@ -51,9 +51,17 @@ class RepairAmount extends Model
         return $query->where('active_only_one', 1);
     }
 
-    public function scopeForBranch(Builder $query, int $branchId): Builder
+    public function scopeForBranch(Builder $query, string|int|array|null $branchId = null): Builder
     {
-        return $query->where('branch_id', $branchId);
+        if (is_array($branchId)) {
+            return $query->whereIn('branch_id', $branchId);
+        }
+
+        if ($branchId !== null && $branchId !== '' && $branchId !== 'all') {
+            return $query->where('branch_id', (int) $branchId);
+        }
+
+        return $query;
     }
 
     public function scopeForRepairType(Builder $query, RepairType|int $type): Builder

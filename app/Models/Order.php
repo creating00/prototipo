@@ -142,9 +142,17 @@ class Order extends Model
         return $this->customer_type === Branch::class;
     }
 
-    public function scopeForBranch($query, int $branchId)
+    public function scopeForBranch($query, string|int|array|null $branchId = null)
     {
-        return $query->where('branch_id', $branchId);
+        if (is_array($branchId)) {
+            return $query->whereIn('branch_id', $branchId);
+        }
+
+        if ($branchId !== null && $branchId !== '' && $branchId !== 'all') {
+            return $query->where('branch_id', (int) $branchId);
+        }
+
+        return $query;
     }
 
     public function scopeToday($query)

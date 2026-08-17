@@ -90,7 +90,7 @@ class UserWebController extends BaseUserController
     public function destroy($id)
     {
         $user = $this->userService->getUserById($id);
-        $this->authorize('update', $user);
+        $this->authorize('delete', $user);
         
         $this->userService->deleteUser($id);
 

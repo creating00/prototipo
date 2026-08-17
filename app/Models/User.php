@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'password',
         'branch_id',
+        'province_id',
     ];
 
     /**
@@ -51,5 +52,10 @@ class User extends Authenticatable
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function province()
+    {
+        return $this->belongsTo(Province::class);
     }
 }

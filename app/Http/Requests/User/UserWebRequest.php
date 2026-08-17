@@ -10,7 +10,8 @@ class UserWebRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $ability = $this->isMethod('post') ? 'create' : 'update';
+        return $this->user()?->can($ability, \App\Models\User::class) ?? false;
     }
 
     public function rules(): array
@@ -20,7 +21,8 @@ class UserWebRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'email' => "required|email|unique:users,email,{$userId}",
-            'branch_id' => 'required|exists:branches,id',
+            'branch_id' => 'nullable|exists:branches,id',
+            'province_id' => 'nullable|exists:provinces,id',
             // 'status' => 'required|string|in:active,inactive',
             'password' => [
                 $this->isMethod('post') ? 'required' : 'nullable',

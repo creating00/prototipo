@@ -9,11 +9,34 @@ use Illuminate\Support\Collection;
 
 class ProductPresenterService
 {
-    public function formatForDataTable(Collection $products, int $branchId): array
+    public function formatForDataTable(Collection $products, ?int $branchId = null): array
     {
         return $products->map(function ($product, $index) use ($branchId) {
-            $purchaseModel = $product->purchasePriceModel($branchId);
-            $saleModel = $product->salePriceModel($branchId);
+            if (!$branchId) {
+                $stockSum = $product->productBranches->sum('stock');
+                $branchDetails = $product->productBranches->map(fn($pb) => ($pb->branch->name ?? 'Sucursal') . ': ' . $pb->stock)->implode(' · ');
+                $stock = sprintf(
+                    '<span class="fw-bold" title="%s">%d%s</span>',
+                    e($branchDetails),
+                    $stockSum,
+                    $branchDetails ? ' <small class="text-muted d-block" style="font-size: 0.75rem;">' . e($branchDetails) . '</small>' : ''
+                );
+
+                $purchasePriceHtml = $this->formatConsolidatedPrice($product->productBranches, \App\Enums\PriceType::PURCHASE, 'fw-bold text-primary');
+                $salePriceHtml = $this->formatConsolidatedPrice($product->productBranches, \App\Enums\PriceType::SALE, 'fw-bold text-success');
+
+                $firstBranch = $product->productBranches->first();
+                $purchaseModel = $firstBranch?->prices->firstWhere('type', \App\Enums\PriceType::PURCHASE);
+                $saleModel = $firstBranch?->prices->firstWhere('type', \App\Enums\PriceType::SALE);
+                $status = $firstBranch?->status;
+            } else {
+                $purchaseModel = $product->purchasePriceModel($branchId);
+                $saleModel = $product->salePriceModel($branchId);
+                $purchasePriceHtml = $this->formatPriceModel($purchaseModel, 'fw-bold text-primary');
+                $salePriceHtml = $this->formatPriceModel($saleModel, 'fw-bold text-success');
+                $stock = $product->getStock($branchId);
+                $status = $product->getStatus($branchId);
+            }
 
             $providers = $product->providers;
             $count = $providers->count();
@@ -47,13 +70,13 @@ class ProductPresenterService
                 'number' => $index + 1,
                 'code' => $product->code,
                 'name' => $product->name,
-                'purchase_price' => $this->formatPriceModel($purchaseModel, 'fw-bold text-primary'),
-                'sale_price' => $this->formatPriceModel($saleModel, 'fw-bold text-success'),
+                'purchase_price' => $purchasePriceHtml,
+                'sale_price' => $salePriceHtml,
                 'purchase_price_raw' => $purchaseModel?->amount,
                 'sale_price_raw' => $saleModel?->amount,
-                'stock' => $product->getStock($branchId),
+                'stock' => $stock,
                 'provider' => $providerHtml,
-                'status' => $this->resolveProductStatusBadge($product->getStatus($branchId)),
+                'status' => $this->resolveProductStatusBadge($status),
             ];
         })->toArray();
     }
@@ -153,6 +176,40 @@ class ProductPresenterService
             $class,
             $symbol,
             $formatted
+        );
+    }
+
+    private function formatConsolidatedPrice(Collection $productBranches, \App\Enums\PriceType $type, string $class = ''): string
+    {
+        $branchPrices = collect();
+
+        foreach ($productBranches as $pb) {
+            $branchName = $pb->branch->name ?? 'Sucursal';
+            $priceModel = $pb->prices->firstWhere('type', $type);
+            if ($priceModel) {
+                $symbol = $priceModel->currency->symbol();
+                $formatted = $symbol . ' ' . number_format($priceModel->amount, 2, ',', '.');
+                $branchPrices->push([
+                    'branch' => $branchName,
+                    'amount' => $priceModel->amount,
+                    'formatted' => $formatted,
+                ]);
+            }
+        }
+
+        if ($branchPrices->isEmpty()) {
+            return '<span class="text-muted">-</span>';
+        }
+
+        $primaryFormatted = $branchPrices->first()['formatted'];
+        $details = $branchPrices->map(fn($item) => "{$item['branch']}: {$item['formatted']}")->implode(' · ');
+
+        return sprintf(
+            '<span class="%s" title="%s">%s <small class="text-muted d-block fw-normal" style="font-size: 0.75rem;">%s</small></span>',
+            $class,
+            e($details),
+            e($primaryFormatted),
+            e($details)
         );
     }
 

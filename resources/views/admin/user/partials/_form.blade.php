@@ -42,26 +42,30 @@
     <h3 class="form-section-title">Asignación y Permisos</h3>
 
     <div class="row g-3">
-        {{-- Sucursal --}}
-        <div class="col-md-6">
-            <div class="compact-select-wrapper">
-                <label class="compact-select-label">Sucursal Asignada <span class="text-danger">*</span></label>
-                <x-adminlte.select name="branch_id" :options="$formData->getBranchOptions()" :value="$formData->getSelectedBranchId()" required />
-            </div>
-        </div>
-
         {{-- Rol del Usuario --}}
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="compact-select-wrapper">
                 <label class="compact-select-label">Rol del Usuario <span class="text-danger">*</span></label>
                 <x-adminlte.select name="role" :options="$formData->getRoleOptions()" :value="$formData->getSelectedRole()" required />
             </div>
         </div>
 
-        {{-- Estado --}}
-        {{-- <div class="col-md-6 compact-select-wrapper">
-            <label class="compact-select-label">Estado de Cuenta <span class="text-danger">*</span></label>
-            <x-adminlte.select name="status" :options="$formData->statusOptions" :value="$formData->getSelectedStatus()" required />
-        </div> --}}
+        {{-- Provincia (para Administrador Provincial) --}}
+        <div class="col-md-4">
+            <div class="compact-select-wrapper">
+                <label class="compact-select-label">Provincia Asignada</label>
+                <x-adminlte.select name="province_id" :options="$formData->getProvinceOptions()" :value="$formData->getSelectedProvinceId()" />
+                <small class="text-muted d-block mt-1">Requerido para el rol de <strong>Administrador Provincial</strong>.</small>
+            </div>
+        </div>
+
+        {{-- Sucursal Específica --}}
+        <div class="col-md-4">
+            <div class="compact-select-wrapper">
+                <label class="compact-select-label">Sucursal Específica</label>
+                <x-adminlte.select name="branch_id" :options="$formData->getBranchOptions()" :value="$formData->getSelectedBranchId()" />
+                <small class="text-muted d-block mt-1">Obligatorio para Vendedores / Opcional para Admins.</small>
+            </div>
+        </div>
     </div>
 </div>

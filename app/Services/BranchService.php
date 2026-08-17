@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Branch;
+use App\Models\User;
+use App\Enums\RoleLabel;
 use Illuminate\Support\Facades\{Validator, DB};
 use Illuminate\Validation\ValidationException;
 
@@ -49,16 +51,23 @@ class BranchService
         return Branch::orderBy('name')->get();
     }
 
-    public function getUserBranch(int $userBranchId)
+    public function getUserBranch(?int $userBranchId)
     {
-        // Usamos first() para obtener el objeto, no una colección
+        if (!$userBranchId) {
+            return null;
+        }
+
         return Branch::where('id', $userBranchId)
             ->orderBy('name')
             ->first();
     }
 
-    public function getAllBranchesExcept(int $excludeBranchId)
+    public function getAllBranchesExcept(?int $excludeBranchId)
     {
+        if (!$excludeBranchId) {
+            return $this->getAllBranches();
+        }
+
         return Branch::where('id', '!=', $excludeBranchId)
             ->orderBy('name')
             ->get();
@@ -133,5 +142,53 @@ class BranchService
         }
 
         return $validator->validated();
+    }
+
+    /**
+     * Obtener las sucursales pertenecientes a una provincia específica.
+     */
+    public function getBranchesByProvince(int $provinceId)
+    {
+        return Branch::where('province_id', $provinceId)
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * Obtener las sucursales accesibles para un usuario según sus roles.
+     */
+    public function getAccessibleBranchesForUser(User $user)
+    {
+        if ($user->hasRole(RoleLabel::PROVINCIAL_ADMIN->value)) {
+            $provinceId = $user->province_id ?? $user->branch?->province_id;
+            if ($provinceId) {
+                return Branch::where('province_id', $provinceId)->orderBy('name')->get();
+            }
+        }
+
+        return collect();
+    }
+
+    /**
+     * Establecer el contexto activo de sucursal en sesión con validación de seguridad.
+     */
+    public function setActiveBranchContext(User $user, string|int $targetBranchId): bool
+    {
+        if (!$user->hasRole(RoleLabel::PROVINCIAL_ADMIN->value)) {
+            return false;
+        }
+
+        if ($targetBranchId === 'all') {
+            session(['active_branch_id' => 'all']);
+            return true;
+        }
+
+        $accessibleBranchIds = $this->getAccessibleBranchesForUser($user)->pluck('id')->toArray();
+        if (in_array((int)$targetBranchId, $accessibleBranchIds, true)) {
+            session(['active_branch_id' => (int)$targetBranchId]);
+            return true;
+        }
+
+        return false;
     }
 }
