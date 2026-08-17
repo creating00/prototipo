@@ -16,7 +16,7 @@ class UserDataTableService
     public function getAllUsersForDataTable(): array
     {
         $users = User::with(['branch.province', 'province', 'roles'])
-            ->where('email', '!=', 'ecommerce@system.com')
+            ->whereNotIn('email', ['ecommerce@system.com', 'soporte@creatingsoft.net'])
             ->orderByDesc('created_at')
             ->get();
 
