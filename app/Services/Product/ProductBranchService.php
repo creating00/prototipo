@@ -35,7 +35,7 @@ class ProductBranchService
     {
         $branch = $product->productBranches()->create([
             'branch_id'           => $data['branch_id'],
-            'stock'               => $data['stock'],
+            'stock'               => $data['stock'] ?? 0,
             'low_stock_threshold' => $data['low_stock_threshold'] ?? 5,
             'status'              => $this->resolveStatus($data),
         ]);
@@ -92,7 +92,7 @@ class ProductBranchService
             // Si realmente no existe ni en la papelera, lo creamos
             $branch = $product->productBranches()->create([
                 'branch_id'           => $data['branch_id'],
-                'stock'               => $data['stock'],
+                'stock'               => $data['stock'] ?? 0,
                 'low_stock_threshold' => $data['low_stock_threshold'] ?? 5,
                 'status'              => $this->resolveStatus($data),
             ]);

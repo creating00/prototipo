@@ -291,3 +291,46 @@ test('provincial admin can view expenses index without redirect loop', function 
     $response = $this->get(route('web.expenses.index'));
     $response->assertStatus(200);
 });
+
+test('editing product in consolidated mode creates missing branch rows with default stock 0 without undefined key stock error', function () {
+    $product = Product::create([
+        'code' => 'PROD-NO-STOCK-005',
+        'name' => 'Producto Sin Registro En Sucursal 2',
+        'category_id' => $this->category->id,
+    ]);
+
+    // Solo creamos registro para Branch 1
+    $branchService = app(ProductBranchService::class);
+    $branchService->createBranchDataForProduct($product, [
+        'branch_id' => $this->branch1->id,
+        'stock' => 12,
+        'status' => ProductStatus::Available->value,
+        'purchase_price_amount' => 500,
+        'purchase_price_currency' => 1,
+        'sale_price_amount' => 1000,
+        'sale_price_currency' => 1,
+    ]);
+
+    $this->actingAs($this->provincialAdmin);
+    session(['active_branch_id' => 'all']);
+
+    // Actualizamos en consolidado SIN enviar stock ni status
+    $response = $this->put(route('web.products.update', $product->id), [
+        'code' => 'PROD-NO-STOCK-005',
+        'name' => 'Producto Sin Registro Editado',
+        'category_id' => $this->category->id,
+        'branch_id' => 'all',
+        'purchase_price_amount' => 700,
+        'purchase_price_currency' => 1,
+        'sale_price_amount' => 1500,
+        'sale_price_currency' => 1,
+    ]);
+
+    $response->assertRedirect(route('web.products.index'));
+
+    $freshProduct = $product->fresh(['productBranches.prices']);
+    $pb2 = $freshProduct->productBranches->firstWhere('branch_id', $this->branch2->id);
+
+    expect($pb2)->not->toBeNull();
+    expect($pb2->stock)->toEqual(0);
+});
