@@ -14,6 +14,7 @@ class ExpenseWebRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'branch_id' => 'nullable|exists:branches,id',
             'expense_type_id' => 'required|exists:expense_types,id',
             'amount_amount' => 'required|numeric|min:0',
             'amount_currency' => 'required|integer|in:1,2',

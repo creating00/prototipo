@@ -16,11 +16,15 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
+use App\Traits\AuthTrait;
+
 class ProviderOrderWebController extends Controller
 {
+    use AuthTrait;
+    use AuthorizesRequests;
+
     protected ProviderOrderService $orderService;
     protected ProviderService $providerService;
-    use AuthorizesRequests;
 
     public function __construct(
         ProviderOrderService $orderService,
@@ -44,6 +48,10 @@ class ProviderOrderWebController extends Controller
 
     public function create()
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.provider-orders.index')) {
+            return $redirect;
+        }
+
         $this->authorize('create', ProviderOrder::class);
         $formData = (object) [
             'providers' => Provider::orderBy('business_name')->get(),
@@ -56,6 +64,10 @@ class ProviderOrderWebController extends Controller
 
     public function store(ProviderOrderWebRequest $request)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.provider-orders.index')) {
+            return $redirect;
+        }
+
         $this->authorize('create', ProviderOrder::class);
         try {
             return DB::transaction(function () use ($request) {

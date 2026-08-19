@@ -19,10 +19,6 @@ class ExpenseWebController extends BaseExpenseController
 
     public function index(ExpenseDataTableService $dataTableService)
     {
-        if ($redirect = $this->redirectIfNotAdmin('web.expenses.create')) {
-            return $redirect;
-        }
-
         $this->authorize('viewAny', Expense::class);
 
         $currentBranchId = $this->currentBranchId();
@@ -51,6 +47,10 @@ class ExpenseWebController extends BaseExpenseController
 
     public function create()
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.expenses.index')) {
+            return $redirect;
+        }
+
         $this->authorize('create', Expense::class);
         $branchUserId = $this->currentBranchId();
         $bankAccounts = \App\Models\BankAccount::with(['bank', 'user'])->get()->pluck('full_description', 'id')->toArray();
@@ -71,13 +71,22 @@ class ExpenseWebController extends BaseExpenseController
 
     public function store(ExpenseWebRequest $request)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.expenses.index')) {
+            return $redirect;
+        }
+
         $this->authorize('create', Expense::class);
 
         $data = $request->validated();
 
+        $resolvedBranchId = $data['branch_id']
+            ?? $this->currentBranchId()
+            ?? $this->currentUser()?->branch_id
+            ?? ($this->getAccessibleBranchIds()[0] ?? Branch::first()?->id);
+
         // Mapeo de campos del componente y auditoría
         $data['user_id']   = $this->userId();
-        $data['branch_id'] = $this->currentBranchId();
+        $data['branch_id'] = $resolvedBranchId;
         $data['amount']   = $data['amount_amount'];
         $data['currency'] = $data['amount_currency'];
 
@@ -95,7 +104,8 @@ class ExpenseWebController extends BaseExpenseController
     {
         $expense = $this->expenseService->getExpenseById($id);
 
-        if ($expense->branch_id !== $this->currentBranchId()) {
+        $accessibleBranchIds = $this->getAccessibleBranchIds();
+        if (!empty($accessibleBranchIds) && !in_array($expense->branch_id, $accessibleBranchIds)) {
             return redirect()
                 ->route('web.expenses.index')
                 ->withErrors('No tienes permiso para editar gastos de otra sucursal.');

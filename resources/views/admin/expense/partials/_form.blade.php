@@ -31,6 +31,23 @@
             <x-adminlte.select name="bank_account_id" label="" :options="$formData->bankAccounts" :value="old('bank_account_id', $formData->expense?->bank_account_id)" />
         </div>
     </div>
+
+    {{-- Sucursal (si el usuario no tiene sucursal fija o posee múltiples) --}}
+    @if(!$formData->branchUserId || $formData->branches->count() > 1)
+        <div class="col-md-6">
+            <div class="compact-select-wrapper">
+                <label class="compact-select-label">Sucursal Imputable <span class="text-danger">*</span></label>
+                <select name="branch_id" id="branch_id" class="form-select" required>
+                    <option value="">Seleccione la sucursal...</option>
+                    @foreach($formData->branches as $b)
+                        <option value="{{ $b->id }}" {{ old('branch_id', $formData->expense?->branch_id ?? $formData->branchUserId) == $b->id ? 'selected' : '' }}>
+                            {{ $b->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+    @endif
 </div>
 
 <div class="row g-3">

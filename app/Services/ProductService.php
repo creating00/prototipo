@@ -156,13 +156,16 @@ class ProductService
         return $this->getById($id);
     }
 
-    public function getProductForEdit(int $productId, int $branchId): Product
+    public function getProductForEdit(int $productId, ?int $branchId = null): Product
     {
         return Product::with([
             'providers',
             'category',
             'productBranches' => function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId)->with('prices');
+                if ($branchId !== null) {
+                    $query->where('branch_id', $branchId);
+                }
+                $query->with('prices');
             }
         ])->findOrFail($productId);
     }

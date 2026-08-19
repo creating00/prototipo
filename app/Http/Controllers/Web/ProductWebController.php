@@ -125,17 +125,18 @@ class ProductWebController extends BaseProductController
 
         // Si no existe, instanciamos uno nuevo en memoria para el formulario
         if (!$productBranch) {
+            $fallbackBranchId = $branchUserId ?? \App\Models\Branch::first()?->id;
             $productBranch = new \App\Models\ProductBranch([
                 'product_id' => $product->id,
-                'branch_id' => $branchUserId,
+                'branch_id' => $fallbackBranchId,
                 'stock' => 0,
                 'status' => \App\Enums\ProductStatus::Available
             ]);
         }
 
-        $branches = $isAdmin
+        $branches = ($isAdmin || $this->isProvincialAdmin())
             ? app(BranchService::class)->getAllBranches()
-            : app(BranchService::class)->getAllBranches()->where('id', $branchUserId);
+            : app(BranchService::class)->getAllBranches()->whereIn('id', $this->getAccessibleBranchIds());
 
         $formData = new ProductFormData(
             product: $product,

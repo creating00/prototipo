@@ -170,6 +170,10 @@ class SaleWebController extends BaseSaleController
 
     public function create(Request $request)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.sales.index')) {
+            return $redirect;
+        }
+
         $typeParam = $request->get('type');
         $type = $typeParam === 'branch' ? 'App\Models\Branch' : 'App\Models\Client';
 
@@ -180,6 +184,10 @@ class SaleWebController extends BaseSaleController
 
     public function createClient()
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.sales.index')) {
+            return $redirect;
+        }
+
         $this->authorize('createClient', Sale::class);
 
         return $this->create(new Request(['type' => 'client']));
@@ -187,6 +195,10 @@ class SaleWebController extends BaseSaleController
 
     public function createBranch()
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.sales.index')) {
+            return $redirect;
+        }
+
         $this->authorize('createBranch', Sale::class);
 
         return $this->create(new Request(['type' => 'branch']));
@@ -194,6 +206,10 @@ class SaleWebController extends BaseSaleController
 
     public function store(Request $request)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.sales.index')) {
+            return $redirect;
+        }
+
         if ($request->input('customer_type') === 'App\Models\Branch') {
             $this->authorize('createBranch', Sale::class);
         } else {
@@ -221,6 +237,10 @@ class SaleWebController extends BaseSaleController
 
     public function edit($id)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.sales.index')) {
+            return $redirect;
+        }
+
         $sale = $this->saleService->getSaleById($id);
         $this->authorize('update', $sale);
 
@@ -234,7 +254,10 @@ class SaleWebController extends BaseSaleController
 
     public function update(Request $request, $id)
     {
-        // dd($request->all());
+        if ($redirect = $this->denyIfConsolidatedMutation('web.sales.index')) {
+            return $redirect;
+        }
+
         $sale = $this->saleService->getSaleById($id);
 
         $this->authorize('update', $sale);
@@ -255,6 +278,10 @@ class SaleWebController extends BaseSaleController
 
     public function destroy($id)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.sales.index')) {
+            return $redirect;
+        }
+
         $sale = $this->saleService->getSaleById($id);
 
         $this->authorize('destroy', $sale);

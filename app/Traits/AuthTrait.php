@@ -67,6 +67,28 @@ trait AuthTrait
     }
 
     /**
+     * Indica si la sesión activa está configurada en Modo Consolidado ("Todas las sucursales").
+     */
+    protected function isConsolidatedMode(): bool
+    {
+        return session('active_branch_id') === 'all';
+    }
+
+    /**
+     * Redirecciona con alerta de error si se intenta realizar mutación (ABM) en modo consolidado.
+     */
+    protected function denyIfConsolidatedMutation(string $fallbackRoute = 'dashboard')
+    {
+        if ($this->isConsolidatedMode()) {
+            return redirect()
+                ->route($fallbackRoute)
+                ->withErrors('En modo consolidado ("Todas las sucursales") no se permite registrar o modificar en este módulo. Por favor seleccione una sucursal específica.');
+        }
+
+        return null;
+    }
+
+    /**
      * Retorna los IDs de sucursales accesibles según el rol del usuario actual.
      * - Admin Global: Todas las sucursales.
      * - Admin Provincial: Todas las sucursales de su provincia.

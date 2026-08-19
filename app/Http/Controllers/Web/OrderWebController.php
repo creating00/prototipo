@@ -190,6 +190,10 @@ class OrderWebController extends BaseOrderController
 
     public function create()
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.orders.index')) {
+            return $redirect;
+        }
+
         $userBranchId = $this->currentBranchId();
         $branches = app(\App\Services\BranchService::class)->getAllBranches();
         $categories = app(\App\Services\CategoryService::class)->getAllCategories();
@@ -206,7 +210,11 @@ class OrderWebController extends BaseOrderController
 
     public function createClient()
     {
-        $this->authorize('create_client', Order::class);
+        if ($redirect = $this->denyIfConsolidatedMutation('web.orders.index')) {
+            return $redirect;
+        }
+
+        $this->authorize('createClient', Order::class);
         $currentBranchId = $this->currentBranchId();
         $branchService = app(BranchService::class);
         $branches = collect($branchService->getAllBranches());
@@ -231,6 +239,10 @@ class OrderWebController extends BaseOrderController
 
     public function createBranch()
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.orders.index')) {
+            return $redirect;
+        }
+
         $this->authorize('create_branch', Order::class);
         $userBranchId = $this->currentBranchId();
         $branchService = app(BranchService::class);
@@ -258,6 +270,10 @@ class OrderWebController extends BaseOrderController
 
     public function store(Request $request)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.orders.index')) {
+            return $redirect;
+        }
+
         if ($request->customer_type === 'App\Models\Branch') {
             $this->authorize('createBranch', Order::class);
         } else {
@@ -348,6 +364,10 @@ class OrderWebController extends BaseOrderController
 
     public function edit($id)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.orders.index')) {
+            return $redirect;
+        }
+
         $order = $this->orderService->getOrderById($id);
         $this->authorize('update', $order);
 

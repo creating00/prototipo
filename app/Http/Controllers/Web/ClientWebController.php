@@ -27,6 +27,10 @@ class ClientWebController extends BaseClientController
 
     public function create()
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.clients.index')) {
+            return $redirect;
+        }
+
         $this->authorize('create', Client::class);
 
         return view('admin.client.create');
@@ -34,6 +38,10 @@ class ClientWebController extends BaseClientController
 
     public function store(Request $request)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.clients.index')) {
+            return $redirect;
+        }
+
         $this->authorize('create', Client::class);
         try {
             $data = $request->all();

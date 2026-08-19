@@ -29,6 +29,44 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::before(function ($user, string $ability, array $arguments = []) {
             $target = $arguments[0] ?? null;
+
+            // Bloqueo centralizado de ABM en modo consolidado ("all") para módulos no permitidos
+            if (session('active_branch_id') === 'all') {
+                $allowedPrefixes = ['products.', 'product_branches.', 'product_branch_prices.', 'analytics.', 'reports.'];
+                $allowedTargets = [
+                    \App\Models\Product::class,
+                    \App\Models\ProductBranch::class,
+                    \App\Models\ProductBranchPrice::class
+                ];
+
+                $isAllowedModule = false;
+                foreach ($allowedPrefixes as $prefix) {
+                    if (str_starts_with($ability, $prefix)) {
+                        $isAllowedModule = true;
+                        break;
+                    }
+                }
+                if (!$isAllowedModule && in_array($target, $allowedTargets, true)) {
+                    $isAllowedModule = true;
+                }
+                if (!$isAllowedModule && ($target instanceof \App\Models\Product || $target instanceof \App\Models\ProductBranch || $target instanceof \App\Models\ProductBranchPrice)) {
+                    $isAllowedModule = true;
+                }
+
+                $mutationAbilities = ['create', 'update', 'delete', 'store', 'edit', 'destroy', 'approve', 'cancel', 'adjust', 'refund', 'moderate'];
+                $isMutation = false;
+                foreach ($mutationAbilities as $mut) {
+                    if (str_ends_with($ability, ".{$mut}") || $ability === $mut) {
+                        $isMutation = true;
+                        break;
+                    }
+                }
+
+                if ($isMutation && !$isAllowedModule) {
+                    return false;
+                }
+            }
+
             $isRepairAmountTarget = $target === \App\Models\RepairAmount::class 
                 || $target instanceof \App\Models\RepairAmount 
                 || str_starts_with($ability, 'repair_amounts.');
@@ -70,8 +108,34 @@ class AppServiceProvider extends ServiceProvider
         Blade::if('canResource', function (string $permission): bool {
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
+            if (!$user) {
+                return false;
+            }
 
-            return $user?->can($permission) ?? false;
+            if (session('active_branch_id') === 'all') {
+                $allowedPrefixes = ['products.', 'product_branches.', 'product_branch_prices.', 'analytics.', 'reports.'];
+                $isAllowedModule = false;
+                foreach ($allowedPrefixes as $prefix) {
+                    if (str_starts_with($permission, $prefix)) {
+                        $isAllowedModule = true;
+                        break;
+                    }
+                }
+
+                $isMutation = str_ends_with($permission, '.create')
+                    || str_ends_with($permission, '.update')
+                    || str_ends_with($permission, '.delete')
+                    || str_ends_with($permission, '.cancel')
+                    || str_ends_with($permission, '.approve')
+                    || str_ends_with($permission, '.adjust')
+                    || str_ends_with($permission, '.refund');
+
+                if ($isMutation && !$isAllowedModule) {
+                    return false;
+                }
+            }
+
+            return $user->can($permission);
         });
 
         Order::observe(OrderObserver::class);

@@ -35,6 +35,11 @@ class ProductValidatorService
             $data['repair_price_currency'] = (int)$data['repair_price_currency'];
         }
 
+        $isConsolidated = (isset($data['branch_id']) && $data['branch_id'] === 'all') || !isset($data['stock']);
+        $branchRule = (isset($data['branch_id']) && $data['branch_id'] === 'all')
+            ? 'required'
+            : 'required|exists:branches,id';
+
         $rules = [
             'code' => 'required|string|unique:products,code' . ($ignoreId ? ",$ignoreId" : ''),
             'name' => 'required|string',
@@ -42,10 +47,10 @@ class ProductValidatorService
             'category_id' => 'nullable|exists:categories,id',
             'imageFile' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'imageUrl' => 'nullable|url',
-            'branch_id' => 'required|exists:branches,id',
-            'stock' => 'required|integer|min:0',
+            'branch_id' => $branchRule,
+            'stock' => $isConsolidated ? 'nullable|integer|min:0' : 'required|integer|min:0',
             'low_stock_threshold' => 'nullable|integer|min:0',
-            'status' => ['required', new Enum(ProductStatus::class)],
+            'status' => $isConsolidated ? ['nullable', new Enum(ProductStatus::class)] : ['required', new Enum(ProductStatus::class)],
 
             // Precio de Compra
             'purchase_price_amount' => 'required|numeric|min:0',

@@ -37,6 +37,10 @@ class UserWebController extends BaseUserController
 
     public function create()
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.users.index')) {
+            return $redirect;
+        }
+
         $this->authorize('create', User::class);
         $formData = new UserFormData(
             user: null,
@@ -52,6 +56,10 @@ class UserWebController extends BaseUserController
 
     public function store(UserWebRequest $request)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.users.index')) {
+            return $redirect;
+        }
+
         $this->authorize('create', User::class);
         $this->userService->createUser($request->validated());
 
@@ -61,6 +69,10 @@ class UserWebController extends BaseUserController
 
     public function edit($id)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.users.index')) {
+            return $redirect;
+        }
+
         $user = $this->userService->getUserById($id);
         $this->authorize('update', $user);
 
@@ -78,6 +90,10 @@ class UserWebController extends BaseUserController
 
     public function update(UserWebRequest $request, $id)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.users.index')) {
+            return $redirect;
+        }
+
         $user = $this->userService->getUserById($id);
         $this->authorize('update', $user);
 
@@ -89,6 +105,10 @@ class UserWebController extends BaseUserController
 
     public function destroy($id)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.users.index')) {
+            return $redirect;
+        }
+
         $user = $this->userService->getUserById($id);
         $this->authorize('delete', $user);
         

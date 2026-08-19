@@ -90,10 +90,19 @@
     <h3 class="form-section-title">Inventario y Estado</h3>
 
     <div class="row g-3 ">
+        @php
+            $isConsolidatedBlocked = $formData->isConsolidated();
+        @endphp
+
         <div class="col-md-4">
             {{-- Stock --}}
             <x-bootstrap.compact-input id="stock" name="stock" type="number" label="Stock Actual" placeholder="0"
-                value="{{ old('stock', $formData->productBranch->stock ?? '') }}" min="0" />
+                value="{{ old('stock', $formData->productBranch->stock ?? '') }}" min="0" :disabled="$isConsolidatedBlocked" />
+            @if ($isConsolidatedBlocked)
+                <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">
+                    <i class="fas fa-lock text-warning"></i> Stock independiente por sucursal (bloqueado en consolidado)
+                </small>
+            @endif
         </div>
 
         <div class="col-md-4">
@@ -101,7 +110,12 @@
             <x-bootstrap.compact-input id="low_stock_threshold" name="low_stock_threshold" type="number"
                 label="Stock Mínimo de Alerta" placeholder="5"
                 value="{{ old('low_stock_threshold', $formData->productBranch->low_stock_threshold ?? '') }}"
-                min="0" />
+                min="0" :disabled="$isConsolidatedBlocked" />
+            @if ($isConsolidatedBlocked)
+                <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">
+                    <i class="fas fa-lock text-warning"></i> Umbral independiente por sucursal (bloqueado en consolidado)
+                </small>
+            @endif
         </div>
 
         <div class="col-md-4">
@@ -110,8 +124,13 @@
                     Estado <span class="text-danger">*</span>
                 </label>
                 {{-- Estado (Status - Select con alineación forzada) placeholder="Seleccione el estado" --}}
-                <x-adminlte.select name="status" label="" :options="$formData->statusOptions" :value="old('status', $formData->productBranch->status->value)" :showPlaceholder="false"
-                    required />
+                <x-adminlte.select name="status" label="" :options="$formData->statusOptions" :value="old('status', $formData->productBranch->status?->value)" :showPlaceholder="false"
+                    :disabled="$isConsolidatedBlocked" required />
+                @if ($isConsolidatedBlocked)
+                    <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">
+                        <i class="fas fa-lock text-warning"></i> Estado independiente por sucursal (bloqueado en consolidado)
+                    </small>
+                @endif
             </div>
         </div>
     </div>
@@ -159,9 +178,12 @@
     <div class="row align-items-center">
         {{-- Sucursal --}}
         <div class="col-md-6">
-            @if ($formData->isAdmin)
-                <x-adminlte.select-with-action name="branch_id" label="Sucursal Principal" :options="$formData->branches->pluck('name', 'id')->toArray()"
-                    :value="old('branch_id', $formData->product?->branch_id ?? $formData->branchUserId)" required buttonId="btn-new-branch" />
+            @if ($formData->isAdmin || !$formData->branchUserId || $formData->branches->count() > 1)
+                @php
+                    $branchSelectOptions = ['all' => 'Todas las sucursales (Consolidado)'] + $formData->branches->pluck('name', 'id')->toArray();
+                @endphp
+                <x-adminlte.select-with-action name="branch_id" label="Sucursal Imputable" :options="$branchSelectOptions"
+                    :value="old('branch_id', $formData->productBranch?->branch_id ?? $formData->branchUserId ?? 'all')" required buttonId="btn-new-branch" />
             @else
                 <x-bootstrap.select name="branch_id" label="Sucursal Asignada" :options="$formData->branches->pluck('name', 'id')->toArray()" :selected="old('branch_id', $formData->branchUserId)"
                     required readonly />

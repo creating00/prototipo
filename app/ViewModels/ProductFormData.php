@@ -18,7 +18,7 @@ class ProductFormData
         public readonly Collection $branches,
         public readonly Collection $categories,
         public readonly Collection $provinces,
-        public readonly int $branchUserId,
+        public readonly ?int $branchUserId,
         public readonly bool $isAdmin = false,
     ) {}
 
@@ -49,5 +49,10 @@ class ProductFormData
                 PriceType::PURCHASE->value => CurrencyType::USD->value,
                 default => CurrencyType::ARS->value,
             };
+    }
+
+    public function isConsolidated(): bool
+    {
+        return session('active_branch_id') === 'all' || $this->branchUserId === null;
     }
 }

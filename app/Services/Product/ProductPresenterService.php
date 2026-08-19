@@ -25,9 +25,11 @@ class ProductPresenterService
                 $purchasePriceHtml = $this->formatConsolidatedPrice($product->productBranches, \App\Enums\PriceType::PURCHASE, 'fw-bold text-primary');
                 $salePriceHtml = $this->formatConsolidatedPrice($product->productBranches, \App\Enums\PriceType::SALE, 'fw-bold text-success');
 
+                $allPrices = $product->productBranches->flatMap(fn($pb) => $pb->prices);
+                $purchaseModel = $allPrices->where('type', \App\Enums\PriceType::PURCHASE)->sortByDesc('amount')->first();
+                $saleModel = $allPrices->where('type', \App\Enums\PriceType::SALE)->sortByDesc('amount')->first();
+
                 $firstBranch = $product->productBranches->first();
-                $purchaseModel = $firstBranch?->prices->firstWhere('type', \App\Enums\PriceType::PURCHASE);
-                $saleModel = $firstBranch?->prices->firstWhere('type', \App\Enums\PriceType::SALE);
                 $status = $firstBranch?->status;
             } else {
                 $purchaseModel = $product->purchasePriceModel($branchId);
@@ -201,7 +203,8 @@ class ProductPresenterService
             return '<span class="text-muted">-</span>';
         }
 
-        $primaryFormatted = $branchPrices->first()['formatted'];
+        $maxPriceItem = $branchPrices->sortByDesc('amount')->first();
+        $primaryFormatted = $maxPriceItem['formatted'];
         $details = $branchPrices->map(fn($item) => "{$item['branch']}: {$item['formatted']}")->implode(' · ');
 
         return sprintf(
