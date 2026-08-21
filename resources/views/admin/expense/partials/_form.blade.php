@@ -54,7 +54,7 @@
     {{-- Fila 2: Monto + Motivo (Select) --}}
     <div class="col-md-6">
         <x-currency-price-input name="amount" label="Monto del Gasto" :amount-value="old('amount_amount', $formData->expense?->amount)" :currency-value="old('amount_currency', $formData->currency())"
-            :currency-options="$formData->currencyOptions" :required="true" />
+            :currency-options="$formData->currencyOptions" :required="true" :disabled="false" />
     </div>
 
     <div class="col-md-6">

@@ -71,7 +71,7 @@ class CurrencyPriceInput extends Component
         /** @var \App\Models\User|null $user */
         $user = auth()->user();
         $isProvincialAdmin = $user && $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
-        $this->disabled = $disabled ?? !$isProvincialAdmin;
+        $this->disabled = $disabled !== null ? (bool) $disabled : !$isProvincialAdmin;
     }
 
     /**

@@ -103,6 +103,28 @@ test('provincial admin without fixed branch_id can create expense successfully',
     ]);
 });
 
+test('regular admin can create expense successfully with amount', function () {
+    $this->actingAs($this->regularAdmin);
+
+    $response = $this->post(route('web.expenses.store'), [
+        'branch_id' => $this->branch1->id,
+        'expense_type_id' => $this->expenseType->id,
+        'date' => now()->format('Y-m-d'),
+        'payment_type' => PaymentType::Cash->value,
+        'amount_amount' => 8500,
+        'amount_currency' => 1,
+        'observation' => 'Gasto creado por admin comun',
+    ]);
+
+    $response->assertRedirect(route('web.expenses.index'));
+
+    $this->assertDatabaseHas('expenses', [
+        'expense_type_id' => $this->expenseType->id,
+        'amount' => 8500,
+        'user_id' => $this->regularAdmin->id,
+    ]);
+});
+
 test('regular admin is restricted from updating product prices while provincial admin can', function () {
     $product = Product::create([
         'code' => 'PROD-TEST-002',
