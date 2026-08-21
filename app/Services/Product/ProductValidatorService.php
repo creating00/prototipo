@@ -35,6 +35,14 @@ class ProductValidatorService
             $data['repair_price_currency'] = (int)$data['repair_price_currency'];
         }
 
+        /** @var \App\Models\User|null $user */
+        $user = auth()->user();
+        $isProvincialAdmin = $user && $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
+        $hasPriceInputs = isset($data['purchase_price_amount']) || isset($data['sale_price_amount']);
+
+        // Si los campos de precio no se enviaron o el usuario no es provincial_admin, los precios son nulos/opcionales
+        $priceRequiredRule = ($isProvincialAdmin && ($hasPriceInputs || !$ignoreId)) ? 'required' : 'nullable';
+
         $isConsolidated = (isset($data['branch_id']) && $data['branch_id'] === 'all') || !isset($data['stock']);
         $branchRule = (isset($data['branch_id']) && $data['branch_id'] === 'all')
             ? 'required'
@@ -53,12 +61,12 @@ class ProductValidatorService
             'status' => $isConsolidated ? ['nullable', new Enum(ProductStatus::class)] : ['required', new Enum(ProductStatus::class)],
 
             // Precio de Compra
-            'purchase_price_amount' => 'required|numeric|min:0',
-            'purchase_price_currency' => 'required|integer|in:1,2',
+            'purchase_price_amount' => $priceRequiredRule . '|numeric|min:0',
+            'purchase_price_currency' => $priceRequiredRule . '|integer|in:1,2',
 
             // Precio de Venta
-            'sale_price_amount' => 'required|numeric|min:0',
-            'sale_price_currency' => 'required|integer|in:1,2',
+            'sale_price_amount' => $priceRequiredRule . '|numeric|min:0',
+            'sale_price_currency' => $priceRequiredRule . '|integer|in:1,2',
 
             // Precio Mayorista (Opcional)
             'wholesale_price_amount' => 'nullable|numeric|min:0',

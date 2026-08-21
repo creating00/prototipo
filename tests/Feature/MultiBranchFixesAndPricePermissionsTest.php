@@ -141,6 +141,37 @@ test('regular admin is restricted from updating product prices while provincial 
     expect((float)$branchPricesUpdated?->where('type', 2)->first()?->amount)->toEqual(1000.0);
 });
 
+test('regular admin can update product stock without submitting price inputs', function () {
+    $product = Product::create([
+        'code' => 'PROD-REG-ADMIN-001',
+        'name' => 'Producto Modificado Por Admin Comun',
+        'category_id' => $this->category->id,
+    ]);
+
+    $branchService = app(ProductBranchService::class);
+    $branchService->createBranchDataForProduct($product, [
+        'branch_id' => $this->branch1->id,
+        'stock' => 5,
+        'status' => ProductStatus::Available->value,
+    ]);
+
+    // Regular admin updates ONLY stock (no price inputs sent because disabled in frontend)
+    $this->actingAs($this->regularAdmin);
+    $response = $this->put(route('web.products.update', $product->id), [
+        'code' => 'PROD-REG-ADMIN-001',
+        'name' => 'Producto Modificado Por Admin Comun',
+        'category_id' => $this->category->id,
+        'branch_id' => $this->branch1->id,
+        'stock' => 35,
+        'status' => ProductStatus::Available->value,
+    ]);
+
+    $response->assertRedirect(route('web.products.index'));
+
+    $freshPb = $product->fresh()->productBranches->firstWhere('branch_id', $this->branch1->id);
+    expect($freshPb->stock)->toEqual(35);
+});
+
 test('consolidated mode displays the maximum price among branches', function () {
     $product = Product::create([
         'code' => 'PROD-CEL-001',
