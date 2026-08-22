@@ -96,6 +96,7 @@ class PermissionSeeder extends Seeder
             'sales.create_branch',
             'sales.print',
             'payments.create',
+            'expenses.view',
             'expenses.create'
         ]
     ];

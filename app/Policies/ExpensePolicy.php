@@ -9,6 +9,11 @@ class ExpensePolicy extends BasePolicy
 {
     protected string $resource = 'expenses';
 
+    public function viewAny(User $user): bool
+    {
+        return $this->can($user, 'view');
+    }
+
     public function view(User $user, Expense $expense): bool
     {
         return $this->can($user, 'view');
@@ -23,6 +28,11 @@ class ExpensePolicy extends BasePolicy
     {
         // Simplificado: solo valida permiso del usuario
         return $this->can($user, 'update');
+    }
+
+    public function delete(User $user, Expense $expense): bool
+    {
+        return $this->can($user, 'delete');
     }
 
     public function approve(User $user, Expense $expense): bool
