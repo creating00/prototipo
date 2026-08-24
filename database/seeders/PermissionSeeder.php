@@ -133,6 +133,9 @@ class PermissionSeeder extends Seeder
 
     public function run(): void
     {
+        // Limpiar caché de permisos de Spatie
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+
         // Crear todos los permisos
         $this->createPermissions();
 
