@@ -35,9 +35,11 @@ jobs:
 
             echo "🧹 Limpiando cache..."
             php artisan optimize:clear
+            php artisan permission:cache-reset
 
-            echo "🗄️ Ejecutando migraciones..."
+            echo "🗄️ Ejecutando migraciones y seeder de permisos..."
             php artisan migrate --force
+            php artisan db:seed --class=PermissionSeeder --force
 
             echo "⚡ Generando cache productivo..."
             php artisan config:cache

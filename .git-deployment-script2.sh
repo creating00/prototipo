@@ -11,8 +11,10 @@ composer install --no-dev --prefer-dist
 
 # 3. Ejecuta migraciones (actualiza la estructura de la base de datos)
 php artisan migrate --force
+php artisan db:seed --class=PermissionSeeder --force
 
 # 4. Limpia la caché (CRUCIAL para ver cambios)
+php artisan permission:cache-reset
 php artisan cache:clear
 php artisan config:clear
 php artisan view:clear
