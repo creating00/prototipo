@@ -43,4 +43,19 @@ class SalePolicy extends BasePolicy
     {
         return $this->can($user, 'refund');
     }
+
+    public function update(User $user, Sale $sale): bool
+    {
+        return $this->can($user, 'update');
+    }
+
+    public function delete(User $user, Sale $sale): bool
+    {
+        return $this->can($user, 'delete');
+    }
+
+    public function destroy(User $user, Sale $sale): bool
+    {
+        return $this->can($user, 'delete');
+    }
 }

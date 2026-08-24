@@ -34,9 +34,11 @@
                     </a>
                     @endcanResource --}}
 
+                    @canResource('banks.view')
                     <a href="{{ route('web.banks.index') }}" class="btn btn-outline-info me-1">
                         <i class="fas fa-tools me-1"></i> Configurar Bancos
                     </a>
+                    @endcanResource
 
                     {{-- Ventas Sucursal → Cliente --}}
                     @canResource('sales.create_client')

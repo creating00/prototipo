@@ -71,10 +71,12 @@
 
             {{-- Botones de cabecera --}}
             <x-slot name="headerButtons">
+                @canResource('products.delete')
                 <x-adminlte.button id="btn-bulk-delete" color="danger" icon="fas fa-trash" class="d-none me-1"
                     data-bulk-target="#products-table">
                     Eliminar Seleccionados
                 </x-adminlte.button>
+                @endcanResource
 
                 @canResource('products.create')
                 {{-- Botón de Importar --}}
