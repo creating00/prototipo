@@ -82,3 +82,22 @@ test('only provincial_admin can delete users', function () {
     $response->assertRedirect(route('web.users.index'));
     expect(User::find($targetUser->id))->toBeNull();
 });
+
+test('provincial_admin can update existing user role to seller without email validation error', function () {
+    $targetUser = User::factory()->create([
+        'name' => 'John Seller Target',
+        'email' => 'jasalle@creatingsoft.com',
+    ]);
+    $targetUser->assignRole('admin');
+
+    $this->actingAs($this->provincialAdmin);
+
+    $response = $this->put(route('web.users.update', $targetUser->id), [
+        'name' => 'John Seller Target',
+        'email' => 'jasalle@creatingsoft.com',
+        'role' => 'seller',
+    ]);
+
+    $response->assertRedirect(route('web.users.index'));
+    expect($targetUser->fresh()->hasRole('seller'))->toBeTrue();
+});

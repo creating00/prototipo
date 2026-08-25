@@ -25,6 +25,7 @@ class UserWebController extends BaseUserController
             '#',
             'Nombre',
             'Correo Electrónico',
+            'Rol',
             'Sucursal',
             //'Estado',
             'Fecha de Alta'

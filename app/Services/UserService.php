@@ -26,7 +26,9 @@ class UserService
 
         $user = User::create($data);
 
+        $user->syncPermissions([]);
         $user->assignRole($role);
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
 
         return $user->fresh('roles');
     }
@@ -40,8 +42,10 @@ class UserService
         }
 
         if (isset($data['role'])) {
+            $user->syncPermissions([]);
             $user->syncRoles([$data['role']]);
             unset($data['role']);
+            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
         }
 
         $user->update($data);

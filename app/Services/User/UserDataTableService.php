@@ -32,11 +32,21 @@ class UserDataTableService
                 $branchDisplay = e($user->branch->name);
             }
 
+            $roleName = $user->roles->first()?->name ?? '';
+            $roleLabel = RoleLabel::labelFrom($roleName);
+            $roleBadge = match ($roleName) {
+                'admin' => '<span class="badge bg-danger">Administrador</span>',
+                RoleLabel::PROVINCIAL_ADMIN->value => '<span class="badge bg-info text-dark">Admin Provincial</span>',
+                'seller' => '<span class="badge bg-success">Vendedor</span>',
+                default => sprintf('<span class="badge bg-secondary">%s</span>', e($roleLabel)),
+            };
+
             return [
                 'id'         => $user->id,
                 'number'     => $index + 1,
                 'name'       => $user->name,
                 'email'      => $this->formatEmail($user->email),
+                'role'       => $roleBadge,
                 'branch'     => $branchDisplay,
                 'created_at' => $user->created_at?->format('d/m/Y H:i') ?? '-',
             ];

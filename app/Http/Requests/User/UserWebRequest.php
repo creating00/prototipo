@@ -16,7 +16,8 @@ class UserWebRequest extends FormRequest
 
     public function rules(): array
     {
-        $userId = $this->route('user'); // Obtiene el ID si es un update
+        $userRouteParam = $this->route('user');
+        $userId = $userRouteParam instanceof \App\Models\User ? $userRouteParam->id : $userRouteParam;
 
         return [
             'name' => 'required|string|max:255',
