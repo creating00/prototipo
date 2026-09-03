@@ -125,6 +125,17 @@ test('regular admin can create expense successfully with amount', function () {
     ]);
 });
 
+test('manual order form exposes active branch id for provincial admin product search', function () {
+    $this->actingAs($this->provincialAdmin);
+    session(['active_branch_id' => $this->branch1->id]);
+
+    $response = $this->get(route('web.orders.create-client'));
+
+    $response->assertStatus(200);
+    $response->assertSee('id="current_branch_id"', false);
+    $response->assertSee('name="branch_id" id="current_branch_id" value="' . $this->branch1->id . '"', false);
+});
+
 test('regular admin is restricted from updating product prices while provincial admin can', function () {
     $product = Product::create([
         'code' => 'PROD-TEST-002',

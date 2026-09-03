@@ -1,12 +1,19 @@
 {{-- resources/views/admin/product/partials/_modal-create.blade.php --}}
 @php
-    $branchUserId = auth()->user()?->branch_id;
     $user = auth()->user();
     $isAdmin = $user?->hasRole('admin');
+    $isProvincialAdmin = $user?->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
+    $activeBranchId = session('active_branch_id');
+    $branchUserId = $isProvincialAdmin && $activeBranchId && $activeBranchId !== 'all'
+        ? (int) $activeBranchId
+        : $user?->branch_id;
 
-    $branches = $isAdmin
-        ? app(\App\Services\BranchService::class)->getAllBranches()
-        : app(\App\Services\BranchService::class)->getAllBranches()->where('id', $branchUserId);
+    $branchService = app(\App\Services\BranchService::class);
+    $branches = match (true) {
+        $isAdmin => $branchService->getAllBranches(),
+        $isProvincialAdmin => $branchService->getAccessibleBranchesForUser($user),
+        default => $branchService->getAllBranches()->where('id', $branchUserId),
+    };
 
     $productBranch = new \App\Models\ProductBranch([
         'stock' => 0,

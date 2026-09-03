@@ -13,14 +13,21 @@
     </div>
 </div> --}}
 
+@php
+    $canViewCost = auth()->user()?->hasAnyRole([\App\Enums\RoleLabel::ADMIN->value, \App\Enums\RoleLabel::PROVINCIAL_ADMIN->value]) ?? false;
+@endphp
+
 {{-- Tabla --}}
 <div class="table-responsive">
     <table class="table table-striped table-bsaleed align-middle" id="order-items-table">
         <thead>
             <tr>
-                <th width="10%">Producto</th>
+                <th width="18%">Producto</th>
                 <th width="7%">Stock</th>
-                <th width="20%">Precio</th>
+                @if ($canViewCost)
+                    <th width="14%">Costo</th>
+                @endif
+                <th width="{{ $canViewCost ? '16%' : '20%' }}">Precio</th>
                 <th width="6%">Cantidad</th>
                 <th width="15%">Subtotal</th>
                 <th width="8%"></th>

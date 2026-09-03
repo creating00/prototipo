@@ -84,7 +84,7 @@
                         <tr>
                             <th width="18%">Producto</th>
                             <th width="7%">Stock</th>
-                            <th width="20%">Precio</th>
+                            <th width="20%">Costo</th>
                             <th width="6%">Cantidad</th>
                             <th width="15%">Subtotal</th>
                             <th width="8%"></th>

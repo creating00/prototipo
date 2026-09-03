@@ -24,3 +24,85 @@
     height: 100%;
     padding-right: 1.5rem !important;
 }
+
+/* =========================================================
+   TRANSACTION TYPE SEGMENTED RADIO BUTTONS
+========================================================= */
+.transaction-type-group {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.transaction-radio-btn {
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.45rem 0.75rem;
+    border-width: 1px;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-outline-purple {
+    color: #6f42c1;
+    border-color: #6f42c1;
+}
+
+.btn-outline-purple:hover {
+    color: #fff;
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+}
+
+.btn-check:checked + .btn-outline-purple {
+    color: #fff !important;
+    background-color: #6f42c1 !important;
+    border-color: #6f42c1 !important;
+    box-shadow: 0 2px 6px rgba(111, 66, 193, 0.35);
+}
+
+.btn-check:checked + .btn-outline-primary {
+    box-shadow: 0 2px 6px rgba(13, 110, 253, 0.35);
+}
+
+/* =========================================================
+   REPAIR BUBBLE / CHIP SELECTOR
+========================================================= */
+.repair-bubbles-container {
+    padding: 4px 0;
+}
+
+.repair-bubble-chip {
+    border-radius: 20px !important;
+    font-size: 0.78rem !important;
+    font-weight: 500;
+    padding: 0.32rem 0.65rem !important;
+    border: 1px solid #ced4da;
+    background-color: #ffffff;
+    color: #495057;
+    transition: all 0.18s ease-in-out;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    user-select: none;
+}
+
+.repair-bubble-chip:hover {
+    background-color: #f3f0f9;
+    color: #6f42c1;
+    border-color: #6f42c1;
+    transform: translateY(-1px);
+}
+
+.btn-check:checked + .repair-bubble-chip {
+    background-color: #6f42c1 !important;
+    border-color: #6f42c1 !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(111, 66, 193, 0.3);
+    transform: scale(1.02);
+}
+
+.btn-check:checked + .repair-bubble-chip i {
+    color: #ffd700;
+}
+

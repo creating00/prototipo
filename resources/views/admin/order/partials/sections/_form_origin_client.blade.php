@@ -1,11 +1,16 @@
+@php
+    $currentBranchId = old('branch_id', $currentBranchId ?? auth()->user()?->branch_id);
+    $currentBranch = collect($branches ?? [])->firstWhere('id', (int) $currentBranchId);
+@endphp
+
 <div class="d-flex flex-column gap-2">
     {{-- Sucursal Origen (Bloqueada siempre a la sucursal actual para pedidos manuales) --}}
     <div id="branch-select-wrapper" class="compact-select-wrapper">
         <label class="compact-select-label fw-bold small">
             Sucursal (Origen) <span class="text-danger">*</span>
         </label>
-        <input type="text" class="form-control form-control-sm bg-light fw-bold" value="{{ auth()->user()?->branch?->name ?? 'Mi Sucursal' }}" readonly>
-        <input type="hidden" name="branch_id" value="{{ auth()->user()->branch_id }}">
+        <input type="text" class="form-control form-control-sm bg-light fw-bold" value="{{ $currentBranch?->name ?? auth()->user()?->branch?->name ?? 'Mi Sucursal' }}" readonly>
+        <input type="hidden" name="branch_id" id="current_branch_id" value="{{ $currentBranchId }}">
     </div>
 
     {{-- Cliente Destinatario --}}

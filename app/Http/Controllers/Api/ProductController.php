@@ -57,14 +57,11 @@ class ProductController extends BaseProductController
     public function findByCode(Request $request)
     {
         $code = $request->get('code');
-        $branchId   = $request->get('branch_id');
-        $categoryId = $request->get('category_id');
-        $isRepair   = $request->boolean('is_repair');
-        $context    = $request->get('context', 'order');
-
-        if (!$branchId) {
-            $branchId = auth()->user()?->branch_id;
-        }
+        $branchIdRaw = $request->get('branch_id') ?: auth()->user()?->branch_id;
+        $branchId    = $branchIdRaw ? (int)$branchIdRaw : null;
+        $categoryId  = $request->get('category_id');
+        $isRepair    = $request->boolean('is_repair');
+        $context     = $request->get('context', 'order');
 
         $product = Product::where('code', $code)
             ->when($categoryId, fn($q) => $q->where('category_id', $categoryId))
@@ -81,14 +78,22 @@ class ProductController extends BaseProductController
         $currency = $priceEntry?->currency ?? \App\Enums\CurrencyType::ARS;
         $stock = $branchId ? $product->getStock($branchId) : 0;
 
+        $user = auth()->user();
+        $canViewCost = $user?->hasAnyRole([\App\Enums\RoleLabel::ADMIN->value, \App\Enums\RoleLabel::PROVINCIAL_ADMIN->value]) ?? false;
+        $costModel = $canViewCost ? ($product->purchasePriceModel($branchId) ?? $product->purchasePriceModel(null)) : null;
+        $costDisplay = $costModel?->getFormattedAmount();
+
         return response()->json([
             'product' => [
-                'id'         => $product->id,
-                'code'       => $product->code,
-                'name'       => $product->name,
-                'stock'      => $stock,
-                'sale_price' => $finalPrice,
-                'currency'   => [
+                'id'             => $product->id,
+                'code'           => $product->code,
+                'name'           => $product->name,
+                'stock'          => $stock,
+                'sale_price'     => $finalPrice,
+                'purchase_price' => $costModel?->amount,
+                'cost_display'   => $costDisplay,
+                'show_cost'      => $canViewCost,
+                'currency'       => [
                     'code'   => $currency->code(),
                     'symbol' => $currency->symbol(),
                 ],
@@ -98,8 +103,13 @@ class ProductController extends BaseProductController
                 'stock'          => $stock,
                 'salePrice'      => $finalPrice,
                 'currency'       => $currency,
+                'costDisplay'    => $costDisplay,
+                'canViewCost'    => $canViewCost,
+                'showCostCell'   => ($canViewCost && $context !== 'order'),
+                'context'        => $context,
+                'branchId'       => $branchId,
                 'item'           => null,
-                'allowEditPrice' => ($context === 'saleX'),
+                'allowEditPrice' => true,
             ])->render(),
         ]);
     }
@@ -109,15 +119,12 @@ class ProductController extends BaseProductController
      */
     public function list(Request $request)
     {
-        $branchId   = $request->get('branch_id');
-        $categoryId = $request->get('category_id');
-        $search     = $request->get('q');
-        $isRepair   = $request->boolean('is_repair');
-        $context    = $request->get('context', 'sale');
-
-        if (!$branchId) {
-            $branchId = auth()->user()?->branch_id;
-        }
+        $branchIdRaw = $request->get('branch_id') ?: auth()->user()?->branch_id;
+        $branchId    = $branchIdRaw ? (int)$branchIdRaw : null;
+        $categoryId  = $request->get('category_id');
+        $search      = $request->get('q');
+        $isRepair    = $request->boolean('is_repair');
+        $context     = $request->get('context', 'sale');
 
         $query = Product::query();
 
@@ -134,8 +141,12 @@ class ProductController extends BaseProductController
 
         $products = $query->limit(20)->get();
 
-        $response = $products->map(function ($product) use ($branchId, $context, $isRepair) {
+        $user = auth()->user();
+        $canViewCost = $user?->hasAnyRole([\App\Enums\RoleLabel::ADMIN->value, \App\Enums\RoleLabel::PROVINCIAL_ADMIN->value]) ?? false;
+
+        $response = $products->map(function ($product) use ($branchId, $context, $isRepair, $canViewCost) {
             $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair);
+            $costEntry = $canViewCost ? ($product->purchasePriceModel($branchId) ?? $product->purchasePriceModel(null)) : null;
 
             return [
                 'id'            => $product->id,
@@ -144,6 +155,9 @@ class ProductController extends BaseProductController
                 'stock'         => $branchId ? $product->getStock($branchId) : 0,
                 'price'         => $priceEntry?->amount ?? 0,
                 'price_display' => $priceEntry?->getFormattedAmount() ?? '$ 0,00',
+                'cost'          => $costEntry?->amount,
+                'cost_display'  => $costEntry?->getFormattedAmount(),
+                'show_cost'     => $canViewCost,
             ];
         });
 

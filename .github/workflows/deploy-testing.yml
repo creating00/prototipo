@@ -55,6 +55,31 @@ jobs:
             php artisan migrate --force
             php artisan db:seed --class=PermissionSeeder --force
 
+            echo "✅ Backend TESTING actualizado"
+
+      - name: Upload compiled assets to Hostinger (TESTING)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: public/build
+          target: domains/tecnonautaserviciotecnico.creatingsoft.net/public_html/testing
+
+      - name: Cache Laravel after assets upload (TESTING)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 60s
+          script: |
+            set -e
+
+            cd domains/tecnonautaserviciotecnico.creatingsoft.net/public_html/testing
+
             echo "⚡ Generando cache..."
             php artisan config:cache
             php artisan route:cache
