@@ -7,6 +7,9 @@
     $colorClass = "bg-{$currentCurrency->color()} text-white";
 
     $user = auth()->user();
+    $canEditCost = $user?->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value) ?? false;
+    $isOrderContext = ($context ?? 'order') === 'order';
+    $allowEditPrice = $allowEditPrice && (!$isOrderContext || $canEditCost);
     $canViewCost = $canViewCost ?? ($user?->hasAnyRole([\App\Enums\RoleLabel::ADMIN->value, \App\Enums\RoleLabel::PROVINCIAL_ADMIN->value]) ?? false);
     $effectiveBranchId = $branchId ?? ($product?->branch_id ?? ($item?->order?->branch_id ?? ($user?->branch_id ?? null)));
     $costModel = $canViewCost && $product ? ($product->purchasePriceModel($effectiveBranchId) ?? $product->purchasePriceModel(null)) : null;

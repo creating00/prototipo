@@ -158,11 +158,11 @@
                     @endcanResource
 
                     {{-- Pedidos Sucursal → Sucursal (Remotos) --}}
-                    @canResource('orders.create_branch')
-                    <x-adminlte.button color="info" icon="fas fa-building" class="me-1 btn-header-new-branch">
-                        Nuevo Pedido entre Sucursales
-                    </x-adminlte.button>
-                    @endcanResource
+                    @if (auth()->user()?->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value))
+                        <x-adminlte.button color="info" icon="fas fa-building" class="me-1 btn-header-new-branch">
+                            Nuevo Pedido entre Sucursales
+                        </x-adminlte.button>
+                    @endif
 
                     @canResource('orders.view_own')
                     <x-adminlte.button color="custom-emerald" icon="fas fa-history"

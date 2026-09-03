@@ -5,9 +5,9 @@ namespace App\Providers;
 use App\Models\Order;
 use App\Observers\OrderObserver;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Blade;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,13 +30,21 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(function ($user, string $ability, array $arguments = []) {
             $target = $arguments[0] ?? null;
 
+            $isOrderTarget = $target === \App\Models\Order::class
+                || $target instanceof \App\Models\Order
+                || str_starts_with($ability, 'orders.');
+
+            if ($isOrderTarget && in_array($ability, ['create_branch', 'createBranch', 'orders.create_branch'], true)) {
+                return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
+            }
+
             // Bloqueo centralizado de ABM en modo consolidado ("all") para módulos no permitidos
             if (session('active_branch_id') === 'all') {
                 $allowedPrefixes = ['products.', 'product_branches.', 'product_branch_prices.', 'analytics.', 'reports.'];
                 $allowedTargets = [
                     \App\Models\Product::class,
                     \App\Models\ProductBranch::class,
-                    \App\Models\ProductBranchPrice::class
+                    \App\Models\ProductBranchPrice::class,
                 ];
 
                 $isAllowedModule = false;
@@ -46,10 +54,10 @@ class AppServiceProvider extends ServiceProvider
                         break;
                     }
                 }
-                if (!$isAllowedModule && in_array($target, $allowedTargets, true)) {
+                if (! $isAllowedModule && in_array($target, $allowedTargets, true)) {
                     $isAllowedModule = true;
                 }
-                if (!$isAllowedModule && ($target instanceof \App\Models\Product || $target instanceof \App\Models\ProductBranch || $target instanceof \App\Models\ProductBranchPrice)) {
+                if (! $isAllowedModule && ($target instanceof \App\Models\Product || $target instanceof \App\Models\ProductBranch || $target instanceof \App\Models\ProductBranchPrice)) {
                     $isAllowedModule = true;
                 }
 
@@ -62,21 +70,21 @@ class AppServiceProvider extends ServiceProvider
                     }
                 }
 
-                if ($isMutation && !$isAllowedModule) {
+                if ($isMutation && ! $isAllowedModule) {
                     return false;
                 }
             }
 
-            $isRepairAmountTarget = $target === \App\Models\RepairAmount::class 
-                || $target instanceof \App\Models\RepairAmount 
+            $isRepairAmountTarget = $target === \App\Models\RepairAmount::class
+                || $target instanceof \App\Models\RepairAmount
                 || str_starts_with($ability, 'repair_amounts.');
 
             if ($isRepairAmountTarget && in_array($ability, ['create', 'update', 'delete', 'repair_amounts.create', 'repair_amounts.update', 'repair_amounts.delete'])) {
                 return $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value);
             }
 
-            $isUserTarget = $target === \App\Models\User::class 
-                || $target instanceof \App\Models\User 
+            $isUserTarget = $target === \App\Models\User::class
+                || $target instanceof \App\Models\User
                 || str_starts_with($ability, 'users.');
 
             if ($isUserTarget) {
@@ -108,7 +116,7 @@ class AppServiceProvider extends ServiceProvider
         Blade::if('canResource', function (string $permission): bool {
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
-            if (!$user) {
+            if (! $user) {
                 return false;
             }
 
@@ -130,7 +138,7 @@ class AppServiceProvider extends ServiceProvider
                     || str_ends_with($permission, '.adjust')
                     || str_ends_with($permission, '.refund');
 
-                if ($isMutation && !$isAllowedModule) {
+                if ($isMutation && ! $isAllowedModule) {
                     return false;
                 }
             }

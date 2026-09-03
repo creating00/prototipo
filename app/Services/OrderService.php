@@ -5,44 +5,47 @@ namespace App\Services;
 use App\Enums\CurrencyType;
 use App\Enums\OrderSource;
 use App\Enums\OrderStatus;
+use App\Enums\RoleLabel;
 use App\Models\Branch;
 use App\Models\Client;
 use App\Models\Order;
 use App\Models\OrderReception;
 use App\Models\Sale;
 use App\Models\User;
+use App\Notifications\OrderStatusNotification;
 use App\Services\Order\OrderDataProcessor;
 use App\Services\Order\OrderItemProcessor;
 use App\Services\Product\ProductStockService;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
-use App\Notifications\OrderStatusNotification;
-use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\DB;
 use App\Services\Traits\DataTableFormatter;
 use App\Traits\AuthTrait;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class OrderService
 {
-    use DataTableFormatter, AuthTrait;
+    use AuthTrait, DataTableFormatter;
 
     protected ProductStockService $stockService;
+
     protected OrderDataProcessor $dataProcessor;
+
     protected OrderItemProcessor $itemProcessor;
+
     protected ClientService $clientService;
 
     public function __construct(
         ProductStockService $stockService,
-        OrderDataProcessor $dataProcessor = null,
-        OrderItemProcessor $itemProcessor = null,
-        ClientService $clientService = null
+        ?OrderDataProcessor $dataProcessor = null,
+        ?OrderItemProcessor $itemProcessor = null,
+        ?ClientService $clientService = null
     ) {
         $this->stockService = $stockService;
-        $this->dataProcessor = $dataProcessor ?? new OrderDataProcessor();
+        $this->dataProcessor = $dataProcessor ?? new OrderDataProcessor;
         $this->itemProcessor = $itemProcessor ?? new OrderItemProcessor($stockService);
-        $this->clientService = $clientService ?? new ClientService();
+        $this->clientService = $clientService ?? new ClientService;
     }
 
     // public function getAllOrders()
@@ -67,8 +70,8 @@ class OrderService
                 ->where(function ($q) use ($branchId) {
                     // Excluir compras / autopedidos donde la sucursal actual es la compradora
                     $q->where('customer_type', '!=', \App\Models\Branch::class)
-                      ->orWhereNull('customer_type')
-                      ->orWhere('customer_id', '!=', $branchId);
+                        ->orWhereNull('customer_type')
+                        ->orWhere('customer_id', '!=', $branchId);
                 });
         }
 
@@ -91,9 +94,9 @@ class OrderService
         return $order->items->map(function ($item) use ($order) {
             return [
                 'html' => view('admin.order.partials._item_row', [
-                    'product'   => $item->product,
-                    'item'      => $item,
-                    'stock'     => $item->product ? $item->product->getStock($order->branch_id) : 0,
+                    'product' => $item->product,
+                    'item' => $item,
+                    'stock' => $item->product ? $item->product->getStock($order->branch_id) : 0,
                     'salePrice' => $item->unit_price,
                 ])->render(),
             ];
@@ -103,7 +106,7 @@ class OrderService
     public function createOrder(array $data): Order
     {
         // Forzar estado del pedido por defecto a Pendiente
-        if (!isset($data['status'])) {
+        if (! isset($data['status'])) {
             $data['status'] = OrderStatus::Pending->value;
         }
 
@@ -115,16 +118,20 @@ class OrderService
         return DB::transaction(function () use ($validated, $data) {
             $orderData = $this->dataProcessor->prepare($validated);
             $orderData['payment_status'] = 2;
-            if (isset($data['created_at']) && !empty($data['created_at'])) {
+            if (isset($data['created_at']) && ! empty($data['created_at'])) {
                 $orderData['created_at'] = $data['created_at'];
             }
+            $orderData['items'] = $this->normalizeOrderItemCostsForUser(
+                $orderData['items'],
+                (int) $orderData['branch_id']
+            );
             $order = $this->createOrderRecord($orderData);
 
             // El registro inicial NO descuenta stock (skipStockMovement = true)
             $totals = $this->itemProcessor->sync($order, $orderData['items'], true);
 
             $order->update([
-                'totals' => $totals
+                'totals' => $totals,
             ]);
 
             $order = $order->fresh(['items', 'customer']);
@@ -147,7 +154,7 @@ class OrderService
     {
         $order = $this->getOrderById($id);
 
-        if (!$order->canBeEdited()) {
+        if (! $order->canBeEdited()) {
             throw new \Exception('No se puede modificar un pedido que ya ha sido enviado al stock.');
         }
 
@@ -155,9 +162,14 @@ class OrderService
 
         return DB::transaction(function () use ($order, $validated, $data) {
             $orderData = $this->dataProcessor->prepare($validated, $order);
-            if (isset($data['created_at']) && !empty($data['created_at'])) {
+            if (isset($data['created_at']) && ! empty($data['created_at'])) {
                 $orderData['created_at'] = $data['created_at'];
             }
+            $orderData['items'] = $this->normalizeOrderItemCostsForUser(
+                $orderData['items'],
+                (int) $orderData['branch_id'],
+                $order
+            );
 
             // Mantenemos sin descuento de stock durante las modificaciones antes de enviar al stock
             $totals = $this->itemProcessor->sync($order, $orderData['items'], true);
@@ -165,7 +177,7 @@ class OrderService
             $this->updateOrderRecord($order, $orderData);
 
             $order->update([
-                'totals' => $totals
+                'totals' => $totals,
             ]);
 
             return $order->fresh(['items']);
@@ -208,7 +220,7 @@ class OrderService
 
             // 2. Actualizar el estado usando el Enum
             $order->update([
-                'status' => OrderStatus::Cancelled
+                'status' => OrderStatus::Cancelled,
             ]);
 
             return ['message' => 'Order cancelled successfully'];
@@ -218,8 +230,8 @@ class OrderService
     /**
      * Convierte una orden en venta permitiendo personalizar el pago y el usuario.
      *
-     * @param int $id ID de la orden
-     * @param array $options Datos opcionales (payment_type, user_id, amount_received)
+     * @param  int  $id  ID de la orden
+     * @param  array  $options  Datos opcionales (payment_type, user_id, amount_received)
      * @return Sale
      */
     public function convertToSale($id, array $options = [])
@@ -231,69 +243,71 @@ class OrderService
             $order->load('items');
 
             if ($order->status === OrderStatus::ConvertedToSale->value) {
-                throw new \Exception("Esta orden ya fue convertida a venta.");
+                throw new \Exception('Esta orden ya fue convertida a venta.');
             }
 
             // 1. Tasa y determinación de moneda
-            $rate = (float)($options['exchange_rate_blue'] ?? app(CurrencyExchangeService::class)->getCurrentDollarRate());
+            $rate = (float) ($options['exchange_rate_blue'] ?? app(CurrencyExchangeService::class)->getCurrentDollarRate());
             $arsKey = \App\Enums\CurrencyType::ARS->value;
             $usdKey = \App\Enums\CurrencyType::USD->value;
 
-            $isPayingInUsd = !empty($options['total_amount_usd']);
+            $isPayingInUsd = ! empty($options['total_amount_usd']);
             $totalConsolidado = $isPayingInUsd
-                ? (float)$options['total_amount_usd']
-                : (float)($options['total_amount'] ?? 0);
+                ? (float) $options['total_amount_usd']
+                : (float) ($options['total_amount'] ?? 0);
 
             $currencyId = $isPayingInUsd ? $usdKey : $arsKey;
             $userId = $options['user_id'] ?? $this->userId();
 
-            if (!$userId) throw new \Exception('No se pudo determinar el usuario.');
+            if (! $userId) {
+                throw new \Exception('No se pudo determinar el usuario.');
+            }
 
             // 2. Mapeo de ítems
             $items = $order->items->map(function ($i) {
                 return [
                     'product_id' => $i->product_id,
-                    'quantity'   => $i->quantity,
+                    'quantity' => $i->quantity,
                     'unit_price' => $i->unit_price,
-                    'currency'   => is_object($i->currency) ? $i->currency->value : $i->currency,
+                    'currency' => is_object($i->currency) ? $i->currency->value : $i->currency,
                 ];
             })->values()->toArray();
 
             if (empty($items)) {
-                throw new \Exception("Error: La orden no tiene ítems cargados.");
+                throw new \Exception('Error: La orden no tiene ítems cargados.');
             }
 
             // 3. Preparación de datos de venta y pagos
-            $isDual = (bool)($options['is_dual_payment'] ?? false);
+            $isDual = (bool) ($options['is_dual_payment'] ?? false);
 
             $data = [
-                'source_order_id'     => $order->id,
-                'branch_id'           => $order->branch_id,
-                'user_id'             => $userId,
-                'customer_type'       => $order->customer_type,
-                'sale_type'           => \App\Enums\SaleType::Sale->value,
-                'sale_date'           => now()->format('Y-m-d'),
-                'status'              => \App\Enums\SaleStatus::Paid->value,
-                'items'               => $items,
-                'currency_id'         => $currencyId,
-                'exchange_rate_blue'  => $rate,
-                'totals'              => json_encode([$currencyId => $totalConsolidado]),
+                'source_order_id' => $order->id,
+                'branch_id' => $order->branch_id,
+                'user_id' => $userId,
+                'customer_type' => $order->customer_type,
+                'sale_type' => \App\Enums\SaleType::Sale->value,
+                'sale_date' => now()->format('Y-m-d'),
+                'status' => \App\Enums\SaleStatus::Paid->value,
+                'items' => $items,
+                'currency_id' => $currencyId,
+                'exchange_rate_blue' => $rate,
+                'totals' => json_encode([$currencyId => $totalConsolidado]),
 
                 // Flags para HandlesSalePayments
                 'enable_dual_payment' => $isDual ? 1 : 0,
-                'requires_invoice'    => !empty($options['requires_invoice']),
+                'requires_invoice' => ! empty($options['requires_invoice']),
 
                 // Pago 1: Normalizado (Viene de _1 gracias a la sincronización JS)
-                'payment_type'      => $options['payment_type_1'] ?? null,
-                'amount_received'   => (float)($options['amount_received_1'] ?? 0),
+                'payment_type' => $options['payment_type_1'] ?? null,
+                'amount_received' => (float) ($options['amount_received_1'] ?? 0),
                 'payment_method_id' => $options['bank_account_id_1'] ?? $options['bank_id_1'] ?? null,
-                'payment_notes'     => $options['payment_notes'] ?? null,
+                'payment_notes' => $options['payment_notes'] ?? null,
             ];
 
             // Pago 2: Solo si es dual
             if ($isDual) {
-                $data['payment_type_2']      = $options['payment_type_2'] ?? null;
-                $data['amount_received_2']   = (float)($options['amount_received_2'] ?? 0);
+                $data['payment_type_2'] = $options['payment_type_2'] ?? null;
+                $data['amount_received_2'] = (float) ($options['amount_received_2'] ?? 0);
                 $data['payment_method_id_2'] = $options['bank_account_id_2'] ?? $options['bank_id_2'] ?? null;
             }
 
@@ -308,8 +322,8 @@ class OrderService
             $sale = app(SaleService::class)->createSale($data);
 
             $order->update([
-                'status'  => OrderStatus::ConvertedToSale->value,
-                'sale_id' => $sale->id
+                'status' => OrderStatus::ConvertedToSale->value,
+                'sale_id' => $sale->id,
             ]);
 
             return $sale;
@@ -330,7 +344,7 @@ class OrderService
     public function getAllOrdersForDataTable($user = null): array
     {
         return $this->getAllOrders($user)->map(
-            fn($order, $index) => $this->formatOrderForDataTable($order, $index)
+            fn ($order, $index) => $this->formatOrderForDataTable($order, $index)
         )->toArray();
     }
 
@@ -345,17 +359,17 @@ class OrderService
             $stock = $item->product ? $item->product->getStock($order->branch_id) : 0;
 
             return [
-                'id'         => $item->id,
-                'number'     => $index + 1,
-                'product'    => $item->product?->name ?? '<span class="text-muted fst-italic">Producto eliminado</span>',
-                'stock'      => '<span class="badge bg-secondary">' . $stock . '</span>',
+                'id' => $item->id,
+                'number' => $index + 1,
+                'product' => $item->product?->name ?? '<span class="text-muted fst-italic">Producto eliminado</span>',
+                'stock' => '<span class="badge bg-secondary">'.$stock.'</span>',
                 'unit_price' => $this->formatCurrency(
                     $item->unit_price,
                     $item->currency,
                     'text-dark'
                 ),
-                'quantity'   => $item->quantity,
-                'subtotal'   => $this->formatCurrency(
+                'quantity' => $item->quantity,
+                'subtotal' => $this->formatCurrency(
                     $item->subtotal,
                     $item->currency,
                     'fw-bold text-dark'
@@ -364,9 +378,9 @@ class OrderService
         })->toArray();
 
         return [
-            'headers'      => $headers,
-            'rowData'      => $rowData,
-            'hiddenFields' => ['id']
+            'headers' => $headers,
+            'rowData' => $rowData,
+            'hiddenFields' => ['id'],
         ];
     }
 
@@ -380,7 +394,7 @@ class OrderService
         $query = Order::with(['branch', 'customer', 'user', 'reception'])
             ->where(function ($q) {
                 $q->where('customer_type', \App\Models\Branch::class)
-                  ->orWhere('source', OrderSource::Manual);
+                    ->orWhere('source', OrderSource::Manual);
             })
             ->orderBy('created_at', 'desc');
 
@@ -399,43 +413,43 @@ class OrderService
         return $this->getPurchasedOrders()->map(function ($order, $index) {
             $reception = $order->reception;
             $statusSource = $reception ?? $order;
-            $isStockSent = (bool)$order->is_stock_sent || (bool)$reception;
+            $isStockSent = (bool) $order->is_stock_sent || (bool) $reception;
 
-            $sourceRaw   = is_object($order->source) ? $order->source->value : $order->source;
+            $sourceRaw = is_object($order->source) ? $order->source->value : $order->source;
             $sourceLabel = is_object($order->source) ? $order->source->label() : $order->source;
-            $sourceBadgeClass = match ((int)$sourceRaw) {
+            $sourceBadgeClass = match ((int) $sourceRaw) {
                 \App\Enums\OrderSource::Ecommerce->value => 'bg-info',
-                \App\Enums\OrderSource::Manual->value    => 'badge-purple',
-                default                                  => 'bg-secondary',
+                \App\Enums\OrderSource::Manual->value => 'badge-purple',
+                default => 'bg-secondary',
             };
 
             return [
-                'id'            => $order->id,
-                'status_raw'    => is_object($statusSource->status) ? $statusSource->status->value : $statusSource->status,
-                'source_raw'    => $sourceRaw,
-                'is_received'   => $isStockSent ? 'true' : 'false',
-                'customer'      => $this->resolveCustomerName($order),
+                'id' => $order->id,
+                'status_raw' => is_object($statusSource->status) ? $statusSource->status->value : $statusSource->status,
+                'source_raw' => $sourceRaw,
+                'is_received' => $isStockSent ? 'true' : 'false',
+                'customer' => $this->resolveCustomerName($order),
                 'customer_type' => $order->customer_type,
-                'phone'         => $this->cleanPhoneNumber($order->customer?->phone),
-                'observation'   => $reception ? ($reception->observation ?? 'Sin notas') : '---',
-                'number'         => $index + 1,                                  // #
-                'branch'         => $order->branch->name ?? 'N/A',               // Proveedor
+                'phone' => $this->cleanPhoneNumber($order->customer?->phone),
+                'observation' => $reception ? ($reception->observation ?? 'Sin notas') : '---',
+                'number' => $index + 1,                                  // #
+                'branch' => $order->branch->name ?? 'N/A',               // Proveedor
                 'total' => collect($order->totals)
-                    ->map(fn($v, $k) => $this->formatCurrency($v, CurrencyType::from($k)))
+                    ->map(fn ($v, $k) => $this->formatCurrency($v, CurrencyType::from($k)))
                     ->implode(' / '),
-                'source'         => '<span class="badge ' . $sourceBadgeClass . '">' . $sourceLabel . '</span>', // Canal
-                'status'         => $this->resolveStatus($statusSource, ['currencyClass' => 'fw-bold text-info']), // Estado
+                'source' => '<span class="badge '.$sourceBadgeClass.'">'.$sourceLabel.'</span>', // Canal
+                'status' => $this->resolveStatus($statusSource, ['currencyClass' => 'fw-bold text-info']), // Estado
                 'payment_status' => sprintf('<span class="%s">%s</span>', $order->payment_status_badge_class, $order->payment_status_label), // Estado Pago
-                'created_at'     => $order->created_at->format('d-m-Y'),         // Fecha Solicitud
-                'received_at'    => $reception ? $reception->received_at->format('d-m-Y H:i') : ($order->stock_sent_at ? $order->stock_sent_at->format('d-m-Y H:i') : '---'),
-                'received_by'    => $order->user->name ?? ($reception?->user?->name ?? '---'),
+                'created_at' => $order->created_at->format('d-m-Y'),         // Fecha Solicitud
+                'received_at' => $reception ? $reception->received_at->format('d-m-Y H:i') : ($order->stock_sent_at ? $order->stock_sent_at->format('d-m-Y H:i') : '---'),
+                'received_by' => $order->user->name ?? ($reception?->user?->name ?? '---'),
                 '_row_attributes' => [
-                    'id'            => $order->id,
-                    'status_raw'    => is_object($statusSource->status) ? $statusSource->status->value : $statusSource->status,
-                    'source_raw'    => $sourceRaw,
-                    'is_received'   => $isStockSent ? 'true' : 'false',
-                    'can_edit'      => ($order->canBeEdited() && !$isStockSent) ? 'true' : 'false',
-                ]
+                    'id' => $order->id,
+                    'status_raw' => is_object($statusSource->status) ? $statusSource->status->value : $statusSource->status,
+                    'source_raw' => $sourceRaw,
+                    'is_received' => $isStockSent ? 'true' : 'false',
+                    'can_edit' => ($order->canBeEdited() && ! $isStockSent) ? 'true' : 'false',
+                ],
             ];
         })->toArray();
     }
@@ -451,23 +465,23 @@ class OrderService
 
             // 2. Validaciones de integridad
             if ($order->customer_type !== \App\Models\Branch::class) {
-                throw new \Exception("Solo los pedidos entre sucursales requieren registro de recepción.");
+                throw new \Exception('Solo los pedidos entre sucursales requieren registro de recepción.');
             }
 
             if ($order->is_stock_sent || $order->reception()->exists()) {
-                throw new \Exception("Este pedido ya fue enviado al stock / recibido anteriormente.");
+                throw new \Exception('Este pedido ya fue enviado al stock / recibido anteriormente.');
             }
 
             // 3. Determinar el estado basado en la observación
             // Si hay texto en 'observation', usamos ReceivedWithIssues, de lo contrario Received
-            $status = !empty($data['observation'])
+            $status = ! empty($data['observation'])
                 ? \App\Enums\OrderReceptionStatus::ReceivedWithIssues
                 : \App\Enums\OrderReceptionStatus::Received;
 
             // 4. Crear el registro de recepción
             $reception = $order->reception()->create([
-                'user_id'     => $this->userId() ?? $data['user_id'],
-                'status'      => $status,
+                'user_id' => $this->userId() ?? $data['user_id'],
+                'status' => $status,
                 'received_at' => now(),
                 'observation' => $data['observation'] ?? null,
             ]);
@@ -484,7 +498,7 @@ class OrderService
                 $this->stockService->updatePurchasePrice(
                     $product,
                     $order->customer_id,
-                    (float)$item->unit_price,
+                    (float) $item->unit_price,
                     is_object($item->currency) ? $item->currency->value : $item->currency
                 );
             }
@@ -493,7 +507,7 @@ class OrderService
             $order->update([
                 'is_stock_sent' => true,
                 'stock_sent_at' => now(),
-                'status'        => OrderStatus::Confirmed,
+                'status' => OrderStatus::Confirmed,
             ]);
 
             return $reception;
@@ -508,7 +522,7 @@ class OrderService
         $order = $this->getOrderById($id);
 
         if ($order->is_stock_sent || $order->reception()->exists()) {
-            throw new \Exception("Este pedido ya fue enviado al stock / recibido anteriormente.");
+            throw new \Exception('Este pedido ya fue enviado al stock / recibido anteriormente.');
         }
 
         return DB::transaction(function () use ($order) {
@@ -537,7 +551,7 @@ class OrderService
             $order->update([
                 'is_stock_sent' => true,
                 'stock_sent_at' => now(),
-                'status'        => OrderStatus::Confirmed,
+                'status' => OrderStatus::Confirmed,
             ]);
 
             return $order->fresh(['items', 'customer']);
@@ -601,7 +615,7 @@ class OrderService
         }
 
         // Exchange rate: obligatorio solo al crear
-        if (!isset($data['id'])) {
+        if (! isset($data['id'])) {
             $rules['exchange_rate'] = [
                 'required',
                 'numeric',
@@ -615,20 +629,20 @@ class OrderService
     protected function createOrderRecord(array $orderData): Order
     {
         $data = [
-            'branch_id'      => $orderData['branch_id'],
-            'user_id'        => $orderData['user_id'],
-            'status'         => $orderData['status'],
+            'branch_id' => $orderData['branch_id'],
+            'user_id' => $orderData['user_id'],
+            'status' => $orderData['status'],
             'payment_status' => $orderData['payment_status'] ?? 2,
-            'source'         => $orderData['source'],
-            'sale_id'        => $orderData['sale_id'] ?? null,
-            'notes'          => $orderData['notes'] ?? null,
-            'exchange_rate'  => $orderData['exchange_rate'],
-            'totals'         => [],
-            'customer_id'    => $orderData['customer_id'],
-            'customer_type'  => $orderData['customer_type'],
+            'source' => $orderData['source'],
+            'sale_id' => $orderData['sale_id'] ?? null,
+            'notes' => $orderData['notes'] ?? null,
+            'exchange_rate' => $orderData['exchange_rate'],
+            'totals' => [],
+            'customer_id' => $orderData['customer_id'],
+            'customer_type' => $orderData['customer_type'],
         ];
 
-        if (isset($orderData['created_at']) && !empty($orderData['created_at'])) {
+        if (isset($orderData['created_at']) && ! empty($orderData['created_at'])) {
             $data['created_at'] = $orderData['created_at'];
         }
 
@@ -638,13 +652,13 @@ class OrderService
     protected function updateOrderRecord(Order $order, array $orderData): void
     {
         $data = [
-            'branch_id'     => $orderData['branch_id'],
-            'user_id'       => $orderData['user_id'],
-            'status'        => $orderData['status'],
-            'source'        => $orderData['source'],
-            'sale_id'       => $orderData['sale_id'] ?? null,
-            'notes'         => $orderData['notes'] ?? null,
-            'customer_id'   => $orderData['customer_id'],
+            'branch_id' => $orderData['branch_id'],
+            'user_id' => $orderData['user_id'],
+            'status' => $orderData['status'],
+            'source' => $orderData['source'],
+            'sale_id' => $orderData['sale_id'] ?? null,
+            'notes' => $orderData['notes'] ?? null,
+            'customer_id' => $orderData['customer_id'],
             'customer_type' => $orderData['customer_type'],
         ];
 
@@ -652,14 +666,46 @@ class OrderService
             $data['payment_status'] = $orderData['payment_status'];
         }
 
-        if (isset($orderData['created_at']) && !empty($orderData['created_at'])) {
+        if (isset($orderData['created_at']) && ! empty($orderData['created_at'])) {
             $data['created_at'] = $orderData['created_at'];
         }
 
         $order->update($data);
     }
 
+    protected function normalizeOrderItemCostsForUser(array $items, int $branchId, ?Order $order = null): array
+    {
+        if ($this->currentUser()?->hasRole(RoleLabel::PROVINCIAL_ADMIN->value)) {
+            return $items;
+        }
 
+        $existingItems = $order?->items?->keyBy('product_id') ?? collect();
+
+        return array_map(function (array $item) use ($branchId, $existingItems) {
+            $productId = (int) $item['product_id'];
+            $existingItem = $existingItems->get($productId);
+
+            if ($existingItem) {
+                $item['unit_price'] = (float) $existingItem->unit_price;
+                $item['currency'] = is_object($existingItem->currency)
+                    ? $existingItem->currency->value
+                    : (int) $existingItem->currency;
+
+                return $item;
+            }
+
+            $product = \App\Models\Product::findOrFail($productId);
+            $priceModel = $product->purchasePriceModel($branchId)
+                ?? $product->salePriceModel($branchId)
+                ?? $product->purchasePriceModel(null)
+                ?? $product->salePriceModel(null);
+
+            $item['unit_price'] = (float) ($priceModel?->amount ?? 0);
+            $item['currency'] = $priceModel?->currency?->value ?? ($item['currency'] ?? CurrencyType::ARS->value);
+
+            return $item;
+        }, $items);
+    }
 
     /**
      * Consulta productos de la sucursal activa e identifica sugerencias de auto-pedido.
@@ -682,16 +728,16 @@ class OrderService
                 $currency = $priceModel?->currency ?? CurrencyType::ARS;
 
                 $result[] = [
-                    'id'                 => $product->id,
-                    'name'               => $product->name,
-                    'code'               => $product->code,
-                    'stock_destination'  => $stockDestination,
-                    'stock_origin'       => $stockOrigin,
-                    'threshold'          => $threshold,
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'code' => $product->code,
+                    'stock_destination' => $stockDestination,
+                    'stock_origin' => $stockOrigin,
+                    'threshold' => $threshold,
                     'suggested_quantity' => $suggestedQty,
-                    'unit_price'         => $price,
-                    'currency'           => [
-                        'code'   => is_object($currency) ? $currency->value : $currency,
+                    'unit_price' => $price,
+                    'currency' => [
+                        'code' => is_object($currency) ? $currency->value : $currency,
                         'symbol' => is_object($currency) ? $currency->symbol() : '$',
                     ],
                 ];

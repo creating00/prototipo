@@ -90,10 +90,12 @@
                     </x-adminlte.button>
 
                     {{-- Botón para iniciar un nuevo pedido a sucursal --}}
-                    <x-adminlte.button color="primary" icon="fas fa-plus" class="btn-header-new-branch"
-                        onclick="window.location.href='{{ route('web.orders.create-branch') }}'">
-                        Nuevo Pedido a Sucursal
-                    </x-adminlte.button>
+                    @if (auth()->user()?->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value))
+                        <x-adminlte.button color="primary" icon="fas fa-plus" class="btn-header-new-branch"
+                            onclick="window.location.href='{{ route('web.orders.create-branch') }}'">
+                            Nuevo Pedido a Sucursal
+                        </x-adminlte.button>
+                    @endif
                 </x-slot>
             </x-adminlte.data-table>
         </div>
