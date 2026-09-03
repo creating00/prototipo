@@ -17,7 +17,3 @@
     @include('admin.branch.partials._modal-create')
     {{--  @include('admin.expense_type.partials._modal-create') --}}
 @endsection
-
-@push('scripts')
-    @vite('resources/js/modules/expenses/edit.js')
-@endpush

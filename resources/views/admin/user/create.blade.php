@@ -19,8 +19,3 @@
     @include('admin.branch.partials._modal-create')
 
 @endsection
-
-@push('scripts')
-    {{-- Lógica específica para el módulo de usuarios --}}
-    @vite('resources/js/modules/users/create.js')
-@endpush

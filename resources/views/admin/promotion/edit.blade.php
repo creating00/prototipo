@@ -18,8 +18,3 @@
     {{-- Mantenemos la posibilidad de incluir modales de previsualización --}}
     {{-- @include('admin.promotion.partials._modal-preview') --}}
 @endsection
-
-@push('scripts')
-    {{-- Reutilizamos o extendemos la lógica de JS para el manejo de botones --}}
-    @vite('resources/js/modules/promotions/edit.js')
-@endpush
