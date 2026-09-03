@@ -333,3 +333,84 @@ test('manual orders are strictly isolated to the creating branch and invisible t
     $purchasesBranch2 = $orderService->getPurchasedOrders();
     expect($purchasesBranch2->pluck('id')->toArray())->not->toContain($manualOrder->id);
 });
+
+test('send to stock automatically updates product purchase price / cost in stock for manual order', function () {
+    $branch = createTestBranch('Sucursal Central');
+    $user = User::factory()->create(['branch_id' => $branch->id]);
+    $client = \App\Models\Client::create([
+        'branch_id' => $branch->id,
+        'full_name' => 'Cliente Test',
+        'document'  => '99887766',
+        'phone'     => '12345678',
+    ]);
+    $product = createTestProduct('Modulo Pantalla OLED');
+
+    $orderService = app(OrderService::class);
+
+    $order = $orderService->createOrder([
+        'branch_id'     => $branch->id,
+        'client_id'     => $client->id,
+        'customer_id'   => $client->id,
+        'customer_type' => \App\Models\Client::class,
+        'source'        => \App\Enums\OrderSource::Manual->value,
+        'status'        => OrderStatus::Pending->value,
+        'user_id'       => $user->id,
+        'exchange_rate' => 1200,
+        'items'         => [
+            [
+                'product_id' => $product->id,
+                'quantity'   => 10,
+                'unit_price' => 15500.50,
+                'currency'   => CurrencyType::ARS->value,
+            ]
+        ]
+    ]);
+
+    // Ejecutar enviar al stock
+    $orderService->sendToStock($order->id);
+
+    // Verificar que el stock aumentó en la sucursal
+    expect($product->getStock($branch->id))->toBe(10);
+
+    // Verificar que el precio de compra (costo) fue actualizado automáticamente en la sucursal
+    $purchasePrice = $product->purchasePrice($branch->id);
+    expect((float)$purchasePrice)->toBe(15500.50);
+});
+
+test('send to stock automatically updates product purchase price in receiving branch for branch order', function () {
+    $supplyingBranch = createTestBranch('Sucursal Proveedora');
+    $receivingBranch = createTestBranch('Sucursal Receptora');
+    $user = User::factory()->create(['branch_id' => $supplyingBranch->id]);
+    $product = createTestProduct('Batería iPhone 13');
+
+    $orderService = app(OrderService::class);
+
+    $order = $orderService->createOrder([
+        'branch_id'     => $supplyingBranch->id,
+        'customer_id'   => $receivingBranch->id,
+        'customer_type' => Branch::class,
+        'source'        => 1,
+        'status'        => OrderStatus::Pending->value,
+        'user_id'       => $user->id,
+        'exchange_rate' => 1200,
+        'items'         => [
+            [
+                'product_id' => $product->id,
+                'quantity'   => 5,
+                'unit_price' => 8200.00,
+                'currency'   => CurrencyType::ARS->value,
+            ]
+        ]
+    ]);
+
+    // Ejecutar enviar al stock
+    $orderService->sendToStock($order->id);
+
+    // Verificar que el stock aumentó en la sucursal receptora
+    expect($product->getStock($receivingBranch->id))->toBe(5);
+
+    // Verificar que el precio de compra (costo) fue actualizado en la sucursal receptora
+    $purchasePrice = $product->purchasePrice($receivingBranch->id);
+    expect((float)$purchasePrice)->toBe(8200.00);
+});
+

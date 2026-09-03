@@ -3,9 +3,15 @@ import { fetchProduct } from "../../../modules/orders/partials/order-fetch";
 import { Toast } from "@/config/notifications";
 import {
     addRow as addRowRow,
+    updateSubtotal,
     updateQuantity,
 } from "../../../modules/orders/partials/order-row";
 import { getCurrentBranchId } from "../../../config/datatables";
+import {
+    formatRepairAmount,
+    getSelectedRepairAmount,
+    isRepairSaleSelected,
+} from "@/helpers/repair-category";
 import Totalizer from "../services/Totalizer";
 import TableUiManager from "../services/TableUiManager";
 
@@ -53,6 +59,12 @@ export default {
         });
 
         document.addEventListener("sale:typeChanged", () => this.clearTable());
+
+        document.addEventListener("change", (e) => {
+            if (e.target && e.target.name === "repair_type_id") {
+                this.applySelectedRepairAmountToRows();
+            }
+        });
     },
 
     async addProductByCode(payload) {
@@ -89,7 +101,8 @@ export default {
                     updateTotal: () => this.updateTotal(),
                 });
             } else {
-                this.addRow(response.html);
+                const row = this.addRow(response.html);
+                this.applySelectedRepairAmountToRow(row);
             }
 
             this.refreshTableState();
@@ -178,8 +191,7 @@ export default {
 
     updateTotal() {
         if (!this.table) return;
-        const isRepair =
-            document.querySelector('select[name="sale_type"]')?.value === "2";
+        const isRepair = isRepairSaleSelected();
         Totalizer.updateSubtotal(this.table.querySelectorAll("tr"), isRepair);
     },
 
@@ -197,6 +209,62 @@ export default {
         return addRowRow(this.table, html, {
             updateTotal: () => this.updateTotal(),
         });
+    },
+
+    applySelectedRepairAmountToRows() {
+        if (!this.table) return;
+        this.table
+            .querySelectorAll("tr")
+            .forEach((row) => this.applySelectedRepairAmountToRow(row));
+        this.refreshTableState();
+    },
+
+    applySelectedRepairAmountToRow(row) {
+        if (!row || !isRepairSaleSelected()) return;
+
+        const repairAmount = getSelectedRepairAmount();
+        if (repairAmount === null) return;
+
+        const priceInput = row.querySelector(".unit-price");
+        if (!priceInput) return;
+
+        this.ensureCostCell(row, priceInput);
+
+        priceInput.value = repairAmount.toFixed(2);
+
+        const costInput = row.querySelector(".cost-display");
+        if (costInput) {
+            costInput.value = formatRepairAmount(repairAmount);
+        }
+
+        updateSubtotal(row);
+    },
+
+    ensureCostCell(row, priceInput) {
+        if (row.querySelector(".cost-display")) return;
+        if (!this.shouldShowCostColumn()) return;
+
+        const priceCell = priceInput.closest("td");
+        if (!priceCell) return;
+
+        const costCell = document.createElement("td");
+        costCell.innerHTML = `
+            <div class="input-group">
+                <span class="input-group-text bg-secondary text-white font-monospace">$</span>
+                <input type="text" class="form-control bg-light text-muted fw-bold cost-display" readonly title="Costo unitario">
+            </div>
+        `;
+
+        row.insertBefore(costCell, priceCell);
+    },
+
+    shouldShowCostColumn() {
+        const table = this.table?.closest("table");
+        if (!table) return false;
+
+        return Array.from(table.querySelectorAll("thead th")).some(
+            (header) => header.textContent.trim().toLowerCase() === "costo",
+        );
     },
 
     removeRow(row) {

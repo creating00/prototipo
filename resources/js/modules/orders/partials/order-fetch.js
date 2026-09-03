@@ -1,4 +1,7 @@
-import { getRepairCategoryId } from "@/helpers/repair-category";
+import {
+    getRepairCategoryId,
+    isRepairSaleSelected,
+} from "@/helpers/repair-category";
 import { Toast } from "@/config/notifications";
 
 export async function fetchProduct(
@@ -18,15 +21,13 @@ export async function fetchProduct(
 
     // Si isRepair es null (no viene del evento), intentamos detectarlo del DOM
     if (isRepair === null) {
-        const saleTypeEl = document.querySelector('select[name="sale_type"]');
-        isRepair = saleTypeEl?.value === "2";
+        isRepair = isRepairSaleSelected();
     }
 
     const categoryId = getRepairCategoryId();
     const url = new URL(`/api/inventory/by-code`, window.location.origin);
 
     url.searchParams.append("code", code);
-    url.searchParams.append("branch_id", branchId);
     url.searchParams.append("branch_id", branchId);
     url.searchParams.append("context", context);
     url.searchParams.append("is_repair", isRepair ? "1" : "0");

@@ -32,11 +32,14 @@
 <template id="tpl-search-item">
     <li>
         <a class="dropdown-item d-flex justify-content-between align-items-center py-2" href="#" data-code="">
-            <div class="text-truncate" style="max-width: 70%;">
+            <div class="text-truncate" style="max-width: 60%;">
                 <strong class="product-name"></strong><br>
                 <small class="text-muted product-meta"></small>
             </div>
-            <span class="badge bg-success product-price"></span>
+            <div class="d-flex align-items-center gap-1">
+                <span class="badge bg-secondary text-white product-cost d-none" title="Costo de compra"></span>
+                <span class="badge bg-success product-price"></span>
+            </div>
         </a>
     </li>
 </template>

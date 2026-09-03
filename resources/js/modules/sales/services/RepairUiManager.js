@@ -11,6 +11,7 @@ const RepairUiManager = {
 
         const repairInput = document.getElementById("repair_amount");
         const hiddenRepair = document.getElementById("hidden_repair_amount");
+        const repairTypeRadios = wrappers.type?.querySelectorAll('input[name="repair_type_id"]');
         const repairTypeSelect = wrappers.type?.querySelector("select");
 
         // UI toggles
@@ -19,23 +20,29 @@ const RepairUiManager = {
         wrappers.type?.classList.toggle("d-none", !isRepair);
 
         if (isRepair) {
-            this.enableRepair(repairInput, hiddenRepair, repairTypeSelect);
+            this.enableRepair(repairInput, hiddenRepair, repairTypeSelect, repairTypeRadios);
         } else {
-            this.disableRepair(repairInput, hiddenRepair, repairTypeSelect);
+            this.disableRepair(repairInput, hiddenRepair, repairTypeSelect, repairTypeRadios);
         }
     },
 
-    enableRepair: function (input, hidden, select) {
+    enableRepair: function (input, hidden, select, radios) {
         [input, hidden, select].forEach((el) => {
             if (el) el.disabled = false;
         });
+        if (radios) {
+            radios.forEach((r) => {
+                r.disabled = false;
+            });
+        }
         if (input) input.readOnly = true; // El total ahora viene de la tabla
 
-        const currentType = select?.value || null;
+        const checkedRadio = document.querySelector('input[name="repair_type_id"]:checked');
+        const currentType = checkedRadio?.value || select?.value || null;
         dispatchRepairCategoryChanged(currentType);
     },
 
-    disableRepair: function (input, hidden, select) {
+    disableRepair: function (input, hidden, select, radios) {
         if (input) {
             input.disabled = true;
             input.readOnly = false;
@@ -50,6 +57,12 @@ const RepairUiManager = {
             if (select._choices) select._choices.setChoiceByValue("");
             else select.value = "";
             select.disabled = true;
+        }
+        if (radios) {
+            radios.forEach((r) => {
+                r.checked = false;
+                r.disabled = true;
+            });
         }
         dispatchRepairCategoryChanged(null);
     },

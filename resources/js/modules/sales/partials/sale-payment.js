@@ -121,13 +121,13 @@ class SalePayment {
     }
 
     detectSaleType() {
+        const checkedRadio = document.querySelector('input[name="sale_type"]:checked');
         const select = this.dom.el("saleType", "sale_type");
-        if (select) {
-            this.state.saleType = select.value;
-            RepairUiManager.toggleFields(
-                this.state.saleType === SALE_TYPE.REPAIR,
-            );
-        }
+        const val = checkedRadio ? checkedRadio.value : (select ? select.value : SALE_TYPE.SALE);
+        this.state.saleType = val;
+        RepairUiManager.toggleFields(
+            this.state.saleType === SALE_TYPE.REPAIR,
+        );
     }
 
     initialLoad() {
@@ -178,7 +178,19 @@ class SalePayment {
             this.paymentManager.updateTotalsHiddenFields(this.state.saleTotal);
         });
 
-        // 4. Lógica de Venta y Descuentos
+        // 4. Lógica de Venta y Descuentos (Radio Buttons & Selects)
+        document.addEventListener("change", (e) => {
+            if (e.target && e.target.name === "sale_type") {
+                this.paymentManager.handleSaleTypeChange(
+                    e.target.value,
+                    RepairUiManager,
+                );
+            }
+            if (e.target && e.target.name === "repair_type_id") {
+                this.handleRepairTypeChange(e.target.value);
+            }
+        });
+
         this.on("saleType", "sale_type", "change", (e) =>
             this.paymentManager.handleSaleTypeChange(
                 e.target.value,

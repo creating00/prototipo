@@ -1,20 +1,20 @@
 import { getCurrentBranchId } from "../../../config/datatables";
-import { getRepairCategoryId } from "@/helpers/repair-category";
+import {
+    formatRepairAmount,
+    getRepairCategoryId,
+    getSelectedRepairAmount,
+    isRepairSaleSelected,
+} from "@/helpers/repair-category";
 import AutocompleteBase from "../../../helpers/autocomplete-base";
 
 function setupFiltersChangeListener(autocomplete, moduleRef) {
-    const selectors = [
-        'select[name="branch_id"]',
-        'select[name="branch_recipient_id"]',
-        'select[name="repair_type_id"]',
-        "#repair_type",
-    ];
-
-    selectors.forEach((selector) => {
-        const el = document.querySelector(selector);
-        if (!el) return;
-
-        el.addEventListener("change", () => {
+    document.addEventListener("change", (e) => {
+        if (
+            e.target &&
+            e.target.matches(
+                'select[name="branch_id"], select[name="branch_recipient_id"], select[name="repair_type_id"], input[name="repair_type_id"], input[name="sale_type"], #repair_type'
+            )
+        ) {
             autocomplete.cancelSearch();
             autocomplete.cache = {};
             autocomplete.hideResults();
@@ -22,11 +22,11 @@ function setupFiltersChangeListener(autocomplete, moduleRef) {
             // Actualizar el placeholder visualmente
             moduleRef.updatePlaceholder();
 
-            const query = autocomplete.input.value.trim();
+            const query = autocomplete.input?.value.trim() || "";
             if (query.length >= 2) {
                 autocomplete.search(query);
             }
-        });
+        }
     });
 }
 
@@ -81,15 +81,19 @@ export default {
         const indicator = document.getElementById("search-filter-indicator");
         if (!input) return;
 
-        const repairSelect =
+        const repairInput =
+            document.querySelector('input[name="repair_type_id"]:checked') ||
             document.getElementById("repair_type") ||
             document.querySelector('select[name="repair_type_id"]');
 
-        const isRepairMode = repairSelect && !repairSelect.disabled;
-        const categoryId = isRepairMode ? getRepairCategoryId() : null;
+        const categoryId = isRepairSaleSelected()
+            ? getRepairCategoryId()
+            : null;
 
         const selectedText =
-            repairSelect?.options[repairSelect.selectedIndex]?.text;
+            repairInput?.dataset?.label ||
+            repairInput?.options?.[repairInput.selectedIndex]?.text ||
+            repairInput?.nextElementSibling?.textContent?.trim();
 
         if (
             categoryId &&
@@ -142,16 +146,7 @@ export default {
 
         const branchId = getCurrentBranchId();
         const categoryId = getRepairCategoryId();
-
-        // Detectar si estamos en modo reparación basado en el select
-        const repairSelect =
-            document.getElementById("repair_type") ||
-            document.querySelector('select[name="repair_type_id"]');
-        const isRepair = !!(
-            repairSelect &&
-            !repairSelect.disabled &&
-            categoryId
-        );
+        const isRepair = isRepairSaleSelected();
 
         if (!branchId) return;
 
@@ -218,8 +213,23 @@ export default {
             clone.querySelector(".product-meta").textContent = `Código: ${
                 product.code
             } | Stock: ${product.stock ?? 0}`;
+            const repairAmount = isRepairSaleSelected()
+                ? getSelectedRepairAmount()
+                : null;
             clone.querySelector(".product-price").textContent =
-                product.price_display || `$${product.price}`;
+                repairAmount !== null
+                    ? formatRepairAmount(repairAmount)
+                    : product.price_display || `$${product.price}`;
+
+            const costBadge = clone.querySelector(".product-cost");
+            if (costBadge) {
+                if (product.show_cost && product.cost_display) {
+                    costBadge.innerHTML = `<i class="fas fa-tag me-1"></i>Costo: ${product.cost_display}`;
+                    costBadge.classList.remove("d-none");
+                } else {
+                    costBadge.classList.add("d-none");
+                }
+            }
 
             link.addEventListener("click", (e) => {
                 e.preventDefault();
@@ -238,16 +248,7 @@ export default {
     selectProduct(code) {
         this.instance.cancelSearch();
 
-        const categoryId = getRepairCategoryId();
-        const repairSelect =
-            document.getElementById("repair_type") ||
-            document.querySelector('select[name="repair_type_id"]');
-
-        const isRepair = !!(
-            repairSelect &&
-            !repairSelect.disabled &&
-            categoryId
-        );
+        const isRepair = isRepairSaleSelected();
 
         // Definimos el objeto que vamos a enviar
         const eventDetail = {

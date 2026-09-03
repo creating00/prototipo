@@ -520,6 +520,17 @@ class OrderService
             foreach ($order->items as $item) {
                 if ($item->product) {
                     $this->stockService->addStock($item->product, $item->quantity, $targetBranchId);
+
+                    $currency = is_object($item->currency)
+                        ? $item->currency->value
+                        : (int) $item->currency;
+
+                    $this->stockService->updatePurchasePrice(
+                        $item->product,
+                        $targetBranchId,
+                        (float) $item->unit_price,
+                        $currency
+                    );
                 }
             }
 
