@@ -46,11 +46,18 @@ export function productModalAjax(data, callback, settings) {
 export function getCurrentBranchId() {
     // 1. Sucursal origen / proveedora (donde están los productos y el stock)
     const sender = document.querySelector('select[name="branch_id"]');
-    if (sender?.value) return sender.value;
+    if (sender?.value && sender.value !== "all") return sender.value;
 
-    // 2. Input explícito (ventas)
+    // 2. Input explícito (ventas y pedidos manuales)
     const branchIdInput = document.getElementById("current_branch_id");
-    if (branchIdInput?.value) return branchIdInput.value;
+    if (branchIdInput?.value && branchIdInput.value !== "all") {
+        return branchIdInput.value;
+    }
+
+    const hiddenBranchId = document.querySelector('input[name="branch_id"]');
+    if (hiddenBranchId?.value && hiddenBranchId.value !== "all") {
+        return hiddenBranchId.value;
+    }
 
     // 3. Sucursal destinataria / solicitante (órdenes / traspasos)
     const recipient = document.querySelector(
@@ -58,8 +65,11 @@ export function getCurrentBranchId() {
     );
     if (recipient?.value) return recipient.value;
 
+    const customerType = document.querySelector('input[name="customer_type"]')?.value;
     const customerSelect = document.querySelector('select[name="customer_id"]');
-    if (customerSelect?.value) return customerSelect.value;
+    if (customerType === "App\\Models\\Branch" && customerSelect?.value) {
+        return customerSelect.value;
+    }
 
     return null;
 }
