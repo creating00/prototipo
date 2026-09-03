@@ -17,7 +17,3 @@
     {{-- Modales auxiliares si fueran necesarios --}}
     {{-- @include('admin.promotion.partials._modal-preview') --}}
 @endsection
-
-@push('scripts')
-    @vite('resources/js/modules/promotions/create.js')
-@endpush
