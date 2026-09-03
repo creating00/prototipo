@@ -10,6 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build frontend assets
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Compile Vite assets
+        run: |
+          npm ci
+          npm run build
+
       - name: Deploy to Hostinger via SSH (TESTING)
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -40,6 +54,31 @@ jobs:
             echo "🗄️ Ejecutando migraciones y seeder de permisos..."
             php artisan migrate --force
             php artisan db:seed --class=PermissionSeeder --force
+
+            echo "✅ Backend TESTING actualizado"
+
+      - name: Upload compiled assets to Hostinger (TESTING)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: public/build
+          target: domains/tecnonautaserviciotecnico.creatingsoft.net/public_html/testing
+
+      - name: Cache Laravel after assets upload (TESTING)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 60s
+          script: |
+            set -e
+
+            cd domains/tecnonautaserviciotecnico.creatingsoft.net/public_html/testing
 
             echo "⚡ Generando cache..."
             php artisan config:cache
