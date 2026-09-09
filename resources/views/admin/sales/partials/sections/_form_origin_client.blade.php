@@ -4,7 +4,7 @@
         <label class="compact-select-label">
             Sucursal (Origen) <span class="text-danger">*</span>
         </label>
-        <x-adminlte.select name="branch_id" label="" :options="$branches->pluck('name', 'id')->toArray()" :value="old('branch_id', $sale->branch_id ?? auth()->user()->branch_id)" required />
+        <x-adminlte.select name="branch_id" label="" :options="$branches->pluck('name', 'id')->toArray()" :value="old('branch_id', $sale->branch_id ?? ($effectiveBranchId ?? ($currentBranchId ?? auth()->user()->branch_id)))" required />
     </div>
     @php
         $currentSaleType = (string) old('sale_type', $sale->sale_type?->value ?? \App\Enums\SaleType::Sale->value);
