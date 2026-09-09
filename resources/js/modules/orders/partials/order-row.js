@@ -42,6 +42,44 @@ export function updateSubtotal(row) {
     }
 }
 
+export function bindCurrencyToggle(row, updateCallbacks) {
+    const toggleBtn = row.querySelector(".btn-toggle-currency");
+    const currencyInput = row.querySelector('input[name*="[currency]"]');
+    if (!toggleBtn || !currencyInput) return;
+
+    toggleBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const currentCurrency = String(currencyInput.value || "1");
+        const newCurrency = currentCurrency === "1" ? "2" : "1";
+
+        currencyInput.value = newCurrency;
+        toggleBtn.dataset.currency = newCurrency;
+
+        const isUsd = newCurrency === "2";
+        const symbolText = isUsd ? "U$D" : "$";
+
+        // Actualizar textos de símbolo ($ / U$D) en la fila
+        const symbols = row.querySelectorAll(".currency-symbol");
+        symbols.forEach((el) => {
+            el.textContent = symbolText;
+        });
+
+        // Actualizar clases visuales de color (bg-success vs bg-primary)
+        const badges = row.querySelectorAll(".currency-badge");
+        badges.forEach((el) => {
+            if (isUsd) {
+                el.classList.remove("bg-success");
+                el.classList.add("bg-primary");
+            } else {
+                el.classList.remove("bg-primary");
+                el.classList.add("bg-success");
+            }
+        });
+
+        if (updateCallbacks?.updateTotal) updateCallbacks.updateTotal();
+    });
+}
+
 export function addRow(table, html, updateCallbacks) {
     // Generar un índice único (timestamp + random para evitar colisiones)
     const uniqueIndex = Date.now() + Math.floor(Math.random() * 1000);
@@ -55,10 +93,12 @@ export function addRow(table, html, updateCallbacks) {
     const newRow = table.lastElementChild;
     bindQuantityChange(newRow, updateCallbacks);
     bindPriceChange(newRow, updateCallbacks);
+    bindCurrencyToggle(newRow, updateCallbacks);
     updateSubtotal(newRow);
 
     if (updateCallbacks?.updateTotal) updateCallbacks.updateTotal();
 
     return newRow;
 }
+
 

@@ -1,7 +1,7 @@
 // resources/js/modules/orders/partials/order-items.js
 import { fetchProduct } from "./order-fetch";
 import { Toast } from "@/config/notifications";
-import { addRow as addRowRow, updateQuantity } from "./order-row";
+import { addRow as addRowRow, updateQuantity, bindQuantityChange, bindPriceChange, bindCurrencyToggle } from "./order-row";
 import { getCurrentBranchId } from "../../../config/datatables";
 import TableUiManager from "../../sales/services/TableUiManager";
 
@@ -15,7 +15,21 @@ export default {
 
         this.bindEvents();
         this.bindAutoPedido();
+        this.bindExistingRows();
         this.refreshTableState();
+    },
+
+    bindExistingRows() {
+        if (!this.table) return;
+        const rows = this.table.querySelectorAll("tr");
+        rows.forEach((row) => {
+            if (!row.dataset.listenerAttached) {
+                bindQuantityChange(row, { updateTotal: () => this.updateTotal() });
+                bindPriceChange(row, { updateTotal: () => this.updateTotal() });
+                bindCurrencyToggle(row, { updateTotal: () => this.updateTotal() });
+                row.dataset.listenerAttached = "true";
+            }
+        });
     },
 
     bindAutoPedido() {

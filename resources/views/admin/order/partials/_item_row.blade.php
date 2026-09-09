@@ -3,7 +3,11 @@
     $unitPrice = $item?->unit_price ?? ($salePrice ?? 0);
     $subtotal = $item?->subtotal ?? $quantity * $unitPrice;
     $allowEditPrice = $allowEditPrice ?? true;
-    $currentCurrency = $currency ?? ($item?->currency ?? \App\Enums\CurrencyType::ARS);
+    
+    $rawCurrency = $currency ?? ($item?->currency ?? \App\Enums\CurrencyType::ARS);
+    $currentCurrency = $rawCurrency instanceof \App\Enums\CurrencyType 
+        ? $rawCurrency 
+        : (\App\Enums\CurrencyType::tryFrom((int)$rawCurrency) ?? \App\Enums\CurrencyType::ARS);
     $colorClass = "bg-{$currentCurrency->color()} text-white";
 
     $user = auth()->user();
@@ -46,9 +50,11 @@
 
     <td>
         <div class="input-group">
-            <span class="input-group-text currency-symbol {{ $colorClass }}">
-                {{ $currentCurrency->symbol() }}
-            </span>
+            <button type="button" class="btn btn-toggle-currency currency-badge {{ $colorClass }}"
+                data-currency="{{ $currentCurrency->value }}" title="Haga clic para cambiar moneda ($ / USD)"
+                {{ $allowEditPrice ? '' : 'disabled' }}>
+                <span class="currency-symbol">{{ $currentCurrency->symbol() }}</span>
+            </button>
 
             <input type="number" class="form-control unit-price" name="items[INDEX][unit_price]"
                 value="{{ number_format($unitPrice, 2, '.', '') }}" {{ $allowEditPrice ? '' : 'readonly' }} step="0.01" min="0">
@@ -69,7 +75,7 @@
 
     <td>
         <div class="input-group">
-            <span class="input-group-text {{ $colorClass }}">
+            <span class="input-group-text currency-badge currency-symbol {{ $colorClass }}">
                 {{ $currentCurrency->symbol() }}
             </span>
             <input type="number" name="items[INDEX][subtotal]" class="form-control subtotal" step="0.01"
