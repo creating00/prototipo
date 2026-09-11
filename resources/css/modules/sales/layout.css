@@ -12,3 +12,209 @@ html {
     top: 1rem;
     z-index: 10;
 }
+
+.product-search-panel {
+    width: 100%;
+}
+
+.product-search-panel .input-group {
+    min-height: 34px;
+}
+
+.product-search-panel .form-control,
+.product-search-panel .input-group-text,
+.product-search-panel .btn {
+    min-height: 34px;
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+}
+
+.product-search-panel .btn {
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+}
+
+.product-search-results {
+    display: none;
+    max-height: 390px;
+    overflow-y: auto;
+    position: absolute;
+    right: 0;
+    left: auto;
+    z-index: 1050;
+    width: min(620px, calc(100vw - 2rem));
+    padding: 0.32rem;
+    border: 1px solid #d7dee8;
+    border-radius: 0.4rem;
+}
+
+.product-search-result {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    min-height: 86px;
+    padding: 0.75rem 0.85rem;
+    border-radius: 0.35rem;
+    white-space: normal;
+}
+
+.product-search-result:hover,
+.product-search-result:focus,
+.product-search-result.active {
+    background: #0d6efd;
+    color: #fff;
+}
+
+.product-search-result:hover .product-search-name,
+.product-search-result:focus .product-search-name,
+.product-search-result.active .product-search-name,
+.product-search-result:hover .product-search-description,
+.product-search-result:focus .product-search-description,
+.product-search-result.active .product-search-description,
+.product-search-result:hover .product-search-meta,
+.product-search-result:focus .product-search-meta,
+.product-search-result.active .product-search-meta,
+.product-search-result:hover .product-search-category,
+.product-search-result:focus .product-search-category,
+.product-search-result.active .product-search-category,
+.product-search-result:hover .product-search-stock,
+.product-search-result:focus .product-search-stock,
+.product-search-result.active .product-search-stock,
+.product-search-result:hover .product-search-status,
+.product-search-result:focus .product-search-status,
+.product-search-result.active .product-search-status {
+    color: #fff;
+}
+
+.product-search-main {
+    min-width: 0;
+}
+
+.product-search-code {
+    flex: 0 0 auto;
+    padding: 0.12rem 0.45rem;
+    border-radius: 0.25rem;
+    background: #172033;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+.product-search-category {
+    min-width: 0;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.product-search-name {
+    display: block;
+    overflow: hidden;
+    color: #111827;
+    font-size: 0.95rem;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+}
+
+.product-search-description {
+    display: block;
+    margin-top: 0.2rem;
+    color: #64748b;
+    font-size: 0.8rem;
+    line-height: 1.25;
+}
+
+.product-search-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.45rem;
+    color: #64748b;
+    font-size: 0.78rem;
+}
+
+.product-search-status {
+    font-weight: 700;
+}
+
+.product-search-status.is-ok {
+    color: #16803c;
+}
+
+.product-search-status.is-low {
+    color: #a16207;
+}
+
+.product-search-status.is-empty {
+    color: #b42318;
+}
+
+.product-search-numbers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    width: 190px;
+    justify-items: end;
+    justify-content: flex-end;
+    text-align: right;
+}
+
+.product-search-stock {
+    flex: 0 0 100%;
+    color: #334155;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.product-search-stock.is-low,
+.product-search-stock.is-empty {
+    color: #b42318;
+}
+
+.product-search-money {
+    max-width: 100%;
+    min-height: 26px;
+    padding: 0.27rem 0.48rem;
+    border: 1px solid rgba(0, 0, 0, 0.28);
+    border-radius: 0.38rem;
+    background: #6c757d;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.product-search-money.product-price {
+    background: #00a65a;
+    color: #fff;
+}
+
+.product-search-money.product-cost {
+    background: #6c757d;
+    color: #fff;
+}
+
+@media (max-width: 767.98px) {
+    .product-search-results {
+        right: auto;
+        left: 0;
+        width: min(100%, calc(100vw - 2rem));
+    }
+
+    .product-search-result {
+        grid-template-columns: 1fr;
+        gap: 0.65rem;
+    }
+
+    .product-search-numbers {
+        width: auto;
+        justify-items: start;
+        justify-content: flex-start;
+        text-align: left;
+    }
+}

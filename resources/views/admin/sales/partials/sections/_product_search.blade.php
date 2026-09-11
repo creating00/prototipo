@@ -1,5 +1,5 @@
 {{-- resources/views/admin/sales/partials/sections/_product_search.blade.php --}}
-<div class="compact-input-wrapper position-relative" id="product-search-container">
+<div class="compact-input-wrapper position-relative product-search-panel" id="product-search-container">
     <label class="compact-input-label">
         Buscador de Productos <kbd class="kbd-shortcut">F1</kbd>
     </label>
@@ -23,22 +23,32 @@
     {{-- Indicador de filtro activo: Posicionado abajo a la derecha --}}
     <div id="search-filter-indicator" class="d-flex justify-content-end mt-1" style="min-height: 1.2rem;"></div>
 
-    <ul class="dropdown-menu w-100 shadow" id="search-results-list"
-        style="display: none; max-height: 300px; overflow-y: auto; position: absolute; z-index: 1050;">
+    <ul class="dropdown-menu product-search-results shadow" id="search-results-list">
     </ul>
 </div>
 
 {{-- Templates (se cargan una sola vez) --}}
 <template id="tpl-search-item">
     <li>
-        <a class="dropdown-item d-flex justify-content-between align-items-center py-2" href="#" data-code="">
-            <div class="text-truncate" style="max-width: 60%;">
-                <strong class="product-name"></strong><br>
-                <small class="text-muted product-meta"></small>
+        <a class="dropdown-item product-search-result" href="#" data-code="">
+            <div class="product-search-main">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="product-search-code product-code"></span>
+                    <span class="product-search-category product-category d-none"></span>
+                </div>
+                <strong class="product-search-name product-name"></strong>
+                <small class="product-search-description product-description d-none"></small>
+                <div class="product-search-meta">
+                    <span class="product-meta"></span>
+                    <span class="product-search-status product-status"></span>
+                </div>
             </div>
-            <div class="d-flex align-items-center gap-1">
-                <span class="badge bg-secondary text-white product-cost d-none" title="Costo de compra"></span>
-                <span class="badge bg-success product-price"></span>
+            <div class="product-search-numbers">
+                <span class="product-search-stock product-stock"></span>
+                <span class="product-search-money product-cost d-none" title="Costo de compra">
+                    <i class="fas fa-tag me-1"></i><span class="product-cost-text"></span>
+                </span>
+                <span class="product-search-money product-price"></span>
             </div>
         </a>
     </li>

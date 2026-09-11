@@ -69,10 +69,10 @@
         <div class="card card-outline card-success mb-3 shadow-sm">
             <div class="card-header">
                 <div class="row align-items-center w-100 g-3">
-                    <div class="col-md-6 d-flex align-items-center">
+                    <div class="col-lg-4 col-md-5 d-flex align-items-center">
                         <h3 class="card-title mb-0 mt-2">Productos / Items</h3>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-lg-8 col-md-7">
                         @include('admin.sales.partials.sections._product_search')
                     </div>
                 </div>
