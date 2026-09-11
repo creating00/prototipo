@@ -8,6 +8,7 @@ use App\Models\ProductBranchPrice;
 use App\Models\RepairAmount;
 use App\Models\User;
 use App\Services\Product\ProductBranchPriceService;
+use App\Services\Product\ProductStockService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
@@ -115,4 +116,38 @@ test('only provincial_admin can create or delete repair amounts', function () {
     ]);
     $response->assertRedirect(route('web.repair-amounts.index'));
     expect(RepairAmount::count())->toBe(1);
+});
+
+test('receiving stock updates purchase price for the matching currency only', function () {
+    $product = Product::create([
+        'code' => 'P-200',
+        'name' => 'Notebook Dell',
+    ]);
+
+    $pb = ProductBranch::create([
+        'product_id' => $product->id,
+        'branch_id' => $this->branch->id,
+        'stock' => 10,
+        'status' => 1,
+    ]);
+
+    $arsPrice = ProductBranchPrice::create([
+        'product_branch_id' => $pb->id,
+        'type' => 1,
+        'currency' => 1,
+        'amount' => 1000,
+    ]);
+
+    $usdPrice = ProductBranchPrice::create([
+        'product_branch_id' => $pb->id,
+        'type' => 1,
+        'currency' => 2,
+        'amount' => 50,
+    ]);
+
+    app(ProductStockService::class)->updatePurchasePrice($product, $this->branch->id, 81.60, 2);
+
+    expect((float) $arsPrice->fresh()->amount)->toBe(1000.0)
+        ->and((float) $usdPrice->fresh()->amount)->toBe(81.6)
+        ->and($pb->prices()->where('type', 1)->where('currency', 2)->count())->toBe(1);
 });
