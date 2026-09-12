@@ -36,18 +36,7 @@
         <input type="text" class="form-control text-center" value="{{ $stock }}" readonly>
     </td>
 
-    {{-- Celda de Costo (Visible para administradores) --}}
-    @if ($showCostCell)
-        <td>
-            <div class="input-group">
-                <span class="input-group-text bg-secondary text-white font-monospace">
-                    $
-                </span>
-                <input type="text" class="form-control bg-light text-muted fw-bold cost-display" value="{{ $costDisplay }}" readonly title="Costo unitario">
-            </div>
-        </td>
-    @endif
-
+    {{-- Columna "Costo": precio unitario (con badge de moneda) --}}
     <td>
         <div class="input-group">
             <button type="button" class="btn btn-toggle-currency currency-badge {{ $colorClass }}"
@@ -58,6 +47,12 @@
 
             <input type="number" class="form-control unit-price" name="items[INDEX][unit_price]"
                 value="{{ number_format($unitPrice, 2, '.', '') }}" {{ $allowEditPrice ? '' : 'readonly' }} step="0.01" min="0">
+
+            @if ($showCostCell)
+                <span class="input-group-text text-muted small cost-display px-2" title="Costo unitario">
+                    <i class="fas fa-tag me-1"></i>{{ $costDisplay }}
+                </span>
+            @endif
 
             @if (!empty($showLockToggle))
                 <button type="button" class="btn btn-outline-warning btn-edit-price" data-status="off"
