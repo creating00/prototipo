@@ -116,12 +116,14 @@ class ProductStockService
             return; // Opcional: podrías lanzas una excepción si prefieres
         }
 
-        // 2. Actualizamos o creamos el precio de tipo PURCHASE
+        // 2. Actualizamos o creamos el precio de tipo PURCHASE para esa moneda.
         $productBranch->prices()->updateOrCreate(
-            ['type' => \App\Enums\PriceType::PURCHASE],
             [
-                'amount'   => $amount,
-                'currency' => $currency
+                'type' => \App\Enums\PriceType::PURCHASE,
+                'currency' => $currency,
+            ],
+            [
+                'amount' => $amount,
             ]
         );
     }

@@ -126,7 +126,7 @@ class ProductController extends BaseProductController
         $isRepair    = $request->boolean('is_repair');
         $context     = $request->get('context', 'sale');
 
-        $query = Product::query();
+        $query = Product::with(['category', 'productBranches.prices']);
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -147,16 +147,25 @@ class ProductController extends BaseProductController
         $response = $products->map(function ($product) use ($branchId, $context, $isRepair, $canViewCost) {
             $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair);
             $costEntry = $canViewCost ? ($product->purchasePriceModel($branchId) ?? $product->purchasePriceModel(null)) : null;
+            $branch = $branchId ? $product->branchContext($branchId) : null;
+            $status = $branch?->status;
 
             return [
                 'id'            => $product->id,
                 'code'          => $product->code,
                 'name'          => $product->name,
-                'stock'         => $branchId ? $product->getStock($branchId) : 0,
+                'description'   => $product->description,
+                'category'      => $product->category?->name,
+                'stock'         => $branch?->stock ?? 0,
+                'low_stock_threshold' => $branch?->low_stock_threshold,
+                'status'        => $status?->value,
+                'status_label'  => $status?->label(),
                 'price'         => $priceEntry?->amount ?? 0,
                 'price_display' => $priceEntry?->getFormattedAmount() ?? '$ 0,00',
+                'price_currency' => $priceEntry?->currency?->code(),
                 'cost'          => $costEntry?->amount,
                 'cost_display'  => $costEntry?->getFormattedAmount(),
+                'cost_currency' => $costEntry?->currency?->code(),
                 'show_cost'     => $canViewCost,
             ];
         });

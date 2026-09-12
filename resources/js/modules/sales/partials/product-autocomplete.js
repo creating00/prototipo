@@ -7,6 +7,37 @@ import {
 } from "@/helpers/repair-category";
 import AutocompleteBase from "../../../helpers/autocomplete-base";
 
+function formatProductDescription(description) {
+    if (!description) return "";
+
+    return description.length > 110
+        ? `${description.substring(0, 107)}...`
+        : description;
+}
+
+function resolveStockLabel(product) {
+    const stock = Number(product.stock ?? 0);
+    const threshold = product.low_stock_threshold;
+
+    if (threshold !== null && threshold !== undefined && stock <= Number(threshold)) {
+        return `Stock: ${stock} / mínimo ${threshold}`;
+    }
+
+    return `Stock: ${stock}`;
+}
+
+function resolveStatusClass(product) {
+    const stock = Number(product.stock ?? 0);
+    const threshold = product.low_stock_threshold;
+
+    if (stock <= 0) return "is-empty";
+    if (threshold !== null && threshold !== undefined && stock <= Number(threshold)) {
+        return "is-low";
+    }
+
+    return "is-ok";
+}
+
 function setupFiltersChangeListener(autocomplete, moduleRef) {
     document.addEventListener("change", (e) => {
         if (
@@ -209,10 +240,47 @@ export default {
             if (index === 0) link.classList.add("active");
 
             link.dataset.code = product.code;
+            clone.querySelector(".product-code").textContent = product.code;
             clone.querySelector(".product-name").textContent = product.name;
-            clone.querySelector(".product-meta").textContent = `Código: ${
-                product.code
-            } | Stock: ${product.stock ?? 0}`;
+
+            const category = clone.querySelector(".product-category");
+            if (category) {
+                if (product.category) {
+                    category.textContent = product.category;
+                    category.classList.remove("d-none");
+                } else {
+                    category.classList.add("d-none");
+                }
+            }
+
+            const description = clone.querySelector(".product-description");
+            if (description) {
+                const text = formatProductDescription(product.description);
+                if (text) {
+                    description.textContent = text;
+                    description.classList.remove("d-none");
+                } else {
+                    description.classList.add("d-none");
+                }
+            }
+
+            clone.querySelector(".product-meta").textContent =
+                product.price_currency
+                    ? `Precio en ${product.price_currency}`
+                    : "Precio definido";
+
+            const status = clone.querySelector(".product-status");
+            if (status) {
+                status.textContent = product.status_label || "Sin estado";
+                status.classList.add(resolveStatusClass(product));
+            }
+
+            const stock = clone.querySelector(".product-stock");
+            if (stock) {
+                stock.textContent = resolveStockLabel(product);
+                stock.classList.add(resolveStatusClass(product));
+            }
+
             const repairAmount = isRepairSaleSelected()
                 ? getSelectedRepairAmount()
                 : null;
@@ -224,7 +292,10 @@ export default {
             const costBadge = clone.querySelector(".product-cost");
             if (costBadge) {
                 if (product.show_cost && product.cost_display) {
-                    costBadge.innerHTML = `<i class="fas fa-tag me-1"></i>Costo: ${product.cost_display}`;
+                    const costText = costBadge.querySelector(".product-cost-text");
+                    if (costText) {
+                        costText.textContent = `Costo: ${product.cost_display}`;
+                    }
                     costBadge.classList.remove("d-none");
                 } else {
                     costBadge.classList.add("d-none");
