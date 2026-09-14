@@ -29,8 +29,23 @@ class AnalyticsWebController extends Controller
         $accessibleBranchIds = $this->getAccessibleBranchIds();
 
         // 1. Determinar Branch ID
+        //    Si el usuario cambió sucursal desde el switcher global (header) sin pasar
+        //    por el form del analítico, sincronizar ambas sesiones para no mostrar datos stale.
+        if (!$request->filled('branch_id') && session()->has('active_branch_id')) {
+            $globalBranch    = session('active_branch_id');
+            $analyticsBranch = session('analytics_branch_id');
+
+            // Normalizar el valor global para comparar (null / 'all' → 'all', int → int)
+            $globalNormalized = ($globalBranch === 'all' || !$globalBranch) ? 'all' : (int) $globalBranch;
+
+            if ($analyticsBranch !== null && $analyticsBranch !== $globalNormalized) {
+                session()->forget('analytics_branch_id');
+            }
+        }
+
         $inputBranchId = $request->input('branch_id')
             ?? session('analytics_branch_id')
+            ?? session('active_branch_id')
             ?? $userBranchId;
 
         $branchId = ($inputBranchId === 'all' || !$inputBranchId) ? $accessibleBranchIds : (int) $inputBranchId;
