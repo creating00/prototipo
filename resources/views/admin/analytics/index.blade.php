@@ -51,7 +51,7 @@
                 <div class="col-md-3">
                     <div class="compact-select-wrapper">
                         <label class="compact-select-label">Sucursal</label>
-                        <x-adminlte.select name="branch_id" :options="$branches" :value="$currentFilters['branch_id']" :showPlaceholder="false"
+                        <x-adminlte.select name="branch_id" :options="$branches" :value="$currentBranchId" :showPlaceholder="false"
                             onchange="this.form.submit()" />
                     </div>
                 </div>
