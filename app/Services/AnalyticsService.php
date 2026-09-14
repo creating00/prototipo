@@ -270,9 +270,10 @@ class AnalyticsService
         }
 
         if (!empty($filters['expenses_payment_type'])) {
-            $query->where('payment_type', $filters['expenses_payment_type']);
+            $expensesPaymentTypeValue = \App\Enums\PaymentType::from((int) $filters['expenses_payment_type'])->value;
+            $query->where('payment_type', $expensesPaymentTypeValue);
 
-            if ((int)$filters['expenses_payment_type'] === \App\Enums\PaymentType::Transfer->value && !empty($filters['expenses_bank_account_id'])) {
+            if ($expensesPaymentTypeValue === \App\Enums\PaymentType::Transfer->value && !empty($filters['expenses_bank_account_id'])) {
                 $query->where('bank_account_id', $filters['expenses_bank_account_id']);
             }
         }
