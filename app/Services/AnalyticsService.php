@@ -324,7 +324,6 @@ class AnalyticsService
     {
         $start = Carbon::parse($dates[0])->startOfDay();
         $end = Carbon::parse($dates[1])->endOfDay();
-        $effectiveBranch = is_array($branchId) ? ($branchId[0] ?? null) : $branchId;
 
         $saleItems = \App\Models\SaleItem::whereHas('sale', function ($q) use ($branchId, $start, $end) {
             $q->forBranch($branchId)
@@ -332,14 +331,15 @@ class AnalyticsService
               ->whereNull('deleted_at');
         })
         ->with([
+            'sale:id,branch_id',
             'product' => fn($q) => $q->withTrashed(),
             'product.productBranches' => fn($q) => $this->applyBranchFilter($q, $branchId),
             'product.productBranches.prices'
         ])
         ->get();
 
-        return (float) $saleItems->sum(function ($item) use ($effectiveBranch) {
-            $cost = $item->product?->purchasePrice($effectiveBranch) ?? 0;
+        return (float) $saleItems->sum(function ($item) {
+            $cost = $item->product?->purchasePrice($item->sale->branch_id) ?? 0;
             return $cost * $item->quantity;
         });
     }
