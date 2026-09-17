@@ -123,7 +123,9 @@ class OrderService
             }
             $orderData['items'] = $this->normalizeOrderItemCostsForUser(
                 $orderData['items'],
-                (int) $orderData['branch_id']
+                (int) $orderData['branch_id'],
+                null,
+                $orderData['customer_type'] ?? null
             );
             $order = $this->createOrderRecord($orderData);
 
@@ -168,7 +170,8 @@ class OrderService
             $orderData['items'] = $this->normalizeOrderItemCostsForUser(
                 $orderData['items'],
                 (int) $orderData['branch_id'],
-                $order
+                $order,
+                $orderData['customer_type'] ?? $order->customer_type
             );
 
             // Mantenemos sin descuento de stock durante las modificaciones antes de enviar al stock
@@ -673,7 +676,7 @@ class OrderService
         $order->update($data);
     }
 
-    protected function normalizeOrderItemCostsForUser(array $items, int $branchId, ?Order $order = null): array
+    protected function normalizeOrderItemCostsForUser(array $items, int $branchId, ?Order $order = null, ?string $customerType = null): array
     {
         if ($this->currentUser()?->hasRole(RoleLabel::PROVINCIAL_ADMIN->value)) {
             return $items;
@@ -681,7 +684,7 @@ class OrderService
 
         $existingItems = $order?->items?->keyBy('product_id') ?? collect();
 
-        return array_map(function (array $item) use ($branchId, $existingItems) {
+        return array_map(function (array $item) use ($branchId, $existingItems, $customerType) {
             $productId = (int) $item['product_id'];
             $existingItem = $existingItems->get($productId);
 
@@ -695,10 +698,13 @@ class OrderService
             }
 
             $product = \App\Models\Product::findOrFail($productId);
-            $priceModel = $product->purchasePriceModel($branchId)
-                ?? $product->salePriceModel($branchId)
-                ?? $product->purchasePriceModel(null)
-                ?? $product->salePriceModel(null);
+            if ($customerType === 'App\Models\Branch') {
+                $priceModel = $product->purchasePriceModel($branchId)
+                    ?? $product->purchasePriceModel(null);
+            } else {
+                $priceModel = $product->salePriceModel($branchId)
+                    ?? $product->salePriceModel(null);
+            }
 
             $item['unit_price'] = (float) ($priceModel?->amount ?? 0);
             $item['currency'] = $priceModel?->currency?->value ?? ($item['currency'] ?? CurrencyType::ARS->value);
@@ -723,7 +729,7 @@ class OrderService
 
             if ($stockDestination <= $threshold) {
                 $suggestedQty = max(1, $threshold - $stockDestination);
-                $priceModel = $product->salePriceModel($supplyingBranchId) ?? $product->purchasePriceModel($supplyingBranchId);
+                $priceModel = $product->purchasePriceModel($supplyingBranchId) ?? $product->purchasePriceModel(null);
                 $price = $priceModel?->amount ?? 0;
                 $currency = $priceModel?->currency ?? CurrencyType::ARS;
 
