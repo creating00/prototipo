@@ -153,7 +153,9 @@ class ProductController extends BaseProductController
         $canViewCost = $user?->hasAnyRole([\App\Enums\RoleLabel::ADMIN->value, \App\Enums\RoleLabel::PROVINCIAL_ADMIN->value]) ?? false;
 
         $response = $products->map(function ($product) use ($branchId, $context, $isRepair, $customerType, $canViewCost) {
-            $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair, $customerType);
+            // For the autocomplete dropdown, we ALWAYS want to show the sale price (or repair price) in the green badge,
+            // even if the context is 'order' (which uses cost for branch orders).
+            $priceEntry = $this->resolvePriceModel($product, $branchId, 'sale', $isRepair);
             $costEntry = $canViewCost ? ($product->purchasePriceModel($branchId) ?? $product->purchasePriceModel(null)) : null;
             $branch = $branchId ? $product->branchContext($branchId) : null;
             $status = $branch?->status;
