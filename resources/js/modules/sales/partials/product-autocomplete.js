@@ -194,6 +194,11 @@ export default {
             url.searchParams.append("context", this.context);
             url.searchParams.append("is_repair", isRepair ? "1" : "0");
 
+            const customerTypeInput = document.querySelector("#customer_type");
+            if (customerTypeInput) {
+                url.searchParams.append("customer_type", customerTypeInput.value);
+            }
+
             if (categoryId) {
                 url.searchParams.append("category_id", categoryId);
             }

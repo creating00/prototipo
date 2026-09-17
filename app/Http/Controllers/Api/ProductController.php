@@ -38,13 +38,19 @@ class ProductController extends BaseProductController
         );
     }
 
-    private function resolvePriceModel(Product $product, ?string $branchId, string $context, bool $isRepair)
+    private function resolvePriceModel(Product $product, ?string $branchId, string $context, bool $isRepair, ?string $customerType = null)
     {
+        if ($context === 'order') {
+            if ($customerType === 'App\Models\Branch') {
+                return $product->purchasePriceModel($branchId) ?? $product->purchasePriceModel(null);
+            }
+            return $product->salePriceModel($branchId) ?? $product->salePriceModel(null);
+        }
+
         $price = match ($context) {
             'sale' => $isRepair
                 ? ($product->repairPriceModel($branchId) ?? $product->salePriceModel($branchId))
                 : $product->salePriceModel($branchId),
-            'order' => $product->purchasePriceModel($branchId) ?? $product->salePriceModel($branchId),
             default => $product->salePriceModel($branchId),
         };
 
@@ -62,6 +68,7 @@ class ProductController extends BaseProductController
         $categoryId  = $request->get('category_id');
         $isRepair    = $request->boolean('is_repair');
         $context     = $request->get('context', 'order');
+        $customerType = $request->get('customer_type');
 
         $product = Product::where('code', $code)
             ->when($categoryId, fn($q) => $q->where('category_id', $categoryId))
@@ -72,7 +79,7 @@ class ProductController extends BaseProductController
         }
 
         // Buscamos el modelo de precio según contexto con fallback
-        $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair);
+        $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair, $customerType);
 
         $finalPrice = $priceEntry?->amount ?? 0;
         $currency = $priceEntry?->currency ?? \App\Enums\CurrencyType::ARS;
@@ -125,6 +132,7 @@ class ProductController extends BaseProductController
         $search      = $request->get('q');
         $isRepair    = $request->boolean('is_repair');
         $context     = $request->get('context', 'sale');
+        $customerType = $request->get('customer_type');
 
         $query = Product::with(['category', 'productBranches.prices']);
 
@@ -144,8 +152,8 @@ class ProductController extends BaseProductController
         $user = auth()->user();
         $canViewCost = $user?->hasAnyRole([\App\Enums\RoleLabel::ADMIN->value, \App\Enums\RoleLabel::PROVINCIAL_ADMIN->value]) ?? false;
 
-        $response = $products->map(function ($product) use ($branchId, $context, $isRepair, $canViewCost) {
-            $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair);
+        $response = $products->map(function ($product) use ($branchId, $context, $isRepair, $customerType, $canViewCost) {
+            $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair, $customerType);
             $costEntry = $canViewCost ? ($product->purchasePriceModel($branchId) ?? $product->purchasePriceModel(null)) : null;
             $branch = $branchId ? $product->branchContext($branchId) : null;
             $status = $branch?->status;
