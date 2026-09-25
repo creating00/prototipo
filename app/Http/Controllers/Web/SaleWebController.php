@@ -232,6 +232,11 @@ class SaleWebController extends BaseSaleController
                 ->back()
                 ->withErrors($e->validator)
                 ->withInput();
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->with('error', $e->getMessage())
+                ->withInput();
         }
     }
 
@@ -272,6 +277,11 @@ class SaleWebController extends BaseSaleController
             return redirect()
                 ->back()
                 ->withErrors($e->validator)
+                ->withInput();
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->with('error', $e->getMessage())
                 ->withInput();
         }
     }

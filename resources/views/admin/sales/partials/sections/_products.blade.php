@@ -24,10 +24,7 @@
             <tr>
                 <th width="18%">Producto</th>
                 <th width="7%">Stock</th>
-                @if ($canViewCost)
-                    <th width="14%">Costo</th>
-                @endif
-                <th width="{{ $canViewCost ? '16%' : '20%' }}">Precio</th>
+                <th width="{{ $canViewCost ? '30%' : '20%' }}">Precio</th>
                 <th width="6%">Cantidad</th>
                 <th width="15%">Subtotal</th>
                 <th width="8%"></th>
