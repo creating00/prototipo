@@ -267,6 +267,31 @@ class ProductController extends BaseProductController
         }
     }
 
+    public function manualDestinationStock(Request $request)
+    {
+        $this->authorize('createClient', \App\Models\Order::class);
+        $data = $request->validate([
+            'branch_id' => 'required|integer',
+            'product_id' => ['required', 'integer', Rule::exists('products', 'id')->whereNull('deleted_at')],
+            'destination_branch_id' => ['required', 'integer', Rule::exists('branches', 'id')->whereNull('deleted_at')],
+            'destination_province_id' => 'required|integer|exists:provinces,id',
+        ]);
+        $this->validateTransferOrigin((int) $data['branch_id']);
+        $destination = \App\Models\Branch::findOrFail($data['destination_branch_id']);
+        if ((int) $destination->province_id !== (int) $data['destination_province_id']) {
+            throw ValidationException::withMessages(['destination_branch_id' => 'La sucursal no pertenece a la provincia seleccionada.']);
+        }
+        $product = Product::whereKey($data['product_id'])
+            ->whereHas('productBranches', fn ($branches) => $branches->where('branch_id', $data['branch_id']))
+            ->firstOrFail();
+
+        return response()->json([
+            'product_id' => $product->id,
+            'destination_branch_id' => $destination->id,
+            'stock' => $product->getStock($destination->id),
+        ])->header('Cache-Control', 'no-store');
+    }
+
     private function validateTransferOrigin(?int $branchId): void
     {
         $user = auth()->user();

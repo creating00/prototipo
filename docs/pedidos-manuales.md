@@ -5,6 +5,7 @@ En `/web/orders/create-client`, la sucursal activa es el contexto de búsqueda, 
 1. Elegir una provincia con sucursales vigentes y una sucursal de referencia.
 2. Buscar el producto con la información de la sucursal activa.
 3. Asignar el destino por renglón. Puede incluir la sucursal activa si pertenece a la provincia seleccionada.
+   Al seleccionar o cambiar el destino, **Stock destino** consulta su inventario actual. Sin destino muestra un guion; un fallo de consulta no se presenta como stock cero. La consulta también se realiza al recuperar renglones guardados o editar. Es informativa: precios y búsqueda siguen usando la sucursal activa y el stock no limita la cantidad pedida.
 4. Para dividir un producto entre destinos, agregar otro renglón después de seleccionar el primero. Ejemplo: un módulo para Alta Córdoba y otro para General Paz, con Salta como referencia.
 5. Guardar el pedido; no mueve stock y conserva un único número.
 6. Desde `/web/orders/purchases/{id}/details`, ejecutar **Enviar al stock** con un usuario autorizado sobre la sucursal que registró el pedido.

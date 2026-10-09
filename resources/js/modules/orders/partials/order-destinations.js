@@ -2,6 +2,49 @@ import { Toast } from "@/config/notifications";
 
 const destinations = {
     branches: [],
+    stockRequests: new WeakMap(),
+
+    get isManual() {
+        return this.enabled && document.querySelector('input[name="source"]')?.value === "3";
+    },
+
+    async refreshDestinationStock(row) {
+        if (!this.isManual) return;
+        this.stockRequests.get(row)?.abort();
+        const input = row.querySelector(".item-stock");
+        const destinationId = row.querySelector(".item-destination")?.value;
+        if (!input) return;
+        input.value = "—";
+        input.title = "Seleccione una sucursal de destino";
+        if (!destinationId) return;
+
+        const controller = new AbortController();
+        this.stockRequests.set(row, controller);
+        input.value = "...";
+        input.title = "Consultando stock del destino";
+        const url = new URL("/api/inventory/manual-destination-stock", window.location.origin);
+        url.searchParams.set("product_id", row.dataset.id);
+        url.searchParams.set("branch_id", document.getElementById("current_branch_id")?.value || "");
+        url.searchParams.set("destination_branch_id", destinationId);
+        url.searchParams.set("destination_province_id", row.querySelector(".item-destination-province")?.value || "");
+        try {
+            const response = await fetch(url, {
+                headers: { Accept: "application/json" },
+                cache: "no-store",
+                signal: controller.signal,
+            });
+            if (!response.ok) throw new Error("No se pudo consultar el stock del destino.");
+            const data = await response.json();
+            if (controller.signal.aborted || this.stockRequests.get(row) !== controller) return;
+            input.value = data.stock;
+            input.title = "Stock actual de la sucursal de destino";
+        } catch (error) {
+            if (controller.signal.aborted || this.stockRequests.get(row) !== controller) return;
+            input.value = "—";
+            input.title = "Stock no disponible";
+            Toast.fire({ icon: "warning", title: "Stock no disponible", text: "No se pudo consultar el destino. Vuelva a seleccionar la sucursal para reintentar." });
+        }
+    },
 
     get enabled() {
         return document.getElementById("is_multi_destination")?.value === "1";
@@ -49,6 +92,7 @@ const destinations = {
             provinceLabel.textContent = this.branches.find((item) => String(item.province_id) === String(effectiveProvince))?.province_name || "";
         }
         row.dataset.destinationId = select.value;
+        this.refreshDestinationStock(row);
         if (row.dataset.destinationBound) return;
         row.dataset.destinationBound = "true";
         select.addEventListener("change", () => {
@@ -60,6 +104,7 @@ const destinations = {
                 return;
             }
             row.dataset.destinationId = select.value;
+            this.refreshDestinationStock(row);
         });
     },
 };

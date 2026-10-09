@@ -38,6 +38,7 @@ Route::post('/profile/change-password', [ProfileApiController::class, 'updatePas
 Route::prefix('inventory')->middleware(['web', 'auth'])->group(function () {
     Route::get('list', [ProductController::class, 'list']);
     Route::get('by-code', [ProductController::class, 'findByCode']);
+    Route::get('manual-destination-stock', [ProductController::class, 'manualDestinationStock']);
 });
 Route::apiResource('products', ProductController::class)->middleware('web');
 Route::apiResource('promotions', PromotionImageController::class);

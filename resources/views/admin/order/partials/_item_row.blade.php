@@ -51,7 +51,7 @@
     @endif
 
     <td>
-        <input type="text" class="form-control text-center" value="{{ $stock }}" readonly>
+        <input type="text" class="form-control text-center item-stock" value="{{ $stock }}" aria-label="Stock actual" readonly>
     </td>
 
     {{-- Columna "Costo": precio unitario (con badge de moneda) --}}
