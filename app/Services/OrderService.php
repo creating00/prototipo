@@ -132,7 +132,7 @@ class OrderService
 
     public function buildOrderItemsHtml(Order $order): array
     {
-        $destinationBranches = Branch::where('id', '!=', $order->branch_id)->orderBy('name')->get();
+        $destinationBranches = Branch::when($order->source !== OrderSource::Manual, fn ($q) => $q->where('id', '!=', $order->branch_id))->orderBy('name')->get();
 
         return $order->items->map(function ($item) use ($order, $destinationBranches) {
             return [
@@ -151,7 +151,7 @@ class OrderService
 
     public function buildDraftItemsHtml(array $items, int $branchId): array
     {
-        $branches = Branch::where('id', '!=', $branchId)->orderBy('name')->get();
+        $branches = Branch::orderBy('name')->get();
         $rows = [];
         foreach ($items as $data) {
             if (! is_array($data)) {
@@ -244,7 +244,7 @@ class OrderService
         $data['is_multi_destination'] = $order->is_multi_destination;
         if ($order->is_multi_destination) {
             $data['branch_id'] = $order->branch_id;
-            $data['customer_type'] = Branch::class;
+            $data['customer_type'] = $order->customer_type;
             $data['source'] = $order->source->value;
             $data['user_id'] = $order->user_id;
         }
@@ -474,7 +474,7 @@ class OrderService
     public function getOrderItemsData(Order $order): array
     {
         $headers = ['N°', 'Producto', 'Stock', 'Precio', 'Cantidad', 'Subtotal'];
-        if ($order->isInterBranch()) {
+        if ($order->is_multi_destination || $order->isInterBranch()) {
             $headers[] = 'Sucursal destino';
         }
 
@@ -499,7 +499,7 @@ class OrderService
                     'fw-bold text-dark'
                 ),
             ];
-            if ($order->isInterBranch()) {
+            if ($order->is_multi_destination || $order->isInterBranch()) {
                 $destination = $order->is_multi_destination ? $item->destinationBranch : $order->customer;
                 $row['destination'] = e($destination?->name ?? 'Sucursal no disponible');
             }
@@ -752,7 +752,12 @@ class OrderService
 
         // Validación por tipo de Cliente
         if ($multiDestination) {
-            $rules['customer_type'] = ['required', Rule::in([Branch::class])];
+            $isManual = (int) $source === OrderSource::Manual->value;
+            $rules['customer_type'] = ['required', Rule::in([$isManual ? Client::class : Branch::class])];
+            if ($isManual) {
+                $rules['client_id'] = 'required|exists:clients,id';
+                $rules['target_branch_id'] = ['required', Rule::exists('branches', 'id')->whereNull('deleted_at')];
+            }
             $rules['branch_id'] = ['required', Rule::exists('branches', 'id')->whereNull('deleted_at')];
             $rules['status'] = ['required', Rule::in([OrderStatus::Draft->value, OrderStatus::Pending->value])];
             $rules['items.*.quantity'] = 'required|integer|min:1';
@@ -761,10 +766,11 @@ class OrderService
             $rules['items.*.destination_province_id'] = 'required|exists:provinces,id';
             $rules['customer_id'] = 'prohibited';
             $rules['branch_recipient_id'] = 'prohibited';
-            $rules['source'] = ['required', Rule::in([OrderSource::Backoffice->value])];
+            $rules['source'] = ['required', Rule::in([OrderSource::Backoffice->value, OrderSource::Manual->value])];
             $rules['sale_id'] = 'prohibited';
             $rules['created_at'] = 'nullable|date';
         } elseif ($customerType === Client::class) {
+            $rules['target_branch_id'] = ['nullable', Rule::exists('branches', 'id')->whereNull('deleted_at')];
             if ($source == OrderSource::Ecommerce->value) {
                 // Ecommerce puede enviar token o datos del cliente
                 $rules['token'] = 'nullable|string';
@@ -803,6 +809,7 @@ class OrderService
         $data = [
             'branch_id' => $orderData['branch_id'],
             'is_multi_destination' => $orderData['is_multi_destination'] ?? false,
+            'target_branch_id' => $orderData['target_branch_id'] ?? null,
             'user_id' => $orderData['user_id'],
             'status' => $orderData['status'],
             'payment_status' => $orderData['payment_status'] ?? 2,
@@ -825,6 +832,7 @@ class OrderService
     protected function updateOrderRecord(Order $order, array $orderData): void
     {
         $data = [
+            'target_branch_id' => $orderData['target_branch_id'] ?? $order->target_branch_id,
             'branch_id' => $orderData['branch_id'],
             'user_id' => $orderData['user_id'],
             'status' => $orderData['status'],

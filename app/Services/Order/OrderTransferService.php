@@ -2,6 +2,7 @@
 
 namespace App\Services\Order;
 
+use App\Enums\OrderSource;
 use App\Enums\OrderStatus;
 use App\Models\Branch;
 use App\Models\Order;
@@ -30,7 +31,7 @@ class OrderTransferService
                 throw ValidationException::withMessages(["items.$index.product_id" => 'El producto no está registrado en la sucursal de origen.']);
             }
             $branch = $branches->get($item['destination_branch_id']);
-            if (! $branch || (int) $branch->id === (int) $data['branch_id']) {
+            if (! $branch || ((int) $data['source'] !== OrderSource::Manual->value && (int) $branch->id === (int) $data['branch_id'])) {
                 throw ValidationException::withMessages(["items.$index.destination_branch_id" => 'El destino debe ser una sucursal vigente distinta del origen.']);
             }
             if ((int) $branch->province_id !== (int) $item['destination_province_id']) {
@@ -53,7 +54,7 @@ class OrderTransferService
             throw ValidationException::withMessages(['stock' => 'El pedido no tiene renglones pendientes válidos.']);
         }
         foreach ($items as $item) {
-            if (! $item->destinationBranch || $item->destination_branch_id === $origin->id) {
+            if (! $item->destinationBranch || ($order->source !== OrderSource::Manual && $item->destination_branch_id === $origin->id)) {
                 throw ValidationException::withMessages(['stock' => 'Hay una sucursal de destino inválida.']);
             }
         }
@@ -62,7 +63,9 @@ class OrderTransferService
         $products = [];
         foreach ($items->groupBy('product_id') as $productId => $lines) {
             $product = Product::whereKey($productId)->lockForUpdate()->firstOrFail();
-            $this->stockService->reserve($product, (int) $lines->sum('quantity'), $origin->id);
+            if ($order->source !== OrderSource::Manual) {
+                $this->stockService->reserve($product, (int) $lines->sum('quantity'), $origin->id);
+            }
             $products[$productId] = $product;
         }
 

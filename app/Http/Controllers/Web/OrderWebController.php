@@ -235,15 +235,21 @@ class OrderWebController extends BaseOrderController
         $defaultDoc = config('app.default_client_document');
         $defaultClientId = $clients->where('document', $defaultDoc)->first()?->id;
 
+        $originBranch = Branch::find($currentBranchId);
+        if (! $originBranch) {
+            return redirect()->route('web.orders.purchases')->withErrors('Seleccione una sucursal activa para crear el pedido manual.');
+        }
+
         return view('admin.order.create-client', compact(
             'customer_type',
             'branches',
-            'destinationBranches',
             'clients',
             'statusOptions',
             'defaultClientId',
             'currentBranchId',
-        ));
+        ) + $this->transferFormData($originBranch, true) + [
+            'existingOrderItems' => $this->orderService->buildDraftItemsHtml(old('items', []), $originBranch->id),
+        ]);
     }
 
     public function createBranch()
@@ -277,9 +283,9 @@ class OrderWebController extends BaseOrderController
         ] + $this->transferFormData($originBranch));
     }
 
-    private function transferFormData(Branch $originBranch): array
+    private function transferFormData(Branch $originBranch, bool $isManual = false): array
     {
-        $destinationBranches = Branch::with('province')->where('id', '!=', $originBranch->id)->orderBy('name')->get();
+        $destinationBranches = Branch::with('province')->when(! $isManual, fn ($q) => $q->where('id', '!=', $originBranch->id))->orderBy('name')->get();
 
         return [
             'isMultiDestination' => true,
@@ -439,7 +445,7 @@ class OrderWebController extends BaseOrderController
             $statusOptions = OrderStatus::forSale();
         }
 
-        $transferData = $order->is_multi_destination ? $this->transferFormData($order->branch) : [];
+        $transferData = $order->is_multi_destination ? $this->transferFormData($order->branch, $order->source === OrderSource::Manual) : [];
 
         return view('admin.order.edit', array_merge([
             'order' => $order,
@@ -449,7 +455,7 @@ class OrderWebController extends BaseOrderController
                 ? $this->orderService->buildDraftItemsHtml(old('items'), $order->branch_id)
                 : $this->orderService->buildOrderItemsHtml($order),
             'branches' => $branches,
-            'currentBranchId' => $userBranchId,
+            'currentBranchId' => $order->is_multi_destination ? $order->branch_id : $userBranchId,
             'categories' => app(CategoryService::class)->getAllCategories(),
             'clients' => app(ClientService::class)->getAllClients($userBranchId),
             'statusOptions' => $statusOptions,

@@ -110,7 +110,7 @@ class BranchService
     {
         $branch = $this->getBranchById($id);
 
-        if ($branch->destinationOrderItems()->exists()) {
+        if ($branch->destinationOrderItems()->exists() || \App\Models\Order::where('target_branch_id', $branch->id)->exists()) {
             throw new \Exception('No se puede eliminar: la sucursal es destino de productos en pedidos registrados.');
         }
 

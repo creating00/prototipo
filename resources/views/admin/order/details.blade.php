@@ -75,6 +75,14 @@
                         {{ $order->source->label() }}
                     </div>
 
+                    @if ($order->target_branch_id)
+                        <div class="col-md-3">
+                            <strong>Sucursal de referencia</strong><br>
+                            {{ $order->targetBranch?->name ?? 'Sucursal no disponible' }}
+                            <small class="text-muted d-block">Sin movimientos de inventario en esta sucursal.</small>
+                        </div>
+                    @endif
+
                     <div class="col-md-6">
                         <strong><i class="fas fa-sticky-note me-1"></i> Notas</strong><br>
                         <small class="text-muted">{{ $order->notes ?? 'Sin observaciones adicionales' }}</small>
@@ -131,7 +139,11 @@
 
         @if ($order->is_multi_destination && !$order->is_stock_sent)
             <p class="text-muted small mt-2">
-                Enviar al stock descuenta las cantidades de {{ $order->branch->name }} y las acredita en la sucursal indicada en cada producto.
+                @if ($order->source === \App\Enums\OrderSource::Manual)
+                    Enviar al stock incrementa las cantidades en la sucursal indicada en cada producto. No descuenta inventario del origen ni de la sucursal de referencia.
+                @else
+                    Enviar al stock descuenta las cantidades de {{ $order->branch->name }} y las acredita en la sucursal indicada en cada producto.
+                @endif
                 La acción procesa el pedido completo y requiere autorización sobre la sucursal de origen.
             </p>
         @endif
@@ -208,7 +220,7 @@
                 const btnSendStock = document.getElementById('btn-send-to-stock');
                 if (btnSendStock) {
                     btnSendStock.addEventListener('click', async () => {
-                        if (!confirm(@json($order->is_multi_destination ? 'Se descontará el stock del origen y se incrementará cada destino. El pedido quedará bloqueado. ¿Continuar?' : 'Se incrementará el inventario y el pedido quedará bloqueado. ¿Continuar?'))) {
+                        if (!confirm(@json($order->is_multi_destination && $order->source !== \App\Enums\OrderSource::Manual ? 'Se descontará el stock del origen y se incrementará cada destino. El pedido quedará bloqueado. ¿Continuar?' : 'Se incrementará el inventario de los destinos sin descontar otras sucursales. El pedido quedará bloqueado. ¿Continuar?'))) {
                             return;
                         }
 
