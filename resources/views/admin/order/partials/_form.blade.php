@@ -92,7 +92,7 @@
                             @if ($isMultiDestination)
                                 <th style="min-width: 210px">Sucursal destino</th>
                             @endif
-                            <th width="7%">Stock</th>
+                            <th width="7%">{{ $isMultiDestination && (int) $sourceValue === \App\Enums\OrderSource::Manual->value ? 'Stock destino' : 'Stock' }}</th>
                             <th width="20%">Costo</th>
                             <th width="6%">Cantidad</th>
                             <th width="15%">Subtotal</th>
