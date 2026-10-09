@@ -2,10 +2,11 @@
 
 namespace App\Services;
 
+use App\Enums\RoleLabel;
 use App\Models\Branch;
 use App\Models\User;
-use App\Enums\RoleLabel;
-use Illuminate\Support\Facades\{Validator, DB};
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class BranchService
@@ -38,11 +39,11 @@ class BranchService
     private function createDefaultClient(int $branchId): void
     {
         $this->clientService->findOrCreate([
-            'document'  => config('app.default_client_document'),
+            'document' => config('app.default_client_document'),
             'full_name' => config('app.default_client_name'),
             'is_system' => true,
-            'phone'     => '00000000',
-            'address'   => 'Ciudad'
+            'phone' => '00000000',
+            'address' => 'Ciudad',
         ], $branchId);
     }
 
@@ -53,7 +54,7 @@ class BranchService
 
     public function getUserBranch(?int $userBranchId)
     {
-        if (!$userBranchId) {
+        if (! $userBranchId) {
             return null;
         }
 
@@ -64,7 +65,7 @@ class BranchService
 
     public function getAllBranchesExcept(?int $excludeBranchId)
     {
-        if (!$excludeBranchId) {
+        if (! $excludeBranchId) {
             return $this->getAllBranches();
         }
 
@@ -101,12 +102,17 @@ class BranchService
         $validated = $this->validateBranchData($data, $branch->id);
 
         $branch->update($validated);
+
         return $branch->fresh();
     }
 
     public function deleteBranch($id): bool
     {
         $branch = $this->getBranchById($id);
+
+        if ($branch->destinationOrderItems()->exists()) {
+            throw new \Exception('No se puede eliminar: la sucursal es destino de productos en pedidos registrados.');
+        }
 
         // 1. Validar órdenes inter-sucursal (donde es cliente)
         if ($branch->ordersAsCustomer()->exists()) {
@@ -130,9 +136,9 @@ class BranchService
     {
         $rules = [
             'province_id' => 'required|exists:provinces,id',
-            'name' => 'required|unique:branches,name' . ($ignoreId ? ",$ignoreId" : ''),
+            'name' => 'required|unique:branches,name'.($ignoreId ? ",$ignoreId" : ''),
             'address' => 'nullable|string',
-            'phone' => 'nullable|string'
+            'phone' => 'nullable|string',
         ];
 
         $validator = Validator::make($data, $rules);
@@ -174,18 +180,20 @@ class BranchService
      */
     public function setActiveBranchContext(User $user, string|int $targetBranchId): bool
     {
-        if (!$user->hasRole(RoleLabel::PROVINCIAL_ADMIN->value)) {
+        if (! $user->hasRole(RoleLabel::PROVINCIAL_ADMIN->value)) {
             return false;
         }
 
         if ($targetBranchId === 'all') {
             session(['active_branch_id' => 'all']);
+
             return true;
         }
 
         $accessibleBranchIds = $this->getAccessibleBranchesForUser($user)->pluck('id')->toArray();
-        if (in_array((int)$targetBranchId, $accessibleBranchIds, true)) {
-            session(['active_branch_id' => (int)$targetBranchId]);
+        if (in_array((int) $targetBranchId, $accessibleBranchIds, true)) {
+            session(['active_branch_id' => (int) $targetBranchId]);
+
             return true;
         }
 

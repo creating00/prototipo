@@ -26,6 +26,10 @@
     $customerType = old('customer_type', $customer_type ?? ($order->customer_type ?? 'App\Models\Client'));
     $customerId = old('customer_id', $order->customer_id ?? null);
     $sourceValue = old('source', $source ?? ($order->source->value ?? \App\Enums\OrderSource::Manual->value));
+    $isMultiDestination = $isMultiDestination ?? ($order?->is_multi_destination ?? false);
+    if ($isMultiDestination) {
+        $customerType = \App\Models\Branch::class;
+    }
 @endphp
 
 {{-- Campos ocultos base --}}
@@ -44,6 +48,8 @@
             <div class="card-body">
                 @if ($customerType === 'App\Models\Client')
                     @include('admin.order.partials.sections._form_origin_client')
+                @elseif ($isMultiDestination)
+                    @include('admin.order.partials.sections._form_origin_transfer')
                 @else
                     @include('admin.order.partials.sections._form_origin_branch')
                 @endif
@@ -83,6 +89,9 @@
                     <thead>
                         <tr>
                             <th width="18%">Producto</th>
+                            @if ($isMultiDestination)
+                                <th style="min-width: 210px">Sucursal destino</th>
+                            @endif
                             <th width="7%">Stock</th>
                             <th width="20%">Costo</th>
                             <th width="6%">Cantidad</th>

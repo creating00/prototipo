@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('page-title', 'Mis Pedidos a Sucursales')
+@section('page-title', 'Pedidos entre Sucursales')
 
 @push('styles')
     <style>
@@ -19,6 +19,9 @@
         }
 
         tr[data-is_received="true"] .btn-receive {
+            display: none !important;
+        }
+        tr[data-is_multi_destination="true"] .btn-receive {
             display: none !important;
         }
 
@@ -65,7 +68,7 @@
             </div>
 
             {{-- DataTable de Compras Realizadas --}}
-            <x-adminlte.data-table tableId="purchases-table" title="Pedidos realizados a otras sucursales" size="sm-orders" :headers="$headers"
+            <x-adminlte.data-table tableId="purchases-table" title="Pedidos enviados y recibidos entre sucursales" size="sm-orders" :headers="$headers"
                 :rowData="$rowData" :hiddenFields="$hiddenFields" withActions="true">
 
                 <x-slot name="actions">

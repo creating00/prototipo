@@ -30,6 +30,9 @@ export async function fetchProduct(
     url.searchParams.append("code", code);
     url.searchParams.append("branch_id", branchId);
     url.searchParams.append("context", context);
+    if (document.getElementById("is_multi_destination")?.value === "1") {
+        url.searchParams.append("is_multi_destination", "1");
+    }
     url.searchParams.append("is_repair", isRepair ? "1" : "0");
 
     const customerTypeInput = document.querySelector("#customer_type");

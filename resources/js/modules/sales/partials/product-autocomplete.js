@@ -192,6 +192,9 @@ export default {
 
             // Enviamos el contexto y el estado de reparación
             url.searchParams.append("context", this.context);
+            if (document.getElementById("is_multi_destination")?.value === "1") {
+                url.searchParams.append("is_multi_destination", "1");
+            }
             url.searchParams.append("is_repair", isRepair ? "1" : "0");
 
             const customerTypeInput = document.querySelector("#customer_type");

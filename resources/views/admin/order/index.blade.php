@@ -15,6 +15,11 @@
         tr[data-status_raw="4"] .btn-convert {
             display: none !important;
         }
+        tr[data-is_multi_destination="true"] .btn-convert,
+        tr[data-is_stock_sent="true"] .btn-edit,
+        tr[data-is_stock_sent="true"] .btn-delete {
+            display: none !important;
+        }
 
         /* Ocultar botón convertir si la sucursal actual es la compradora/solicitante */
         tr[data-is_purchaser_branch="true"] .btn-convert {

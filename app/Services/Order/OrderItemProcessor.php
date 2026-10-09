@@ -9,8 +9,38 @@ use Illuminate\Database\Eloquent\Model;
 
 class OrderItemProcessor extends BaseItemProcessor
 {
+    /** Synchronize transfer lines by product and destination, without moving inventory. */
+    public function syncDestinations(Order $order, array $items): array
+    {
+        $totals = [];
+        $retainedIds = [];
+
+        foreach ($items as $item) {
+            $product = $this->getLockedProduct($item['product_id']);
+            $quantity = (int) $item['quantity'];
+            $unitPrice = (float) ($item['unit_price'] ?? $product->purchasePrice($order->branch_id) ?? 0);
+            $subtotal = $quantity * $unitPrice;
+            $currency = $item['currency'];
+            $line = $order->items()->updateOrCreate([
+                'product_id' => $product->id,
+                'destination_branch_id' => $item['destination_branch_id'],
+            ], [
+                'quantity' => $quantity,
+                'unit_price' => $unitPrice,
+                'subtotal' => $subtotal,
+                'currency' => $currency,
+            ]);
+            $retainedIds[] = $line->id;
+            $totals[$currency] = ($totals[$currency] ?? 0) + $subtotal;
+        }
+
+        $order->items()->whereNotIn('id', $retainedIds)->delete();
+
+        return $totals;
+    }
+
     /**
-     * @param Order $model
+     * @param  Order  $model
      */
     protected function createItem(
         Model $model,
@@ -22,10 +52,10 @@ class OrderItemProcessor extends BaseItemProcessor
     ): void {
         $model->items()->create([
             'product_id' => $product->id,
-            'quantity'   => $quantity,
+            'quantity' => $quantity,
             'unit_price' => $unitPrice,
-            'subtotal'   => $subtotal,
-            'currency'   => $rawItem['currency'],
+            'subtotal' => $subtotal,
+            'currency' => $rawItem['currency'],
         ]);
     }
 
@@ -46,7 +76,7 @@ class OrderItemProcessor extends BaseItemProcessor
     {
         $unitPrice = $product->salePrice($model->branch_id);
 
-        if (!$unitPrice) {
+        if (! $unitPrice) {
             throw new \Exception("No se encontró un precio de venta para {$product->name} en esta sucursal.");
         }
 

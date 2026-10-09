@@ -2,30 +2,29 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\CategoryTarget;
 use App\Http\Controllers\BaseProductController;
 use App\Models\Product;
-use App\Enums\CategoryTarget;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ProductController extends BaseProductController
 {
     /**
      * Display a listing of products filtered by request parameters.
      *
-     * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function index(Request $request)
     {
         $validated = $request->validate([
-            'branchId'   => 'nullable|integer',
+            'branchId' => 'nullable|integer',
             'categoryId' => 'nullable|integer',
-            'target'     => [
+            'target' => [
                 'nullable',
                 'integer',
-                Rule::enum(CategoryTarget::class)
+                Rule::enum(CategoryTarget::class),
             ],
         ]);
 
@@ -44,6 +43,7 @@ class ProductController extends BaseProductController
             if ($customerType === 'App\Models\Branch') {
                 return $product->purchasePriceModel($branchId) ?? $product->purchasePriceModel(null);
             }
+
             return $product->salePriceModel($branchId) ?? $product->salePriceModel(null);
         }
 
@@ -62,19 +62,27 @@ class ProductController extends BaseProductController
      */
     public function findByCode(Request $request)
     {
+        $isMultiDestination = $request->boolean('is_multi_destination');
+        if ($isMultiDestination) {
+            $this->authorize('createBranch', \App\Models\Order::class);
+        }
         $code = $request->get('code');
         $branchIdRaw = $request->get('branch_id') ?: auth()->user()?->branch_id;
-        $branchId    = $branchIdRaw ? (int)$branchIdRaw : null;
-        $categoryId  = $request->get('category_id');
-        $isRepair    = $request->boolean('is_repair');
-        $context     = $request->get('context', 'order');
+        $branchId = $branchIdRaw ? (int) $branchIdRaw : null;
+        if ($isMultiDestination) {
+            $this->validateTransferOrigin($branchId);
+        }
+        $categoryId = $request->get('category_id');
+        $isRepair = $request->boolean('is_repair');
+        $context = $request->get('context', 'order');
         $customerType = $request->get('customer_type');
 
         $product = Product::where('code', $code)
-            ->when($categoryId, fn($q) => $q->where('category_id', $categoryId))
+            ->when($isMultiDestination, fn ($q) => $q->whereHas('productBranches', fn ($branches) => $branches->where('branch_id', $branchId)))
+            ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId))
             ->first();
 
-        if (!$product) {
+        if (! $product) {
             return response()->json(['error' => 'Producto no encontrado'], 404);
         }
 
@@ -92,31 +100,32 @@ class ProductController extends BaseProductController
 
         return response()->json([
             'product' => [
-                'id'             => $product->id,
-                'code'           => $product->code,
-                'name'           => $product->name,
-                'stock'          => $stock,
-                'sale_price'     => $finalPrice,
+                'id' => $product->id,
+                'code' => $product->code,
+                'name' => $product->name,
+                'stock' => $stock,
+                'sale_price' => $finalPrice,
                 'purchase_price' => $costModel?->amount,
-                'cost_display'   => $costDisplay,
-                'show_cost'      => $canViewCost,
-                'currency'       => [
-                    'code'   => $currency->code(),
+                'cost_display' => $costDisplay,
+                'show_cost' => $canViewCost,
+                'currency' => [
+                    'code' => $currency->code(),
                     'symbol' => $currency->symbol(),
                 ],
             ],
             'html' => view('admin.order.partials._item_row', [
-                'product'        => $product,
-                'stock'          => $stock,
-                'salePrice'      => $finalPrice,
-                'currency'       => $currency,
-                'costDisplay'    => $costDisplay,
-                'canViewCost'    => $canViewCost,
-                'showCostCell'   => ($canViewCost && $context !== 'order'),
-                'context'        => $context,
-                'branchId'       => $branchId,
-                'item'           => null,
+                'product' => $product,
+                'stock' => $stock,
+                'salePrice' => $finalPrice,
+                'currency' => $currency,
+                'costDisplay' => $costDisplay,
+                'canViewCost' => $canViewCost,
+                'showCostCell' => ($canViewCost && $context !== 'order'),
+                'context' => $context,
+                'branchId' => $branchId,
+                'item' => null,
                 'allowEditPrice' => true,
+                'isMultiDestination' => $isMultiDestination,
             ])->render(),
         ]);
     }
@@ -126,15 +135,25 @@ class ProductController extends BaseProductController
      */
     public function list(Request $request)
     {
+        $isMultiDestination = $request->boolean('is_multi_destination');
+        if ($isMultiDestination) {
+            $this->authorize('createBranch', \App\Models\Order::class);
+        }
         $branchIdRaw = $request->get('branch_id') ?: auth()->user()?->branch_id;
-        $branchId    = $branchIdRaw ? (int)$branchIdRaw : null;
-        $categoryId  = $request->get('category_id');
-        $search      = $request->get('q');
-        $isRepair    = $request->boolean('is_repair');
-        $context     = $request->get('context', 'sale');
+        $branchId = $branchIdRaw ? (int) $branchIdRaw : null;
+        if ($isMultiDestination) {
+            $this->validateTransferOrigin($branchId);
+        }
+        $categoryId = $request->get('category_id');
+        $search = $request->get('q');
+        $isRepair = $request->boolean('is_repair');
+        $context = $request->get('context', 'sale');
         $customerType = $request->get('customer_type');
 
         $query = Product::with(['category', 'productBranches.prices']);
+        if ($isMultiDestination) {
+            $query->whereHas('productBranches', fn ($branches) => $branches->where('branch_id', $branchId));
+        }
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -152,7 +171,7 @@ class ProductController extends BaseProductController
         $user = auth()->user();
         $canViewCost = $user?->hasAnyRole([\App\Enums\RoleLabel::ADMIN->value, \App\Enums\RoleLabel::PROVINCIAL_ADMIN->value]) ?? false;
 
-        $response = $products->map(function ($product) use ($branchId, $context, $isRepair, $customerType, $canViewCost) {
+        $response = $products->map(function ($product) use ($branchId, $isRepair, $canViewCost) {
             // For the autocomplete dropdown, we ALWAYS want to show the sale price (or repair price) in the green badge,
             // even if the context is 'order' (which uses cost for branch orders).
             $priceEntry = $this->resolvePriceModel($product, $branchId, 'sale', $isRepair);
@@ -161,22 +180,22 @@ class ProductController extends BaseProductController
             $status = $branch?->status;
 
             return [
-                'id'            => $product->id,
-                'code'          => $product->code,
-                'name'          => $product->name,
-                'description'   => $product->description,
-                'category'      => $product->category?->name,
-                'stock'         => $branch?->stock ?? 0,
+                'id' => $product->id,
+                'code' => $product->code,
+                'name' => $product->name,
+                'description' => $product->description,
+                'category' => $product->category?->name,
+                'stock' => $branch?->stock ?? 0,
                 'low_stock_threshold' => $branch?->low_stock_threshold,
-                'status'        => $status?->value,
-                'status_label'  => $status?->label(),
-                'price'         => $priceEntry?->amount ?? 0,
+                'status' => $status?->value,
+                'status_label' => $status?->label(),
+                'price' => $priceEntry?->amount ?? 0,
                 'price_display' => $priceEntry?->getFormattedAmount() ?? '$ 0,00',
                 'price_currency' => $priceEntry?->currency?->code(),
-                'cost'          => $costEntry?->amount,
-                'cost_display'  => $costEntry?->getFormattedAmount(),
+                'cost' => $costEntry?->amount,
+                'cost_display' => $costEntry?->getFormattedAmount(),
                 'cost_currency' => $costEntry?->currency?->code(),
-                'show_cost'     => $canViewCost,
+                'show_cost' => $canViewCost,
             ];
         });
 
@@ -199,7 +218,7 @@ class ProductController extends BaseProductController
                 $data['branch_id'] = auth()->user()?->branch_id ?? \App\Models\Branch::first()?->id;
             }
 
-            if (!isset($data['stock']) || $data['stock'] === '') {
+            if (! isset($data['stock']) || $data['stock'] === '') {
                 $data['stock'] = 0;
             }
 
@@ -207,14 +226,14 @@ class ProductController extends BaseProductController
                 $data['status'] = \App\Enums\ProductStatus::Available->value;
             }
 
-            if (!isset($data['purchase_price_amount']) || $data['purchase_price_amount'] === '') {
+            if (! isset($data['purchase_price_amount']) || $data['purchase_price_amount'] === '') {
                 $data['purchase_price_amount'] = 0;
             }
             if (empty($data['purchase_price_currency'])) {
                 $data['purchase_price_currency'] = 1;
             }
 
-            if (!isset($data['sale_price_amount']) || $data['sale_price_amount'] === '') {
+            if (! isset($data['sale_price_amount']) || $data['sale_price_amount'] === '') {
                 $data['sale_price_amount'] = 0;
             }
             if (empty($data['sale_price_currency'])) {
@@ -227,24 +246,35 @@ class ProductController extends BaseProductController
                 imageUrl: $request->input('imageUrl')
             );
 
-            $branchId = (int)$data['branch_id'];
+            $branchId = (int) $data['branch_id'];
 
             return response()->json([
-                'id'    => $product->id,
-                'code'  => $product->code,
-                'name'  => $product->name,
+                'id' => $product->id,
+                'code' => $product->code,
+                'name' => $product->name,
                 'stock' => $branchId ? $product->getStock($branchId) : 0,
                 'price' => $branchId ? $product->salePrice($branchId) : 0,
             ], 201);
         } catch (ValidationException $e) {
             return response()->json([
                 'error' => 'Validation Failed',
-                'messages' => $e->errors()
+                'messages' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    private function validateTransferOrigin(?int $branchId): void
+    {
+        $user = auth()->user();
+        $activeId = session('active_branch_id', $user?->branch_id);
+        $provinceId = $user?->province_id ?? $user?->branch?->province_id;
+        $origin = \App\Models\Branch::find($branchId);
+        if (! $origin || $activeId === 'all' || (int) $activeId !== $branchId || (int) $origin->province_id !== (int) $provinceId) {
+            throw ValidationException::withMessages(['branch_id' => 'La búsqueda debe utilizar la sucursal de origen activa y autorizada.']);
         }
     }
 
@@ -278,11 +308,11 @@ class ProductController extends BaseProductController
         } catch (ValidationException $e) {
             return response()->json([
                 'error' => 'Validation Failed',
-                'messages' => $e->errors()
+                'messages' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -298,7 +328,7 @@ class ProductController extends BaseProductController
             return response()->json(['message' => 'Product deleted'], 200);
         } catch (\Exception $e) {
             return response()->json([
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
