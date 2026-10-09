@@ -92,6 +92,11 @@ class AppServiceProvider extends ServiceProvider
             }
 
             if ($user->hasRole('admin') || $user->hasRole(\App\Enums\RoleLabel::PROVINCIAL_ADMIN->value)) {
+                if ($target instanceof \App\Models\Order && $target->is_multi_destination
+                    && in_array($ability, ['view', 'update', 'delete', 'approve', 'sendToStock', 'cancel'], true)) {
+                    return null;
+                }
+
                 return true;
             }
         });

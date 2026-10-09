@@ -29,6 +29,10 @@ class Order extends Model
         'notes',
         'customer_id',
         'customer_type',
+        'is_multi_destination',
+        'cancellation_reason',
+        'cancelled_at',
+        'cancelled_by',
     ];
 
     protected $casts = [
@@ -39,11 +43,13 @@ class Order extends Model
         'is_stock_sent' => 'boolean',
         'stock_sent_at' => 'datetime',
         'payment_status' => 'integer',
+        'is_multi_destination' => 'boolean',
+        'cancelled_at' => 'datetime',
     ];
 
     public function canBeEdited(): bool
     {
-        return !$this->is_stock_sent;
+        return ! $this->is_stock_sent && ! in_array($this->status, [OrderStatus::Cancelled, OrderStatus::ConvertedToSale], true);
     }
 
     public function isStockSent(): bool
@@ -71,6 +77,11 @@ class Order extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function cancelledBy()
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
     }
 
     public function sale()
@@ -115,10 +126,9 @@ class Order extends Model
     {
         $rate = (float) $this->exchange_rate;
 
-        if (!$this->totals || $rate === 0.0) {
+        if (! $this->totals || $rate === 0.0) {
             return [];
         }
-
 
         $ars = $this->totals[CurrencyType::ARS->value] ?? 0;
         $usd = $this->totals[CurrencyType::USD->value] ?? 0;
@@ -127,8 +137,8 @@ class Order extends Model
         $totalUsd = $usd + ($ars / $this->exchange_rate);
 
         return [
-            'ARS' => '$ ' . number_format($totalArs, 2, ',', '.'),
-            'USD' => 'U$D ' . number_format($totalUsd, 2, ',', '.'),
+            'ARS' => '$ '.number_format($totalArs, 2, ',', '.'),
+            'USD' => 'U$D '.number_format($totalUsd, 2, ',', '.'),
         ];
     }
 
@@ -167,11 +177,16 @@ class Order extends Model
 
     public function getCustomerNameAttribute(): string
     {
+        if ($this->is_multi_destination) {
+            return $this->items->pluck('destinationBranch.name')->filter()->unique()->implode(', ');
+        }
+
         if ($this->customer) {
             return $this->isInterBranch()
                 ? $this->customer->name ?? "Sucursal {$this->customer->id}"
                 : $this->customer->full_name ?? '';
         }
+
         return '';
     }
 
@@ -180,7 +195,7 @@ class Order extends Model
         $customerName = $this->customer_name;
 
         $itemsDetail = $this->items->take(5)->map(function ($item) {
-            return "• {$item->quantity}x " . ($item->product->name ?? 'Producto');
+            return "• {$item->quantity}x ".($item->product->name ?? 'Producto');
         })->implode("\n");
 
         if ($this->items->count() > 5) {
@@ -188,12 +203,12 @@ class Order extends Model
         }
 
         $totals = collect($this->formatted_totals)
-            ->map(fn($value) => "• {$value}")
+            ->map(fn ($value) => "• {$value}")
             ->implode("\n");
 
         return "Hola *{$customerName}*, te contacto desde la sucursal por tu pedido *#{$this->id}*:\n\n"
-            . "Detalle:\n{$itemsDetail}\n\n"
-            . "*Total: {$totals}*";
+            ."Detalle:\n{$itemsDetail}\n\n"
+            ."*Total: {$totals}*";
     }
 
     /**
@@ -201,7 +216,7 @@ class Order extends Model
      */
     public static function formatOrderNumber(?int $id): string
     {
-        return $id ? 'PED-' . str_pad((string) $id, 8, '0', STR_PAD_LEFT) : 'N/A';
+        return $id ? 'PED-'.str_pad((string) $id, 8, '0', STR_PAD_LEFT) : 'N/A';
     }
 
     /**

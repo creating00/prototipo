@@ -42,7 +42,7 @@ export default {
 
             document.dispatchEvent(
                 new CustomEvent("product:searchByCode", {
-                    detail: { code },
+                    detail: { code, context: "order" },
                 })
             );
         });

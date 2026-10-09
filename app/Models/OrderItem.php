@@ -17,10 +17,14 @@ class OrderItem extends Model
         'currency',
         'unit_price',
         'subtotal',
+        'destination_branch_id',
+        'stock_sent_at',
     ];
 
     protected $casts = [
         'currency' => CurrencyType::class,
+        'stock_sent_at' => 'datetime',
+        'destination_branch_id' => 'integer',
     ];
 
     public function order()
@@ -31,5 +35,10 @@ class OrderItem extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function destinationBranch()
+    {
+        return $this->belongsTo(Branch::class, 'destination_branch_id');
     }
 }

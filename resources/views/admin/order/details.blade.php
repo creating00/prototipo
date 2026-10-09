@@ -18,8 +18,10 @@
                     {{-- Información del Cliente --}}
                     <div class="col-md-3">
                         <strong><i class="fas fa-user me-1"></i> Cliente / Destino</strong><br>
-                        @if ($order->customer_type === \App\Models\Branch::class)
-                            <span class="badge-custom badge-custom-pastel-blue">Sucursal: {{ $order->customer->name }}</span>
+                        @if ($order->is_multi_destination)
+                            <span class="badge-custom badge-custom-pastel-blue">Destinos por producto</span>
+                        @elseif ($order->customer_type === \App\Models\Branch::class)
+                            <span class="badge-custom badge-custom-pastel-blue">Sucursal: {{ $order->customer?->name ?? 'No disponible' }}</span>
                         @else
                             {{ $order->customer->full_name ?? ($order->customer->business_name ?? 'N/A') }}
                         @endif
@@ -119,6 +121,21 @@
             :rowData="$rowData" :hiddenFields="$hiddenFields" :withActions="false">
         </x-adminlte.data-table>
 
+        @if ($order->status === \App\Enums\OrderStatus::Cancelled && $order->cancelled_at)
+            <div class="alert alert-secondary mt-3">
+                <strong>Pedido cancelado</strong> por {{ $order->cancelledBy?->name ?? 'Usuario no disponible' }}
+                el {{ $order->cancelled_at->format('d/m/Y H:i') }}.
+                <div>Motivo: {{ $order->cancellation_reason ?? 'Sin motivo registrado' }}</div>
+            </div>
+        @endif
+
+        @if ($order->is_multi_destination && !$order->is_stock_sent)
+            <p class="text-muted small mt-2">
+                Enviar al stock descuenta las cantidades de {{ $order->branch->name }} y las acredita en la sucursal indicada en cada producto.
+                La acción procesa el pedido completo y requiere autorización sobre la sucursal de origen.
+            </p>
+        @endif
+
         @php
             $userBranchId = auth()->user()?->branch_id;
             $isManual = $order->source === \App\Enums\OrderSource::Manual;
@@ -127,6 +144,25 @@
             $isStockSent = (bool)$order->is_stock_sent || (bool)$order->reception()->exists();
         @endphp
 
+        @if ($order->is_multi_destination && $order->canBeEdited() && !$isStockSent)
+            @can('cancel', $order)
+                <details class="mt-3">
+                    <summary class="btn btn-outline-danger btn-sm">Cancelar pedido</summary>
+                    <form method="POST" action="{{ route('web.orders.cancel', $order->id) }}" class="border rounded p-3 mt-2"
+                        onsubmit="return confirm('Se cancelará el pedido completo sin modificar el stock. ¿Continuar?');">
+                        @csrf
+                        <label for="cancellation-reason" class="form-label">Motivo de cancelación</label>
+                        <textarea id="cancellation-reason" name="cancellation_reason" class="form-control" rows="3" required maxlength="1000">{{ old('cancellation_reason') }}</textarea>
+                        @error('cancellation_reason')
+                            <div class="text-danger small">{{ $message }}</div>
+                        @enderror
+                        <p class="text-muted small mt-2">Se conservarán el número, los productos y sus destinos. El pedido quedará bloqueado.</p>
+                        <button type="submit" class="btn btn-danger btn-sm">Confirmar cancelación</button>
+                    </form>
+                </details>
+            @endcan
+        @endif
+
         <div class="mt-3 d-flex justify-content-between">
             <a href="{{ $backUrl ?? route('web.orders.index') }}" class="btn btn-default">
                 <i class="fas fa-arrow-left me-1"></i> Volver al listado
@@ -134,13 +170,13 @@
 
             <div class="d-flex gap-2">
                 {{-- Botón Enviar al Stock (Para sucursal compradora o pedido manual) --}}
-                @if ($isPurchaser && !$isStockSent && $order->status !== \App\Enums\OrderStatus::Cancelled)
+                @if (($order->is_multi_destination ? (($isPurchaseDetail ?? false) && auth()->user()->can('sendToStock', $order)) : $isPurchaser) && !$isStockSent && !in_array($order->status, [\App\Enums\OrderStatus::Cancelled, \App\Enums\OrderStatus::ConvertedToSale], true))
                     <button type="button" id="btn-send-to-stock" class="btn btn-primary btn-sm">
                         <i class="fas fa-boxes me-1"></i> Enviar al Stock
                     </button>
                 @endif
 
-                @if ($order->canBeEdited() && !$isStockSent)
+                @if ($order->canBeEdited() && !$isStockSent && auth()->user()->can('update', $order))
                     <a href="{{ route('web.orders.edit', $order->id) }}" class="btn btn-warning btn-sm">
                         <i class="fas fa-edit me-1"></i> Editar Pedido
                     </a>
@@ -153,7 +189,7 @@
                         data-sale_id="{{ $order->sale_id ?? '' }}">
                         Imprimir Comprobante
                     </x-adminlte.button>
-                @elseif ($isSupplier && $order->status !== \App\Enums\OrderStatus::Cancelled)
+                @elseif (!$order->is_multi_destination && $isSupplier && $order->status !== \App\Enums\OrderStatus::Cancelled)
                     <x-adminlte.button color="success" size="sm" icon="fas fa-file-invoice-dollar"
                         class="btn-convert" title="Convertir a Venta" data-id="{{ $order->id }}"
                         data-totals_json="{{ json_encode($order->totals) }}"
@@ -172,7 +208,7 @@
                 const btnSendStock = document.getElementById('btn-send-to-stock');
                 if (btnSendStock) {
                     btnSendStock.addEventListener('click', async () => {
-                        if (!confirm('¿Desea enviar este pedido al stock? Se incrementará el inventario según las cantidades cargadas y no se podrá modificar el registro del pedido.')) {
+                        if (!confirm(@json($order->is_multi_destination ? 'Se descontará el stock del origen y se incrementará cada destino. El pedido quedará bloqueado. ¿Continuar?' : 'Se incrementará el inventario y el pedido quedará bloqueado. ¿Continuar?'))) {
                             return;
                         }
 

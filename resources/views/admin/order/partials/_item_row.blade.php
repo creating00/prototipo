@@ -19,10 +19,13 @@
     $costModel = $canViewCost && $product ? ($product->purchasePriceModel($effectiveBranchId) ?? $product->purchasePriceModel(null)) : null;
     $costDisplay = $costDisplay ?? ($costModel ? $costModel->getFormattedAmount() : ($product ? '$ ' . number_format($product->purchasePrice($effectiveBranchId), 2, ',', '.') : '$ 0,00'));
     $showCostCell = $showCostCell ?? ($canViewCost && ($context ?? 'sale') !== 'order');
+    $isMultiDestination = $isMultiDestination ?? false;
+    $destinationId = $item?->destination_branch_id;
+    $destinationProvinceId = $item?->destinationBranch?->province_id;
 @endphp
 
 {{-- Usar nullsafe para evitar error en id y code --}}
-<tr data-id="{{ $product?->id ?? $item?->product_id }}" data-code="{{ $product?->code ?? 'N/A' }}">
+<tr data-id="{{ $product?->id ?? $item?->product_id }}" data-code="{{ $product?->code ?? 'N/A' }}" data-destination-id="{{ $destinationId }}" data-stock="{{ $stock }}">
     <td>
         <span class="text-muted small d-block text-truncate" style="max-width: 200px;"
             title="{{ $product?->name ?? 'Producto eliminado' }}">
@@ -31,6 +34,21 @@
         <input type="hidden" name="items[INDEX][product_id]" value="{{ $product?->id ?? $item?->product_id }}">
         <input type="hidden" name="items[INDEX][currency]" value="{{ $currentCurrency->value }}">
     </td>
+
+    @if ($isMultiDestination)
+        <td>
+            <select name="items[INDEX][destination_branch_id]" class="form-select form-select-sm item-destination" aria-label="Sucursal destino de {{ $product?->name }}" required>
+                <option value="">Seleccione una sucursal</option>
+                @foreach (($destinationBranches ?? collect()) as $destination)
+                    @if (!$destinationProvinceId || (int) $destination->province_id === (int) $destinationProvinceId)
+                        <option value="{{ $destination->id }}" @selected((int) $destinationId === (int) $destination->id)>{{ $destination->name }}</option>
+                    @endif
+                @endforeach
+            </select>
+            <small class="text-muted item-destination-province-label">{{ $item?->destinationBranch?->province?->name }}</small>
+            <input type="hidden" name="items[INDEX][destination_province_id]" class="item-destination-province" value="{{ $destinationProvinceId }}">
+        </td>
+    @endif
 
     <td>
         <input type="text" class="form-control text-center" value="{{ $stock }}" readonly>

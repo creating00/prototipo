@@ -10,7 +10,10 @@ trait DataTableFormatter
 {
     protected function resolveCustomerName($model): string
     {
-        if (!$model->customer) {
+        if ($model instanceof Order && $model->is_multi_destination) {
+            return e($model->customer_name);
+        }
+        if (! $model->customer) {
             return '';
         }
 
@@ -31,7 +34,10 @@ trait DataTableFormatter
 
     protected function resolveCustomerNameRaw($model): string
     {
-        if (!$model->customer) {
+        if ($model instanceof Order && $model->is_multi_destination) {
+            return $model->customer_name;
+        }
+        if (! $model->customer) {
             return '';
         }
 
@@ -54,7 +60,7 @@ trait DataTableFormatter
         $currency = $currency ?? CurrencyType::ARS;
 
         // Usamos el color definido en el Enum: text-success o text-primary
-        $colorClass = "text-" . $currency->color();
+        $colorClass = 'text-'.$currency->color();
 
         return sprintf(
             '<span class="%s %s">%s %s</span>',
@@ -68,13 +74,14 @@ trait DataTableFormatter
     protected function formatStatusBadge(string $statusLabel): string
     {
         $statusEnum = collect(\App\Enums\SaleStatus::cases())
-            ->first(fn($case) => $case->label() === $statusLabel);
+            ->first(fn ($case) => $case->label() === $statusLabel);
 
-        if (!$statusEnum) {
+        if (! $statusEnum) {
             return "<span class=\"badge-custom badge-custom-pastel-blue\">{$statusLabel}</span>";
         }
 
         $class = $statusEnum->badgeClass();
+
         return "<span class=\"{$class}\">{$statusLabel}</span>";
     }
 
@@ -92,6 +99,7 @@ trait DataTableFormatter
             // Maneja OrderStatus y SaleStatus automáticamente
             if (method_exists($model->status, 'badgeClass')) {
                 $class = $model->status->badgeClass();
+
                 return "<span class=\"{$class}\">{$label}</span>";
             }
 
@@ -99,7 +107,7 @@ trait DataTableFormatter
         }
 
         // Caso antiguo con arrays
-        if (!empty($options['statusLabels'])) {
+        if (! empty($options['statusLabels'])) {
             return $options['statusLabels'][$model->status] ?? 'Desconocido';
         }
 
@@ -123,18 +131,19 @@ trait DataTableFormatter
             $formattedTotals = $model->payments->map(function ($payment) {
                 $currency = $payment->currency instanceof CurrencyType
                     ? $payment->currency
-                    : CurrencyType::tryFrom((int)$payment->currency);
+                    : CurrencyType::tryFrom((int) $payment->currency);
+
                 return $this->formatCurrency((float) $payment->amount, $currency);
             })->implode('<br>');
 
-            $totalArs = $model->payments->filter(fn($p) => $p->currency === CurrencyType::ARS)->sum('amount');
-            $totalUsd = $model->payments->filter(fn($p) => $p->currency === CurrencyType::USD)->sum('amount');
+            $totalArs = $model->payments->filter(fn ($p) => $p->currency === CurrencyType::ARS)->sum('amount');
+            $totalUsd = $model->payments->filter(fn ($p) => $p->currency === CurrencyType::USD)->sum('amount');
 
-            $paymentsDetailed = $model->payments->map(fn($p) => [
-                'type'                => $p->payment_type->value,
-                'currency'            => $p->currency instanceof CurrencyType ? $p->currency->value : (int)$p->currency,
-                'amount'              => (float)$p->amount,
-                'payment_method_id'   => $p->payment_method_id,
+            $paymentsDetailed = $model->payments->map(fn ($p) => [
+                'type' => $p->payment_type->value,
+                'currency' => $p->currency instanceof CurrencyType ? $p->currency->value : (int) $p->currency,
+                'amount' => (float) $p->amount,
+                'payment_method_id' => $p->payment_method_id,
                 'payment_method_type' => $p->payment_method_type,
             ])->toJson();
         } else {
@@ -142,6 +151,7 @@ trait DataTableFormatter
             $totals = $model->totals ?? [];
             $formattedTotals = collect($totals)->map(function ($amount, $currencyId) {
                 $currency = CurrencyType::tryFrom((int) $currencyId);
+
                 return $this->formatCurrency((float) $amount, $currency);
             })->implode('<br>');
 
@@ -149,10 +159,10 @@ trait DataTableFormatter
             $totalUsd = $totals[CurrencyType::USD->value] ?? 0;
 
             // Para Order, creamos un detalle ficticio "Pendiente" para que el JS no falle
-            $paymentsDetailed = collect($totals)->map(fn($amount, $currencyId) => [
-                'type'     => 'pending',
-                'currency' => (int)$currencyId,
-                'amount'   => (float)$amount
+            $paymentsDetailed = collect($totals)->map(fn ($amount, $currencyId) => [
+                'type' => 'pending',
+                'currency' => (int) $currencyId,
+                'amount' => (float) $amount,
             ])->values()->toJson();
         }
 
@@ -174,26 +184,26 @@ trait DataTableFormatter
             : '<span class="text-muted">Pendiente</span>';
 
         return [
-            'id'                   => $model->id,
-            'number'               => $index + 1,
-            'branch'               => $model->branch->name ?? '',
-            'customer'             => $customerName,
-            'customer_type'        => $model->customer_type,
-            'payment_type'         => $paymentTypeHtml,
-            'total'                => $formattedTotals ?: $this->formatCurrency(0),
-            'requires_invoice'     => $requiresInvoiceHtml,
+            'id' => $model->id,
+            'number' => $index + 1,
+            'branch' => $model->branch->name ?? '',
+            'customer' => $customerName,
+            'customer_type' => $model->customer_type,
+            'payment_type' => $paymentTypeHtml,
+            'total' => $formattedTotals ?: $this->formatCurrency(0),
+            'requires_invoice' => $requiresInvoiceHtml,
             'requires_invoice_raw' => $model->requires_invoice,
-            'status'               => $this->resolveStatus($model, $options),
-            'status_raw'           => is_object($model->status) ? $model->status->value : $model->status,
-            'created_at'           => $model->created_at->format('Y-m-d'),
-            'phone'                => $phone,
-            'whatsapp-url'         => $phone ? $this->getWhatsAppLink($model, $phone) : null,
-            'total_ars'            => $totalArs,
-            'total_usd'            => $totalUsd,
-            'totals_json'          => json_encode($model->totals),
-            'payments_detailed'    => $paymentsDetailed,
-            'customer_name_raw'    => $customerNameRaw,
-            'exchange_rate'        => $model->exchange_rate
+            'status' => $this->resolveStatus($model, $options),
+            'status_raw' => is_object($model->status) ? $model->status->value : $model->status,
+            'created_at' => $model->created_at->format('Y-m-d'),
+            'phone' => $phone,
+            'whatsapp-url' => $phone ? $this->getWhatsAppLink($model, $phone) : null,
+            'total_ars' => $totalArs,
+            'total_usd' => $totalUsd,
+            'totals_json' => json_encode($model->totals),
+            'payments_detailed' => $paymentsDetailed,
+            'customer_name_raw' => $customerNameRaw,
+            'exchange_rate' => $model->exchange_rate,
         ];
     }
 
@@ -201,56 +211,57 @@ trait DataTableFormatter
     {
         $baseRow = $this->formatForDataTable($order, $index);
 
-        $sourceRaw   = is_object($order->source) ? $order->source->value : $order->source;
+        $sourceRaw = is_object($order->source) ? $order->source->value : $order->source;
         $sourceLabel = is_object($order->source) ? $order->source->label() : $order->source;
         $userBranchId = $this->currentBranchId();
         $isInterBranch = $order->isInterBranch();
-        $isPurchaserBranch = $isInterBranch && $userBranchId && ((int)$order->customer_id === (int)$userBranchId);
-        $isSupplierBranch = !$isInterBranch || !$userBranchId || ((int)$order->branch_id === (int)$userBranchId);
-        $sourceBadgeClass = match ((int)$sourceRaw) {
+        $isPurchaserBranch = $isInterBranch && $userBranchId && ((int) $order->customer_id === (int) $userBranchId);
+        $isSupplierBranch = ! $isInterBranch || ! $userBranchId || ((int) $order->branch_id === (int) $userBranchId);
+        $sourceBadgeClass = match ((int) $sourceRaw) {
             \App\Enums\OrderSource::Ecommerce->value => 'bg-info',
-            \App\Enums\OrderSource::Manual->value    => 'badge-purple',
-            default                                  => 'bg-secondary',
+            \App\Enums\OrderSource::Manual->value => 'badge-purple',
+            default => 'bg-secondary',
         };
 
         return [
             // --- 1. CELDAS VISIBLES (El orden aquí ES el orden de las columnas) ---
-            'number'     => $baseRow['number'],
-            'Pedido' => '<span class="fw-bold">' . Order::formatOrderNumber($baseRow['id']) . '</span>',
-            'branch'     => $baseRow['branch'],
-            'customer'   => $baseRow['customer'],
-            'total'      => $baseRow['total'],
-            'source'         => '<span class="badge ' . $sourceBadgeClass . '">' . $sourceLabel . '</span>',
-            'status'         => $baseRow['status'],
+            'number' => $baseRow['number'],
+            'Pedido' => '<span class="fw-bold">'.Order::formatOrderNumber($baseRow['id']).'</span>',
+            'branch' => $baseRow['branch'],
+            'customer' => $baseRow['customer'],
+            'total' => $baseRow['total'],
+            'source' => '<span class="badge '.$sourceBadgeClass.'">'.$sourceLabel.'</span>',
+            'status' => $baseRow['status'],
             'payment_status' => sprintf('<span class="%s">%s</span>', $order->payment_status_badge_class, $order->payment_status_label),
-            'created_at'     => $baseRow['created_at'],
+            'created_at' => $baseRow['created_at'],
 
             // --- 2. ATRIBUTOS DE FILA ---
             '_row_attributes' => [
-                'id'                   => $baseRow['id'],
-                'status_raw'           => $baseRow['status_raw'],
-                'source_raw'           => $sourceRaw,
-                'is_stock_sent'        => ($order->is_stock_sent || $order->reception()->exists()) ? 'true' : 'false',
-                'is_inter_branch'      => $isInterBranch ? 'true' : 'false',
-                'is_purchaser_branch'  => $isPurchaserBranch ? 'true' : 'false',
-                'is_supplier_branch'   => $isSupplierBranch ? 'true' : 'false',
-                'payment_status'       => $order->payment_status,
+                'id' => $baseRow['id'],
+                'status_raw' => $baseRow['status_raw'],
+                'source_raw' => $sourceRaw,
+                'is_stock_sent' => ($order->is_stock_sent || $order->reception()->exists()) ? 'true' : 'false',
+                'is_inter_branch' => $isInterBranch ? 'true' : 'false',
+                'is_multi_destination' => $order->is_multi_destination ? 'true' : 'false',
+                'is_purchaser_branch' => $isPurchaserBranch ? 'true' : 'false',
+                'is_supplier_branch' => $isSupplierBranch ? 'true' : 'false',
+                'payment_status' => $order->payment_status,
                 'payment_status_label' => $order->payment_status_label,
                 'payment_status_badge' => $order->payment_status_badge_class,
-                'phone'                => $baseRow['phone'],
-                'whatsapp-url'         => $baseRow['whatsapp-url'],
-                'customer_type'        => $baseRow['customer_type'],
-                'payment_type'         => $baseRow['payment_type'],
-                'requires_invoice'     => $baseRow['requires_invoice'],
+                'phone' => $baseRow['phone'],
+                'whatsapp-url' => $baseRow['whatsapp-url'],
+                'customer_type' => $baseRow['customer_type'],
+                'payment_type' => $baseRow['payment_type'],
+                'requires_invoice' => $baseRow['requires_invoice'],
                 'requires_invoice_raw' => $baseRow['requires_invoice_raw'],
-                'total_ars'            => $baseRow['total_ars'],
-                'total_usd'            => $baseRow['total_usd'],
-                'totals_json'          => $baseRow['totals_json'],
-                'payments_detailed'    => $baseRow['payments_detailed'],
-                'customer_name'        => $baseRow['customer_name_raw'],
-                'exchange_rate'        => $baseRow['exchange_rate'],
-                'sale_id'              => $order->sale?->id,
-            ]
+                'total_ars' => $baseRow['total_ars'],
+                'total_usd' => $baseRow['total_usd'],
+                'totals_json' => $baseRow['totals_json'],
+                'payments_detailed' => $baseRow['payments_detailed'],
+                'customer_name' => $baseRow['customer_name_raw'],
+                'exchange_rate' => $baseRow['exchange_rate'],
+                'sale_id' => $order->sale?->id,
+            ],
         ];
     }
 
@@ -271,21 +282,21 @@ trait DataTableFormatter
 
         // 3. Obtenemos los atributos base de la fila
         $attributes = [
-            'id'                   => $row['id'],
-            'status_raw'           => $row['status_raw'],
-            'phone'                => $row['phone'],
-            'whatsapp-url'         => $row['whatsapp-url'],
-            'customer_type'        => $row['customer_type'],
-            'payment_type'         => $row['payment_type'],
-            'requires_invoice'     => $row['requires_invoice'],
+            'id' => $row['id'],
+            'status_raw' => $row['status_raw'],
+            'phone' => $row['phone'],
+            'whatsapp-url' => $row['whatsapp-url'],
+            'customer_type' => $row['customer_type'],
+            'payment_type' => $row['payment_type'],
+            'requires_invoice' => $row['requires_invoice'],
             'requires_invoice_raw' => $row['requires_invoice_raw'],
-            'total_ars'            => $row['total_ars'],
-            'total_usd'            => $row['total_usd'],
-            'totals_json'          => $row['totals_json'],
-            'payments_detailed'    => $row['payments_detailed'],
-            'customer_name'        => $row['customer_name_raw'],
-            'exchange_rate'        => $row['exchange_rate'],
-            'created_at'           => $row['created_at'], // <-- AGREGADO
+            'total_ars' => $row['total_ars'],
+            'total_usd' => $row['total_usd'],
+            'totals_json' => $row['totals_json'],
+            'payments_detailed' => $row['payments_detailed'],
+            'customer_name' => $row['customer_name_raw'],
+            'exchange_rate' => $row['exchange_rate'],
+            'created_at' => $row['created_at'], // <-- AGREGADO
         ];
 
         // 4. Retornamos la estructura incluyendo _row_attributes
@@ -294,7 +305,7 @@ trait DataTableFormatter
             ['sale_type' => $saleTypeHtml],
             array_slice($row, 4, null, true)
         );
-        
+
         $base['_row_attributes'] = $attributes;
 
         return $base;
@@ -308,6 +319,7 @@ trait DataTableFormatter
     private function getWhatsAppLink($model, string $phone): string
     {
         $message = urlencode($model->generateWhatsAppMessage());
+
         return "https://wa.me/{$phone}?text={$message}";
     }
 }

@@ -2,11 +2,9 @@
 
 namespace App\Observers;
 
+use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\User;
-use App\Enums\OrderStatus;
-use App\Models\Branch;
-use App\Models\Client;
 use App\Notifications\OrderStatusNotification;
 use Illuminate\Support\Facades\Notification;
 
@@ -36,6 +34,12 @@ class OrderObserver
 
     protected function sendNotification(Order $order, string $message)
     {
+        if ($order->is_multi_destination) {
+            app(\App\Services\Order\OrderTransferService::class)->notifyParticipants($order);
+
+            return;
+        }
+
         $targetUsers = User::where('branch_id', $order->branch_id)->get();
 
         if ($targetUsers->isNotEmpty()) {

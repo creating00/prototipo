@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Web;
 use App\Enums\OrderSource;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\BaseOrderController;
+use App\Models\Branch;
 use App\Models\Order;
+use App\Models\Province;
 use App\Services\BranchService;
 use App\Services\CategoryService;
 use App\Services\ClientService;
@@ -55,7 +57,7 @@ class OrderWebController extends BaseOrderController
             'requires_invoice_raw',
             'exchange_rate',
             'sale_id',
-            'payments_detailed'
+            'payments_detailed',
         ];
 
         return view('admin.order.index', compact(
@@ -74,6 +76,7 @@ class OrderWebController extends BaseOrderController
         // 1. Obtenemos el pedido
         $order = $this->orderService->getOrderById($id);
         $this->authorize('view', $order);
+        $order = $this->orderService->forDisplay($order);
 
         // 2. Obtenemos los datos de la tabla de items (trae headers, rowData y hiddenFields)
         $itemsData = $this->orderService->getOrderItemsData($order);
@@ -91,13 +94,14 @@ class OrderWebController extends BaseOrderController
 
         // 4. Retornamos la vista uniendo todo
         return view('admin.order.details', [
-            'order'        => $order,
-            'backUrl'      => $backUrl,
-            'banks'        => $banks,
+            'order' => $order,
+            'backUrl' => $backUrl,
+            'banks' => $banks,
             'bankAccounts' => $bankAccounts,
-            'rowData'      => $itemsData['rowData'],
-            'headers'      => $itemsData['headers'],
+            'rowData' => $itemsData['rowData'],
+            'headers' => $itemsData['headers'],
             'hiddenFields' => $itemsData['hiddenFields'],
+            'isPurchaseDetail' => true,
         ]);
     }
 
@@ -105,6 +109,10 @@ class OrderWebController extends BaseOrderController
     {
         $order = $this->orderService->getOrderById($id);
         $this->authorize('view', $order);
+        if ($order->is_multi_destination) {
+            return redirect()->route('web.orders.purchases.details', $order->id);
+        }
+        $order = $this->orderService->forDisplay($order);
 
         $itemsData = $this->orderService->getOrderItemsData($order);
 
@@ -119,12 +127,12 @@ class OrderWebController extends BaseOrderController
             ->pluck('full_description', 'id');
 
         return view('admin.order.details', [
-            'order'        => $order,
-            'backUrl'      => $backUrl,
-            'banks'        => $banks,
+            'order' => $order,
+            'backUrl' => $backUrl,
+            'banks' => $banks,
             'bankAccounts' => $bankAccounts,
-            'rowData'      => $itemsData['rowData'],
-            'headers'      => $itemsData['headers'],
+            'rowData' => $itemsData['rowData'],
+            'headers' => $itemsData['headers'],
             'hiddenFields' => $itemsData['hiddenFields'],
         ]);
     }
@@ -136,6 +144,7 @@ class OrderWebController extends BaseOrderController
 
         $headers = [
             '#',
+            'Pedido',
             'Proveedor (Sucursal)',
             'Total',
             'Canal',
@@ -143,7 +152,7 @@ class OrderWebController extends BaseOrderController
             'Estado Pago',
             'Fecha Solicitud',
             'Fecha Recepción',
-            'Recibido por'
+            'Recibido por',
         ];
 
         $hiddenFields = [
@@ -171,19 +180,19 @@ class OrderWebController extends BaseOrderController
             // Solo pasamos lo que el usuario envía, el Service decide el Status
             $data = [
                 'observation' => $request->observation,
-                'user_id'     => $this->userId(),
+                'user_id' => $this->userId(),
             ];
 
             $this->orderService->registerReception($id, $data);
 
             return response()->json([
                 'success' => true,
-                'message' => 'La recepción ha sido registrada y el inventario actualizado correctamente.'
+                'message' => 'La recepción ha sido registrada y el inventario actualizado correctamente.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 400);
         }
     }
@@ -249,13 +258,12 @@ class OrderWebController extends BaseOrderController
         $user = $this->currentUser();
         $accessibleBranches = $user ? $branchService->getAccessibleBranchesForUser($user) : collect();
 
-        $originBranch = ($userBranchId ? $branchService->getUserBranch($userBranchId) : null)
-            ?? $accessibleBranches->first()
-            ?? \App\Models\Branch::first();
+        $originBranch = $userBranchId ? $branchService->getUserBranch($userBranchId) : null;
+        if (! $originBranch || ! $accessibleBranches->contains('id', $originBranch->id)) {
+            return redirect()->route('web.orders.index')->withErrors('Seleccione una sucursal activa autorizada para crear el pedido.');
+        }
 
         $currentBranchId = $originBranch?->id;
-        $destinationBranches = collect($branchService->getAllBranchesExcept($currentBranchId));
-
         $statusOptions = OrderStatus::forInternalOrder();
         $customer_type = 'App\Models\Branch';
 
@@ -263,9 +271,21 @@ class OrderWebController extends BaseOrderController
             'customer_type',
             'originBranch',
             'currentBranchId',
-            'destinationBranches',
             'statusOptions'
-        ) + ['isEdit' => false, 'order' => null]);
+        ) + ['isEdit' => false, 'order' => null,
+            'existingOrderItems' => $this->orderService->buildDraftItemsHtml(old('items', []), $originBranch->id),
+        ] + $this->transferFormData($originBranch));
+    }
+
+    private function transferFormData(Branch $originBranch): array
+    {
+        $destinationBranches = Branch::with('province')->where('id', '!=', $originBranch->id)->orderBy('name')->get();
+
+        return [
+            'isMultiDestination' => true,
+            'destinationBranches' => $destinationBranches,
+            'destinationProvinces' => Province::whereIn('id', $destinationBranches->pluck('province_id'))->orderBy('name')->get(),
+        ];
     }
 
     public function store(Request $request)
@@ -285,17 +305,20 @@ class OrderWebController extends BaseOrderController
 
             // Si el formulario solicita explícitamente source = Manual (3), mantenemos Manual.
             // De lo contrario, asignamos Backoffice.
-            if (isset($data['source']) && (int)$data['source'] === OrderSource::Manual->value) {
+            if (isset($data['source']) && (int) $data['source'] === OrderSource::Manual->value) {
                 $data['source'] = OrderSource::Manual->value;
             } else {
-                $data['source'] = isset($data['source']) ? (int)$data['source'] : OrderSource::Backoffice->value;
+                $data['source'] = isset($data['source']) ? (int) $data['source'] : OrderSource::Backoffice->value;
             }
 
             $data['user_id'] = $this->userId();
             $order = $this->orderService->createOrder($data);
 
             // Redirección inteligente: si es pedido a sucursal o manual, va a Mis Pedidos Realizados
-            if ((int)$data['source'] === OrderSource::Manual->value || $request->customer_type === 'App\Models\Branch') {
+            if ($order->is_multi_destination) {
+                return redirect()->route('web.orders.purchases.details', $order->id)->with('success', 'Pedido registrado con sus sucursales de destino.');
+            }
+            if ((int) $data['source'] === OrderSource::Manual->value || $request->customer_type === 'App\Models\Branch') {
                 return redirect()
                     ->route('web.orders.purchases')
                     ->with('success', 'Pedido solicitado correctamente.');
@@ -311,23 +334,29 @@ class OrderWebController extends BaseOrderController
 
     public function sendToStock(int $id)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.orders.index')) {
+            return $redirect;
+        }
+        $this->authorize('sendToStock', $this->orderService->getOrderById($id));
+
         try {
             $order = $this->orderService->sendToStock($id);
 
             return response()->json([
                 'success' => true,
-                'message' => 'El pedido fue enviado al stock e incrementó el inventario correctamente.'
+                'message' => 'El pedido fue enviado al stock e incrementó el inventario correctamente.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 400);
         }
     }
 
     public function updatePaymentStatus(Request $request, int $id)
     {
+        $this->authorize('update', $this->orderService->getOrderById($id));
         $request->validate([
             'payment_status' => 'required|integer|in:1,2',
         ]);
@@ -344,7 +373,7 @@ class OrderWebController extends BaseOrderController
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 400);
         }
     }
@@ -358,7 +387,7 @@ class OrderWebController extends BaseOrderController
 
         return response()->json([
             'success' => true,
-            'items'   => $items,
+            'items' => $items,
         ]);
     }
 
@@ -371,7 +400,7 @@ class OrderWebController extends BaseOrderController
         $order = $this->orderService->getOrderById($id);
         $this->authorize('update', $order);
 
-        if (!$order->canBeEdited()) {
+        if (! $order->canBeEdited()) {
             return redirect()->back()->with('error', 'El registro de este pedido está bloqueado porque ya fue enviado al stock.');
         }
 
@@ -391,7 +420,7 @@ class OrderWebController extends BaseOrderController
         if ($customer_type === 'App\Models\Branch') {
             // --- 1. LÓGICA PARA SUCURSALES (COMPRAS INTERNAS) ---
             $branches = collect([
-                $branchService->getUserBranch($order->customer_id)
+                $branchService->getUserBranch($order->customer_id),
             ]);
 
             // Sucursales Proveedoras (Todas excepto la que pide)
@@ -404,25 +433,29 @@ class OrderWebController extends BaseOrderController
             $branchIdToUse = $order->branch_id ?? $userBranchId;
 
             $branches = collect([
-                $branchService->getUserBranch($branchIdToUse)
+                $branchService->getUserBranch($branchIdToUse),
             ]);
 
             $statusOptions = OrderStatus::forSale();
         }
 
-        return view('admin.order.edit', [
-            'order'               => $order,
-            'isEdit'              => $isEdit,
-            'customer_type'       => $customer_type,
-            'existingOrderItems'  => $this->orderService->buildOrderItemsHtml($order),
-            'branches'            => $branches,
-            'currentBranchId'     => $userBranchId,
-            'categories'          => app(CategoryService::class)->getAllCategories(),
-            'clients'             => app(ClientService::class)->getAllClients($userBranchId),
-            'statusOptions'       => $statusOptions,
-            'originBranch'        => $originBranch,
+        $transferData = $order->is_multi_destination ? $this->transferFormData($order->branch) : [];
+
+        return view('admin.order.edit', array_merge([
+            'order' => $order,
+            'isEdit' => $isEdit,
+            'customer_type' => $customer_type,
+            'existingOrderItems' => $order->is_multi_destination && old('items')
+                ? $this->orderService->buildDraftItemsHtml(old('items'), $order->branch_id)
+                : $this->orderService->buildOrderItemsHtml($order),
+            'branches' => $branches,
+            'currentBranchId' => $userBranchId,
+            'categories' => app(CategoryService::class)->getAllCategories(),
+            'clients' => app(ClientService::class)->getAllClients($userBranchId),
+            'statusOptions' => $statusOptions,
+            'originBranch' => $originBranch,
             'destinationBranches' => $destinationBranches,
-        ]);
+        ], $transferData));
     }
 
     public function update(Request $request, $id)
@@ -484,22 +517,31 @@ class OrderWebController extends BaseOrderController
         } catch (\Exception $e) {
             return redirect()
                 ->back()
-                ->with('error', 'No se pudo eliminar la orden: ' . $e->getMessage());
+                ->with('error', 'No se pudo eliminar la orden: '.$e->getMessage());
         }
     }
 
-    public function cancel($id)
+    public function cancel(Request $request, $id)
     {
+        if ($redirect = $this->denyIfConsolidatedMutation('web.orders.purchases')) {
+            return $redirect;
+        }
+        $order = $this->orderService->getOrderById($id);
+        $this->authorize('cancel', $order);
+        $data = $request->validate([
+            'cancellation_reason' => [$order->is_multi_destination ? 'required' : 'nullable', 'string', 'max:1000'],
+        ]);
         try {
-            $order = $this->orderService->getOrderById($id);
-
-            $this->authorize('cancel', $order);
-
             $redirectRoute = ($order->customer_type === 'App\Models\Branch')
                 ? 'web.orders.purchases'
                 : 'web.orders.index';
 
-            $this->orderService->cancelOrder($id);
+            $this->orderService->cancelOrder($id, $data['cancellation_reason'] ?? null);
+
+            if ($order->is_multi_destination) {
+                return redirect()->route('web.orders.purchases.details', $order->id)
+                    ->with('success', 'Pedido cancelado sin modificar el stock.');
+            }
 
             return redirect()
                 ->route($redirectRoute)
@@ -507,7 +549,7 @@ class OrderWebController extends BaseOrderController
         } catch (\Exception $e) {
             return redirect()
                 ->back()
-                ->with('error', 'No se pudo cancelar la orden: ' . $e->getMessage());
+                ->with('error', 'No se pudo cancelar la orden: '.$e->getMessage());
         }
     }
 }

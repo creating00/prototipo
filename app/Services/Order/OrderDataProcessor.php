@@ -5,7 +5,6 @@ namespace App\Services\Order;
 use App\Enums\CurrencyType;
 use App\Enums\OrderSource;
 use App\Models\Client;
-use App\Models\ClientAccount;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\ClientService;
@@ -15,16 +14,33 @@ use Illuminate\Support\Str;
 class OrderDataProcessor
 {
     protected ClientService $clientService;
+
     use AuthTrait;
 
-    public function __construct(ClientService $clientService = null)
+    public function __construct(?ClientService $clientService = null)
     {
-        $this->clientService = $clientService ?? new ClientService();
+        $this->clientService = $clientService ?? new ClientService;
     }
 
     public function prepare(array $validated, ?Order $existingOrder = null): array
     {
         $data = $validated;
+
+        if (! empty($data['is_multi_destination'])) {
+            $branchId = $existingOrder?->branch_id ?? $this->currentBranchId() ?? ($data['branch_id'] ?? null);
+            if (! $branchId || ($this->currentUser() && ! in_array((int) $branchId, $this->getAccessibleBranchIds(), true))) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['branch_id' => 'Seleccione una sucursal de origen autorizada.']);
+            }
+            if (! $existingOrder && $this->currentUser() && (int) ($data['branch_id'] ?? 0) !== (int) $this->currentBranchId()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['branch_id' => 'El origen debe ser la sucursal activa.']);
+            }
+
+            $data['branch_id'] = $branchId;
+            $data['customer_id'] = null;
+            $data['customer_type'] = \App\Models\Branch::class;
+
+            return $data;
+        }
 
         if (($data['source'] ?? null) == OrderSource::Ecommerce->value) {
             if (($data['customer_type'] ?? null) === Client::class) {
@@ -43,7 +59,7 @@ class OrderDataProcessor
         }
 
         foreach ($data['items'] as &$item) {
-            if (!isset($item['currency']) || !$item['currency']) {
+            if (! isset($item['currency']) || ! $item['currency']) {
                 $item['currency'] = CurrencyType::ARS->value;
             }
         }
@@ -57,7 +73,7 @@ class OrderDataProcessor
         $client = $this->clientService->getClientFromToken($data['token']);
         $data['customer_id'] = $client->id;
         $data['customer_type'] = Client::class;
-        //$data['user_id'] = null;
+        // $data['user_id'] = null;
         $data['user_id'] = $this->getDefaultEcommerceUser()->id;
         $data['branch_id'] = $data['branch_id'] ?? $this->currentBranchId() ?? null;
     }
@@ -65,7 +81,7 @@ class OrderDataProcessor
     protected function handleEcommerceOrder(array &$data): void
     {
         // Validamos que client exista
-        if (!isset($data['client'])) {
+        if (! isset($data['client'])) {
             throw new \Exception('No se proporcionó información de cliente');
         }
 
@@ -90,12 +106,12 @@ class OrderDataProcessor
             }
 
             // Registrar sucursal de referencia si fue seleccionada
-            if (!empty($data['target_branch_id'])) {
+            if (! empty($data['target_branch_id'])) {
                 $targetBranch = \App\Models\Branch::find($data['target_branch_id']);
                 if ($targetBranch) {
                     $refNote = "[Pedido a sucursal: {$targetBranch->name}]";
                     $data['notes'] = isset($data['notes']) && trim($data['notes']) !== ''
-                        ? $refNote . "\n" . $data['notes']
+                        ? $refNote."\n".$data['notes']
                         : $refNote;
                 }
             }
@@ -114,7 +130,7 @@ class OrderDataProcessor
                 $data['customer_id'] = $data['customer_id'] ?? $myBranchId;
             }
 
-            if (!$data['branch_id']) {
+            if (! $data['branch_id']) {
                 throw new \Exception('Debe seleccionar una sucursal proveedora.');
             }
 

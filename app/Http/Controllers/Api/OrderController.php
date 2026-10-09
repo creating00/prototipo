@@ -2,19 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\BaseOrderController;
-use Illuminate\Http\Request;
 use App\Enums\OrderSource;
+use App\Http\Controllers\BaseOrderController;
 use App\Models\Client;
 use App\Models\Order;
 use App\Services\CurrencyExchangeService;
 use App\Traits\AuthTrait;
+use Illuminate\Http\Request;
 
 class OrderController extends BaseOrderController
 {
     use AuthTrait;
 
     protected $clientService;
+
     protected $currencyService;
 
     public function __construct(
@@ -36,12 +37,15 @@ class OrderController extends BaseOrderController
 
     public function store(Request $request)
     {
+        if ($request->boolean('is_multi_destination')) {
+            $this->authorize('createBranch', Order::class);
+        }
         try {
             $data = $request->all();
 
             // Forzar valores Backoffice
             $data['source'] = OrderSource::Backoffice->value;
-            $data['user_id'] = config('orders.system_user_id');
+            $data['user_id'] = $request->boolean('is_multi_destination') ? $this->userId() : config('orders.system_user_id');
             $data['customer_type'] = \App\Models\Branch::class;
 
             $order = $this->orderService->createOrder($data);
@@ -49,7 +53,7 @@ class OrderController extends BaseOrderController
             return response()->json($order, 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         }
     }
@@ -68,24 +72,24 @@ class OrderController extends BaseOrderController
                 ], $item);
             }, $data['items']);
 
-            if (!isset($data['customer_type'])) {
+            if (! isset($data['customer_type'])) {
                 return response()->json(['error' => 'customer_type is required'], 422);
             }
 
             // Validación lógica para Clientes
             if ($data['customer_type'] === Client::class) {
                 // Si no hay ID y tampoco hay datos de cliente nuevo, error
-                if (!isset($data['client_id']) && !isset($data['client'])) {
+                if (! isset($data['client_id']) && ! isset($data['client'])) {
                     return response()->json([
-                        'error' => 'client_id or client data is required for client orders'
+                        'error' => 'client_id or client data is required for client orders',
                     ], 422);
                 }
 
-                if (!isset($data['client_id']) && isset($data['client'])) {
+                if (! isset($data['client_id']) && isset($data['client'])) {
 
                     $branchId = $data['branch_id'] ?? null;
 
-                    if (!$branchId) {
+                    if (! $branchId) {
                         return response()->json(['error' => 'branch_id is required to create a client'], 422);
                     }
 
@@ -96,9 +100,9 @@ class OrderController extends BaseOrderController
 
             // Validación para Sucursales (Transferencias)
             if ($data['customer_type'] === \App\Models\Branch::class) {
-                if (!isset($data['branch_recipient_id'])) {
+                if (! isset($data['branch_recipient_id'])) {
                     return response()->json([
-                        'error' => 'branch_recipient_id is required for branch orders'
+                        'error' => 'branch_recipient_id is required for branch orders',
                     ], 422);
                 }
             }
@@ -122,13 +126,23 @@ class OrderController extends BaseOrderController
 
     public function show($id)
     {
+        $order = $this->orderService->getOrderById($id);
+        if ($order->is_multi_destination) {
+            $this->authorize('view', $order);
+            $order = $this->orderService->forDisplay($order);
+        }
+
         return response()->json(
-            $this->orderService->getOrderById($id)
+            $order
         );
     }
 
     public function update(Request $request, $id)
     {
+        $order = $this->orderService->getOrderById($id);
+        if ($order->is_multi_destination) {
+            $this->authorize('update', $order);
+        }
         try {
             $data = $request->all();
 
@@ -140,36 +154,47 @@ class OrderController extends BaseOrderController
             return response()->json($order);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         }
     }
 
     public function destroy($id)
     {
-        
+        $order = $this->orderService->getOrderById($id);
+        if ($order->is_multi_destination) {
+            $this->authorize('delete', $order);
+        }
+
         try {
             return response()->json(
                 $this->orderService->deleteOrder($id)
             );
         } catch (\Exception $e) {
             return response()->json([
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], $e->getCode() ?: 400);
         }
     }
 
-    public function cancel($id)
+    public function cancel(Request $request, $id)
     {
+        $order = $this->orderService->getOrderById($id);
+        if ($order->is_multi_destination) {
+            $this->authorize('cancel', $order);
+        }
+        $data = $request->validate([
+            'cancellation_reason' => [$order->is_multi_destination ? 'required' : 'nullable', 'string', 'max:1000'],
+        ]);
         try {
             $order = $this->orderService->getOrderById($id);
             // $this->authorize('cancel', $order);
 
-            $result = $this->orderService->cancelOrder($id);
+            $result = $this->orderService->cancelOrder($id, $data['cancellation_reason'] ?? null);
 
             return response()->json([
                 'success' => true,
-                'message' => $result['message']
+                'message' => $result['message'],
             ], 200);
         } catch (\Exception $e) {
             // Manejo de código de estado HTTP
@@ -177,7 +202,7 @@ class OrderController extends BaseOrderController
 
             return response()->json([
                 'success' => false,
-                'message' => 'No se pudo cancelar la orden: ' . $e->getMessage()
+                'message' => 'No se pudo cancelar la orden: '.$e->getMessage(),
             ], $statusCode);
         }
     }
@@ -185,8 +210,7 @@ class OrderController extends BaseOrderController
     /**
      * Convierte una orden existente en una venta.
      *
-     * @param Request $request
-     * @param int $id
+     * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function convert(Request $request, $id)
@@ -194,7 +218,7 @@ class OrderController extends BaseOrderController
         try {
             $options = $request->all();
 
-            if (!isset($options['user_id'])) {
+            if (! isset($options['user_id'])) {
                 $options['user_id'] = $this->userId() ?? config('orders.system_user_id');
             }
 
@@ -211,7 +235,7 @@ class OrderController extends BaseOrderController
             return response()->json([
                 'message' => 'Orden convertida exitosamente',
                 'sale_id' => $sale->id,
-                'print'   => session('print_receipt') // Lo enviamos por si el JS quiere usarlo ya
+                'print' => session('print_receipt'), // Lo enviamos por si el JS quiere usarlo ya
             ], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 400);

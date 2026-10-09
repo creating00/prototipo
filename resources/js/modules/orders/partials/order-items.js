@@ -4,6 +4,7 @@ import { Toast } from "@/config/notifications";
 import { addRow as addRowRow, updateQuantity, bindQuantityChange, bindPriceChange, bindCurrencyToggle } from "./order-row";
 import { getCurrentBranchId } from "../../../config/datatables";
 import TableUiManager from "../../sales/services/TableUiManager";
+import destinations from "./order-destinations";
 
 export default {
     table: null,
@@ -119,6 +120,10 @@ export default {
     async addProductByCode(payload) {
         const { code, context, is_repair } = payload;
         const branchId = getCurrentBranchId();
+        if (destinations.enabled && !destinations.provinceId) {
+            Toast.fire({ icon: "warning", title: "Seleccione una provincia de destino" });
+            return;
+        }
 
         if (!branchId) {
             Toast.fire({
@@ -169,7 +174,8 @@ export default {
     findRow(code) {
         if (!this.table) return null;
         const normalized = code.toString().trim().toUpperCase();
-        return this.table.querySelector(`tr[data-code="${normalized}"]`);
+        return [...this.table.children].find((row) => row.dataset.code?.toUpperCase() === normalized
+            && (!destinations.enabled || !row.querySelector(".item-destination")?.value)) || null;
     },
 
     updateTotal() {
@@ -196,9 +202,11 @@ export default {
 
         if (!this.table) return;
 
-        return addRowRow(this.table, html, {
+        const row = addRowRow(this.table, html, {
             updateTotal: () => this.updateTotal(),
         });
+        destinations.prepareRow(row);
+        return row;
     },
 
     removeRow(row) {

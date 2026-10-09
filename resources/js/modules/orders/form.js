@@ -8,6 +8,7 @@ import ShortcutManager from "../../helpers/ShortcutManager.js";
 import ViewManager from "../../helpers/ViewManager.js";
 
 import orderCurrency from "./partials/order-currency";
+import destinations from "./partials/order-destinations";
 
 const OrderForm = {
     init() {
@@ -20,6 +21,7 @@ const OrderForm = {
     },
 
     initModules() {
+        destinations.init();
         if (customerType) customerType.init();
         orderItems.init();
         // orderSearch.init();

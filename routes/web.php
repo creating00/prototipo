@@ -1,48 +1,44 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\{
-    DashboardController,
-    ProfileController,
-    HomeController,
-    SaleReceiptController,
-};
 use App\Http\Controllers\Api\ExpenseImportController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductImportController;
 use App\Http\Controllers\Api\ProviderImportController;
-use App\Http\Controllers\Web\{
-    BranchWebController,
-    CategoryWebController,
-    ClientWebController,
-    OrderWebController,
-    ProductWebController,
-    ProviderWebController,
-    SaleWebController,
-    ExpenseWebController,
-    ExpenseTypeWebController,
-    ProviderProductWebController,
-    UserWebController,
-    ProviderOrderWebController,
-    DiscountWebController,
-    AnalyticsWebController,
-    BankAccountWebController,
-    BankWebController,
-    NotificationWebController,
-    PriceModificationWebController,
-    PromotionImageWebController,
-    PromotionWebController,
-    RepairAmountWebController,
-    BranchContextWebController
-};
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SaleReceiptController;
+use App\Http\Controllers\Web\AnalyticsWebController;
+use App\Http\Controllers\Web\BankAccountWebController;
+use App\Http\Controllers\Web\BankWebController;
+use App\Http\Controllers\Web\BranchContextWebController;
+use App\Http\Controllers\Web\BranchWebController;
+use App\Http\Controllers\Web\CategoryWebController;
+use App\Http\Controllers\Web\ClientWebController;
+use App\Http\Controllers\Web\DiscountWebController;
+use App\Http\Controllers\Web\ExpenseTypeWebController;
+use App\Http\Controllers\Web\ExpenseWebController;
+use App\Http\Controllers\Web\NotificationWebController;
+use App\Http\Controllers\Web\OrderWebController;
+use App\Http\Controllers\Web\PriceModificationWebController;
+use App\Http\Controllers\Web\ProductWebController;
+use App\Http\Controllers\Web\PromotionImageWebController;
+use App\Http\Controllers\Web\PromotionWebController;
+use App\Http\Controllers\Web\ProviderOrderWebController;
+use App\Http\Controllers\Web\ProviderProductWebController;
+use App\Http\Controllers\Web\ProviderWebController;
+use App\Http\Controllers\Web\RepairAmountWebController;
+use App\Http\Controllers\Web\SaleWebController;
+use App\Http\Controllers\Web\UserWebController;
 use App\Models\Sale;
+use Illuminate\Support\Facades\Route;
 
 // Página principal
 Route::get('/', [HomeController::class, 'index']);
 
 // Grupo autenticado y verificado
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
+    Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard');
 
     // Asegúrate de importar el controlador arriba o usar el path completo
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -52,7 +48,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/', [ProfileController::class, 'update'])->name('update');
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
-
 
     Route::prefix('web')->group(function () {
         Route::post('branch-context/switch', [BranchContextWebController::class, 'switchContext'])
@@ -111,7 +106,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         webResource('repair-amounts', RepairAmountWebController::class);
         webResource('banks', BankWebController::class);
         webResource('bank-accounts', BankAccountWebController::class);
-        //webResource('promotions', PromotionWebController::class);
+        // webResource('promotions', PromotionWebController::class);
         webResource('promotions', PromotionImageWebController::class);
         webResource('notifications', NotificationWebController::class);
 
@@ -151,6 +146,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('orders/{id}/details', [OrderWebController::class, 'show'])->name('web.orders.show');
         Route::post('orders/{id}/receive', [OrderWebController::class, 'receive'])->name('web.orders.receive');
         Route::post('orders/{id}/send-to-stock', [OrderWebController::class, 'sendToStock'])->name('web.orders.send-to-stock');
+        Route::post('orders/{id}/cancel', [OrderWebController::class, 'cancel'])->name('web.orders.cancel');
         Route::patch('orders/{id}/payment-status', [OrderWebController::class, 'updatePaymentStatus'])->name('web.orders.update-payment-status');
         Route::get('orders/auto-order-items', [OrderWebController::class, 'autoOrderItems'])->name('web.orders.auto-order-items');
 
@@ -172,17 +168,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         resourceWithExtras('sales', SaleWebController::class, [
             'create-client' => 'createClient',
             'create-branch' => 'createBranch',
-            'export'        => 'export',
+            'export' => 'export',
         ]);
     });
 });
 
 // Rutas de prueba (solo en local)
 if (app()->environment('local')) {
-    Route::get('/test-datatable', fn() => view('test-datatable'));
-    Route::post('/form-test', fn() => back()->with('success', 'Formulario recibido correctamente'))->name('form.test');
-    Route::get('/test-view', fn() => view('order._item_row'));
-    Route::get('/debug-views', fn() => dd(scandir(resource_path('views/order'))));
+    Route::get('/test-datatable', fn () => view('test-datatable'));
+    Route::post('/form-test', fn () => back()->with('success', 'Formulario recibido correctamente'))->name('form.test');
+    Route::get('/test-view', fn () => view('order._item_row'));
+    Route::get('/debug-views', fn () => dd(scandir(resource_path('views/order'))));
 }
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';
