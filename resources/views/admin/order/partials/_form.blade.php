@@ -27,7 +27,7 @@
     $customerId = old('customer_id', $order->customer_id ?? null);
     $sourceValue = old('source', $source ?? ($order->source->value ?? \App\Enums\OrderSource::Manual->value));
     $isMultiDestination = $isMultiDestination ?? ($order?->is_multi_destination ?? false);
-    if ($isMultiDestination) {
+    if ($isMultiDestination && (int) $sourceValue !== \App\Enums\OrderSource::Manual->value) {
         $customerType = \App\Models\Branch::class;
     }
 @endphp

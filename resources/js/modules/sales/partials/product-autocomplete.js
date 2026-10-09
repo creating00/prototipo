@@ -194,6 +194,7 @@ export default {
             url.searchParams.append("context", this.context);
             if (document.getElementById("is_multi_destination")?.value === "1") {
                 url.searchParams.append("is_multi_destination", "1");
+                url.searchParams.append("order_source", document.querySelector('input[name="source"]')?.value || "1");
             }
             url.searchParams.append("is_repair", isRepair ? "1" : "0");
 

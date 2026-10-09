@@ -26,7 +26,7 @@
 
         {{-- Datos ocultos --}}
         {{-- <input type="hidden" name="customer_type" value="App\Models\Client"> --}}
-        <input type="hidden" id="existing_order_items" value="[]">
+        <input type="hidden" id="existing_order_items" value='@json($existingOrderItems ?? [])'>
 
         {{-- Formulario --}}
         @include('admin.order.partials._form', [

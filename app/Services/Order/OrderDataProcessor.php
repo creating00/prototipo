@@ -36,8 +36,13 @@ class OrderDataProcessor
             }
 
             $data['branch_id'] = $branchId;
-            $data['customer_id'] = null;
-            $data['customer_type'] = \App\Models\Branch::class;
+            if ((int) $data['source'] === OrderSource::Manual->value) {
+                $data['customer_id'] = $data['client_id'];
+                $data['customer_type'] = Client::class;
+            } else {
+                $data['customer_id'] = null;
+                $data['customer_type'] = \App\Models\Branch::class;
+            }
 
             return $data;
         }

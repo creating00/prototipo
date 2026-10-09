@@ -64,7 +64,7 @@ class ProductController extends BaseProductController
     {
         $isMultiDestination = $request->boolean('is_multi_destination');
         if ($isMultiDestination) {
-            $this->authorize('createBranch', \App\Models\Order::class);
+            $this->authorize((int) $request->get('order_source') === \App\Enums\OrderSource::Manual->value ? 'createClient' : 'createBranch', \App\Models\Order::class);
         }
         $code = $request->get('code');
         $branchIdRaw = $request->get('branch_id') ?: auth()->user()?->branch_id;
@@ -137,7 +137,7 @@ class ProductController extends BaseProductController
     {
         $isMultiDestination = $request->boolean('is_multi_destination');
         if ($isMultiDestination) {
-            $this->authorize('createBranch', \App\Models\Order::class);
+            $this->authorize((int) $request->get('order_source') === \App\Enums\OrderSource::Manual->value ? 'createClient' : 'createBranch', \App\Models\Order::class);
         }
         $branchIdRaw = $request->get('branch_id') ?: auth()->user()?->branch_id;
         $branchId = $branchIdRaw ? (int) $branchIdRaw : null;
@@ -271,9 +271,9 @@ class ProductController extends BaseProductController
     {
         $user = auth()->user();
         $activeId = session('active_branch_id', $user?->branch_id);
-        $provinceId = $user?->province_id ?? $user?->branch?->province_id;
         $origin = \App\Models\Branch::find($branchId);
-        if (! $origin || $activeId === 'all' || (int) $activeId !== $branchId || (int) $origin->province_id !== (int) $provinceId) {
+        $accessible = $user ? app(\App\Services\BranchService::class)->getAccessibleBranchesForUser($user) : collect();
+        if (! $origin || $activeId === 'all' || (int) $activeId !== $branchId || ! $accessible->contains('id', $branchId)) {
             throw ValidationException::withMessages(['branch_id' => 'La búsqueda debe utilizar la sucursal de origen activa y autorizada.']);
         }
     }
