@@ -26,7 +26,10 @@ jobs:
 
       - name: Deploy to Hostinger via SSH (MASTER)
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          QUEUE_CRON_MANAGED_EXTERNALLY: ${{ vars.QUEUE_CRON_MANAGED_EXTERNALLY }}
         with:
+          envs: QUEUE_CRON_MANAGED_EXTERNALLY
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}

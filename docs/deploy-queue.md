@@ -8,7 +8,7 @@ Si el hosting permite `crontab` por SSH, registra una entrada cada minuto para e
 
 ## Si cron se administra desde hPanel
 
-Cuando `crontab` no está disponible, el deploy imprime el comando exacto con las rutas absolutas del PHP y del proyecto. Configurá una sola vez un **cron personalizado cada minuto** en hPanel con ese comando. La cola no queda activa hasta completar este paso. No dupliques la entrada si ya está registrada por SSH.
+Cuando `crontab` no está disponible, el deploy imprime el comando exacto con las rutas absolutas del PHP y del proyecto y falla: no informa éxito sin haber instalado la cola. Configurá una sola vez un **cron personalizado cada minuto** en hPanel con ese comando. Después de confirmar que ese cron se ejecuta, creá la variable de Actions `QUEUE_CRON_MANAGED_EXTERNALLY=true` en GitHub para ambos workflows. Esa opción omite el registro por SSH y no comprueba ni activa el cron del panel. La cola no queda activa hasta completar el paso de hPanel. No dupliques la entrada si ya está registrada por SSH.
 
 Podés obtener las rutas desde SSH, dentro del proyecto:
 
@@ -40,11 +40,14 @@ Verificá desde SSH:
 
 ```bash
 php scripts/queue-cron.php --check
+php scripts/queue-cron.php --status
 crontab -l
 php artisan queue:failed
 ```
 
-La entrada instalada por SSH escribe en `storage/logs/queue-cron.log`; un cron de hPanel muestra su salida en el panel. Revisá también `storage/logs/laravel.log`. Después de activar el cron, iniciá una nueva consulta: una consulta ya vencida no se recupera automáticamente.
+La entrada instalada por SSH escribe en `storage/logs/queue-cron.log`; un cron de hPanel muestra su salida en el panel. Cada ejecución registra inicio y finalización en UTC y guarda su estado en `storage/framework/queue-cron-state.json`. `--status` muestra ese último estado y los trabajos pendientes o reservados de la cola configurada, sin iniciar trabajos ni registrar una ejecución ficticia. Un inicio sin finalización puede indicar que el proceso sigue activo o fue interrumpido. Si la fecha no cambia al esperar dos minutos, el cron periódico no está ejecutando este wrapper correctamente. Revisá también `storage/logs/laravel.log`. Después de activar el cron, iniciá una nueva consulta: una consulta ya vencida no se recupera automáticamente.
+
+Para probar el worker manualmente por SSH, ejecutá `php scripts/queue-cron.php` y luego `php scripts/queue-cron.php --status`. El primer comando procesa trabajos reales de la cola; `--check` y `--status` solamente diagnostican. Si la ejecución manual funciona y la periódica no, revisá el horario, comando absoluto, PHP y permisos del cron en hPanel.
 
 ## Verificación y reversión
 
@@ -53,9 +56,10 @@ La comprobación local valida sintaxis PHP y Bash, la configuración real con `-
 ```bash
 bash tests/Deployment/queue-cron.sh
 node --test tests/Deployment/check-ssh.test.cjs
+php tests/Deployment/queue-worker.php
 ```
 
-El harness verifica instalación repetida sin duplicados, conservación de otros cron, rutas con espacios, configuración inválida, permisos denegados y un usuario sin cron previo. No accede al hosting ni modifica el cron real.
+El harness verifica instalación repetida sin duplicados, conservación de otros cron, rutas con espacios, configuración inválida, permisos denegados, instalación ignorada, configuración externa explícita, falta de crontab y un usuario sin cron previo. La prueba PHP ejecuta el worker real con una base SQLite y storage aislados, y comprueba diagnóstico, conteo de pendientes y registro de finalización. No acceden al hosting ni modifican el cron o la cola reales.
 
 Las tres pruebas de conectividad pasaron con sockets locales: puerto accesible sin exponer dirección, reintentos ante conexión rechazada y rechazo de secretos incompletos o con formato inválido. No se comprobó la conexión real a Hostinger: los valores en el log compartido están ocultos y deben verificarse en hPanel y GitHub.
 

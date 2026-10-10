@@ -6,6 +6,12 @@ project_path="$(pwd -P)"
 php_binary="$(php -r 'echo PHP_BINARY;')"
 "$php_binary" scripts/queue-cron.php --check
 
+if [[ "${QUEUE_CRON_MANAGED_EXTERNALLY:-}" == 'true' || "${QUEUE_CRON_MANAGED_EXTERNALLY:-}" == '1' ]]; then
+    echo 'Cron administrado externamente: no se registra por SSH. Debe estar configurado cada minuto en hPanel.'
+    printf '%q %q\n' "$php_binary" "$project_path/scripts/queue-cron.php"
+    exit 0
+fi
+
 # Cron interprets percent and newline characters before the shell sees the command.
 if [[ "$project_path$php_binary" == *%* || "$project_path$php_binary" == *$'\n'* ]]; then
     echo 'La ruta no es compatible con el registro automático de cron.' >&2
@@ -19,7 +25,7 @@ if ! command -v crontab >/dev/null 2>&1; then
     echo 'ATENCIÓN: este hosting no permite registrar cron por SSH. Configurá en hPanel un cron personalizado cada minuto:'
     printf '%q %q\n' "$php_binary" "$project_path/scripts/queue-cron.php"
     echo 'La cola no queda activa hasta configurar ese cron en hPanel.'
-    exit 0
+    exit 1
 fi
 
 cron_file="$(mktemp)"
@@ -37,4 +43,8 @@ fi
 existing_cron="$(grep -Fv -- "$cron_marker" "$cron_file" || true)"
 { if [[ -n "$existing_cron" ]]; then printf '%s\n' "$existing_cron"; fi; printf '%s\n' "$cron_entry"; } > "$cron_file"
 crontab "$cron_file"
+if ! crontab -l > "$cron_file" || ! grep -Fxq -- "$cron_entry" "$cron_file"; then
+    echo 'El servidor no confirmó la entrada de cron instalada; la cola no se considera activa.' >&2
+    exit 1
+fi
 echo 'Cron de cola registrado cada minuto; las entradas de otros proyectos se conservaron.'
