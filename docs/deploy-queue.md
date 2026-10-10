@@ -26,6 +26,10 @@ Hostinger documenta el registro desde [hPanel → Cron Jobs](https://www.hosting
 
 ## Ejecución y diagnóstico
 
+Antes del deploy, ambos workflows ejecutan `scripts/check-ssh.cjs`: verifica formato de `SSH_HOST` y `SSH_PORT` y prueba conectividad TCP desde el runner hasta tres veces, con un límite de 15 segundos por intento. No muestra valores de secretos ni prueba autenticación. Testing lo hace antes de compilar Vite. Un error `dial tcp … i/o timeout` indica que la conexión no llegó a establecerse: no se ejecutaron migraciones ni comandos de cola en ese paso. Revisá en hPanel si SSH está habilitado y copiá el host/IP y puerto de **SSH Access** a los secretos correspondientes. No uses automáticamente el puerto web o el de FTP.
+
+`timeout: 60s` limita el establecimiento de conexión; `command_timeout: 10m` limita los comandos una vez conectado. Aumentar el segundo no corrige una conexión inaccesible. Si conecta desde tu equipo pero falla desde GitHub Actions, revisá las restricciones de acceso del hosting o consultá soporte. Hostinger ofrece una [guía para diagnosticar SSH](https://www.hostinger.com/support/5634587-how-to-solve-the-most-common-errors-in-ssh-at-hostinger/).
+
 `scripts/queue-cron.php` solo admite CLI. Arranca `queue:work --stop-when-empty --max-time=55 --sleep=1 --tries=1 --timeout=65`, con la conexión y cola configuradas en Laravel. No consulta proveedores por iniciativa propia: procesa trabajos enviados al pulsar «Consultar ahora». Un bloqueo de archivo evita solapar dos ejecuciones de cron del mismo proyecto y se libera incluso si el proceso termina inesperadamente.
 
 El límite `--max-time` se evalúa entre trabajos: un trabajo iniciado antes del límite puede terminar después. Con cron cada minuto, una consulta puede esperar hasta el próximo tick. Si hay muchas consultas acumuladas, puede superar el límite de espera de dos minutos de la pantalla; para esa carga conviene un worker permanente administrado con Supervisor o systemd. El cron no reemplaza esa administración en un VPS. El timeout PHP de trabajos requiere `pcntl`; la extracción HTTP conserva sus límites propios aunque esa extensión no esté disponible.
@@ -48,8 +52,11 @@ La comprobación local valida sintaxis PHP y Bash, la configuración real con `-
 
 ```bash
 bash tests/Deployment/queue-cron.sh
+node --test tests/Deployment/check-ssh.test.cjs
 ```
 
 El harness verifica instalación repetida sin duplicados, conservación de otros cron, rutas con espacios, configuración inválida, permisos denegados y un usuario sin cron previo. No accede al hosting ni modifica el cron real.
+
+Las tres pruebas de conectividad pasaron con sockets locales: puerto accesible sin exponer dirección, reintentos ante conexión rechazada y rechazo de secretos incompletos o con formato inválido. No se comprobó la conexión real a Hostinger: los valores en el log compartido están ocultos y deben verificarse en hPanel y GitHub.
 
 Para revertir esta integración, retirás las llamadas nuevas de ambos workflows y la entrada identificada con `# prototipo-queue:` de cada ambiente (o el cron de hPanel), junto con los scripts. Las consultas y el historial de la base de datos se conservan. Si reemplazás cron por Supervisor, activá primero el servicio para continuar procesando las consultas.

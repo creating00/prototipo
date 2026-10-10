@@ -10,6 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node for connectivity check
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check SSH connectivity
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: node scripts/check-ssh.cjs
+
       - name: Deploy to Hostinger via SSH (MASTER)
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -18,6 +32,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           timeout: 60s
+          command_timeout: 10m
           script: |
             set -e
 

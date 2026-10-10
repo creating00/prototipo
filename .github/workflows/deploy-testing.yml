@@ -19,6 +19,12 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Check SSH connectivity
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: node scripts/check-ssh.cjs
+
       - name: Compile Vite assets
         run: |
           npm ci --prefer-offline --no-audit --no-fund
@@ -32,6 +38,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           timeout: 60s
+          command_timeout: 10m
           script: |
             set -e
 
@@ -75,6 +82,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           timeout: 60s
+          command_timeout: 10m
           script: |
             set -e
 
