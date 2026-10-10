@@ -5,6 +5,9 @@
 @section('content')
     <div class="container-fluid">
         <x-adminlte.alert-manager />
+        @can('product_provider_prices.view')
+            <a class="btn btn-primary mb-3" href="{{ route('web.provider-catalogs.index', ['provider' => $provider->id]) }}">Consultar catálogo web y comparar</a>
+        @endcan
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="mb-0">

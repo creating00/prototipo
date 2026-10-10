@@ -33,6 +33,7 @@ const inputs = [
     "resources/js/modules/provider-order/index.js",
     "resources/js/modules/providers/index.js",
     "resources/js/modules/providers/show.js",
+    "resources/js/modules/providers/catalogs.js",
     "resources/js/modules/repair-amounts/index.js",
     "resources/js/modules/sales/create.js",
     "resources/js/modules/sales/details.js",
