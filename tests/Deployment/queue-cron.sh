@@ -30,7 +30,7 @@ if [[ "$1" == '-l' ]]; then
     fi
     cat "$MOCK_CRON_FILE"
 else
-    cp "$1" "$MOCK_CRON_FILE"
+    if [[ "${MOCK_CRON_IGNORE_INSTALL:-0}" != '1' ]]; then cp "$1" "$MOCK_CRON_FILE"; fi
 fi
 CRON
 chmod +x "$fixture/bin/php" "$fixture/bin/crontab"
@@ -55,4 +55,18 @@ cmp "$MOCK_CRON_FILE" "$fixture/before"
 rm "$MOCK_CRON_FILE"
 bash "$installer"
 [[ "$(grep -c '# prototipo-queue:' "$MOCK_CRON_FILE")" == '1' ]]
-echo 'PASS: cron idempotente, preservación de tareas, rutas con espacios, configuración inválida, acceso denegado y cron vacío.'
+printf '0 3 * * * echo existing-task\n' > "$MOCK_CRON_FILE"
+if MOCK_CRON_IGNORE_INSTALL=1 bash "$installer"; then
+    echo 'Una instalación ignorada no debe figurar como correcta.' >&2
+    exit 1
+fi
+[[ "$(grep -c 'existing-task' "$MOCK_CRON_FILE")" == '1' ]]
+QUEUE_CRON_MANAGED_EXTERNALLY=true MOCK_CRON_DENIED=1 bash "$installer"
+mv "$fixture/bin/crontab" "$fixture/bin/crontab-disabled"
+if ! command -v crontab >/dev/null 2>&1; then
+    if bash "$installer"; then
+        echo 'Sin crontab, el deploy debe fallar hasta configurar hPanel.' >&2
+        exit 1
+    fi
+fi
+echo 'PASS: cron idempotente, preservación de tareas, rutas con espacios, configuración inválida, acceso denegado, cron vacío, instalación ignorada y configuración externa explícita.'
