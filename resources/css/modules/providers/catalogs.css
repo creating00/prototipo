@@ -1,0 +1,53 @@
+.catalog-product-image {
+    object-fit: contain;
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+}
+
+.catalog-combo-option {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.catalog-combo-image,
+.catalog-combo-placeholder {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    object-fit: contain;
+    border-radius: 0.3rem;
+    background: var(--bs-tertiary-bg);
+}
+
+.catalog-combo-placeholder {
+    display: grid;
+    place-items: center;
+    font-size: 0.65rem;
+    color: var(--bs-secondary-color);
+    text-align: center;
+}
+
+.catalog-combo-copy {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.catalog-combo-meta {
+    display: block;
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+.catalog-combo-selected .catalog-combo-image,
+.catalog-combo-selected .catalog-combo-placeholder {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+}
+
+.catalog-comparison-select + .ts-wrapper .ts-dropdown-content {
+    max-height: 360px;
+}

@@ -164,15 +164,19 @@ test('job failure clears products and reports error', function () {
     expect($snapshot->fresh()->status)->toBe('failed')->and($snapshot->fresh()->message)->toContain('HTTP 403');
 });
 
-test('comparison requires explicit review distinct providers and current tokens', function () {
+test('comparison requires explicit review and uses processed history after preview changes', function () {
     $product = \App\Services\Catalogs\ProductData::make(['name' => 'Identical name', 'price' => '20', 'currency' => 'ARS']);
     $first = catalogSnapshot(catalogProvider('First'), [$product]);
     $second = catalogSnapshot(catalogProvider('Second'), [$product]);
-    $entries = ["{$first->id}:{$first->token}:0", "{$second->id}:{$second->token}:0"];
-    $this->actingAs(catalogUser())->postJson(route('web.provider-catalogs.compare'), ['entries' => $entries])->assertUnprocessable();
+    $user = catalogUser();
+    $service = app(\App\Services\Catalogs\CatalogProcessingService::class);
+    $firstSaved = $service->process($first->provider_id, $first->token, $user->id);
+    $secondSaved = $service->process($second->provider_id, $second->token, $user->id);
+    $entries = [(string) $firstSaved->products()->first()->id, (string) $secondSaved->products()->first()->id];
+    $this->actingAs($user)->postJson(route('web.provider-catalogs.compare'), ['entries' => $entries])->assertUnprocessable();
     $this->post(route('web.provider-catalogs.compare'), ['entries' => [...$entries, ''], 'equivalence_reviewed' => '1'])->assertOk()->assertSee('First')->assertSee('Second');
     $second->update(['token' => (string) Str::uuid()]);
-    $this->postJson(route('web.provider-catalogs.compare'), ['entries' => $entries, 'equivalence_reviewed' => '1'])->assertUnprocessable();
+    $this->post(route('web.provider-catalogs.compare'), ['entries' => $entries, 'equivalence_reviewed' => '1'])->assertOk();
 });
 
 test('catalog page renders escaped source data and explicit pending integration', function () {

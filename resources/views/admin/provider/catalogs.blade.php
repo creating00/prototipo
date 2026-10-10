@@ -8,13 +8,13 @@
         <div class="alert alert-danger" role="alert">{{ $errors->first() }}</div>
     @endif
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <p class="mb-0 text-body-secondary">Última consulta bajo demanda. Sin historial ni sincronización automática.</p>
+        <p class="mb-0 text-body-secondary">Consultá los productos publicados, revisá el resultado y procesalo para conservarlo en el historial.</p>
         <a class="btn btn-outline-secondary" href="{{ route('web.providers.index') }}">Proveedores</a>
     </div>
     <div class="card mb-4">
         <div class="card-header"><h5 class="mb-0">Consultar catálogo</h5></div>
         <div class="card-body">
-            <form method="GET" class="mb-3">
+            <form method="GET" class="mb-3" data-catalog-provider-form>
                 <label for="catalog-provider" class="form-label">Proveedor</label>
                 <div class="d-flex gap-2">
                     <select id="catalog-provider" name="provider" class="form-select">
@@ -22,7 +22,6 @@
                             <option value="{{ $provider->id }}" @selected($selectedProvider?->id === $provider->id)>{{ $provider->business_name }}</option>
                         @endforeach
                     </select>
-                    <button class="btn btn-outline-primary">Ver</button>
                 </div>
             </form>
             @if($selectedProvider)
@@ -34,6 +33,13 @@
                             @csrf
                             <button class="btn btn-primary" @disabled(!$selectedProvider->catalog_url || $catalog?->status === 'queued')>Consultar ahora</button>
                         </form>
+                        @if($catalog && in_array($catalog->status, ['partial', 'complete']) && count($catalog->products ?? []) > 0)
+                            <form action="{{ route('web.providers.catalog.process', $selectedProvider->id) }}" method="POST" data-catalog-process-form>
+                                @csrf
+                                <input type="hidden" name="token" value="{{ $catalog->token }}">
+                                <button class="btn btn-success" @disabled($processed)>{{ $processed ? 'Consulta ya procesada' : 'Procesar' }}</button>
+                            </form>
+                        @endif
                     </div>
                 @endcan
             @else
@@ -49,6 +55,14 @@
                         {{ count($catalog->products ?? []) }} productos. Los datos pueden cambiar en origen; consultá nuevamente antes de comprar.
                     </small>
                 </div>
+                <p class="small mt-2 mb-0">
+                    @if($processed)
+                        Guardada en el historial el {{ $processed->processed_at->format('d/m/Y H:i:s') }}.
+                        <a href="{{ route('web.provider-catalogs.history', $processed) }}">Abrir registro procesado</a>
+                    @elseif(in_array($catalog->status, ['partial', 'complete']))
+                        Vista previa: presioná «Procesar» para guardar estos productos en el historial y habilitarlos en los combos.
+                    @endif
+                </p>
             @else
                 <p class="mt-3 mb-0">Todavía no se consultó este catálogo.</p>
             @endif
@@ -59,55 +73,55 @@
         <div class="card-body">
             <p class="text-body-secondary">Los campos ausentes se muestran como «No informado». Todos los productos requieren revisión de equivalencia.</p>
             @forelse($entries as $index => $product)
-                <article class="border rounded p-3 mb-3">
-                    <div class="d-flex gap-3">
-                        @if($product['image'])
-                            <a href="{{ $product['image'] }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary align-self-start">Ver imagen</a>
-                        @endif
-                        <div class="flex-grow-1">
-                            <h6>{{ $product['name'] ?? 'Nombre no informado' }}</h6>
-                            <p class="fw-bold mb-1">Precio: {{ $product['price'] ?? 'No informado' }} · {{ $product['currency'] ?? 'Moneda no informada' }}</p>
-                            <p class="mb-1">{{ $product['description'] ?? 'Descripción no informada' }}</p>
-                            <div class="row g-2 small mt-1">
-                                @foreach(['brand' => 'Marca', 'model' => 'Modelo', 'code' => 'Código', 'presentation' => 'Presentación', 'availability' => 'Disponibilidad'] as $field => $label)
-                                    <div class="col-md-4"><strong>{{ $label }}:</strong> {{ $product[$field] ?? 'No informado' }}</div>
-                                @endforeach
-                            </div>
-                            <div class="d-flex gap-2 align-items-center mt-2">
-                                <span class="badge text-bg-warning">Equivalencia: requiere revisión</span>
-                                @if($product['url'])<a href="{{ $product['url'] }}" target="_blank" rel="noopener noreferrer">Ver origen</a>@endif
-                            </div>
-                            <details class="mt-2"><summary>Todos los datos publicados por la fuente</summary><pre class="text-wrap text-break small mb-0">{{ json_encode($product['details'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</pre></details>
-                        </div>
-                    </div>
-                </article>
+                @include('admin.provider.partials.catalog-product', ['product' => $product])
             @empty
                 <p class="mb-0">No hay productos extraídos para mostrar.</p>
             @endforelse
             {{ $entries->links('pagination::bootstrap-5') }}
         </div>
     </div>
-    <div class="card">
+    <div class="card mb-4" id="catalog-history">
+        <div class="card-header"><h5 class="mb-0">Historial procesado</h5></div>
+        <div class="card-body">
+            <p class="text-body-secondary">Cada consulta procesada conserva sus productos y precios. Los registros anteriores permanecen al volver a consultar o cambiar la URL.</p>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead><tr><th>Proveedor</th><th>Consultado</th><th>Procesado</th><th>Productos</th><th>Alcance</th><th>Registro</th></tr></thead>
+                    <tbody>
+                        @forelse($history as $snapshot)
+                            <tr>
+                                <td>{{ $snapshot->provider_name }}</td>
+                                <td>{{ $snapshot->queried_at->format('d/m/Y H:i:s') }}</td>
+                                <td>{{ $snapshot->processed_at->format('d/m/Y H:i:s') }}</td>
+                                <td>{{ $snapshot->product_count }}</td>
+                                <td><span class="badge {{ $snapshot->status === 'partial' ? 'text-bg-warning' : 'text-bg-success' }}">{{ $snapshot->status === 'partial' ? 'Listado parcial' : 'Listado obtenido' }}</span></td>
+                                <td><a href="{{ route('web.provider-catalogs.history', $snapshot) }}">Abrir registro #{{ $snapshot->id }}</a></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="6">Todavía no hay consultas procesadas. Consultá un proveedor y presioná «Procesar».</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            {{ $history->fragment('catalog-history')->links('pagination::bootstrap-5') }}
+        </div>
+    </div>
+    <div class="card" id="catalog-comparison">
         <div class="card-header"><h5 class="mb-0">Comparar productos equivalentes</h5></div>
         <div class="card-body">
-            <p>Elegí entre 2 y 8 productos de proveedores distintos. Revisá modelo, variante, cantidad, presentación y condiciones de precio en origen. No se asocian por nombre ni por código interno del proveedor.</p>
+            <p>Elegí entre 2 y 8 productos procesados de proveedores distintos. Los combos incluyen todo el historial, agrupado por proveedor, con imagen y fecha de consulta. Buscá por nombre, código o proveedor; desplazate para cargar más resultados.</p>
+            <p class="small text-body-secondary">{{ $processedProductCount }} productos guardados. Comparás precios de las fechas indicadas, que pueden ser diferentes; revisá modelo, variante, presentación y condiciones en origen.</p>
+            <div class="alert alert-warning d-none" role="alert" data-catalog-options-error>No se pudieron cargar los productos procesados. Cerrá y volvé a abrir el combo para reintentar.</div>
             <form method="POST" action="{{ route('web.provider-catalogs.compare') }}">
                 @csrf
                 <div class="row g-3">
                     @for($slot = 0; $slot < 8; $slot++)
                         <div class="col-lg-6">
                             <label class="form-label" for="compare-entry-{{ $slot }}">Producto {{ $slot + 1 }}{{ $slot < 2 ? ' (obligatorio)' : ' (opcional)' }}</label>
-                            <select class="form-select catalog-comparison-select" id="compare-entry-{{ $slot }}" name="entries[]" @required($slot < 2)>
+                            <select class="form-select catalog-comparison-select" data-products-url="{{ route('web.provider-catalogs.products') }}" id="compare-entry-{{ $slot }}" name="entries[]" @required($slot < 2)>
                                 <option value="">Seleccionar producto</option>
-                                @foreach($providers as $provider)
-                                    @php($source = $catalogs->get($provider->id))
-                                    @if($source && in_array($source->status, ['partial', 'complete']) && $source->source_url === $provider->catalog_url)
-                                        <optgroup label="{{ $provider->business_name }} · {{ $source->completed_at?->format('d/m H:i') }}">
-                                            @foreach($source->products ?? [] as $index => $product)
-                                                <option value="{{ $source->id }}:{{ $source->token }}:{{ $index }}">{{ $product['name'] ?? 'Sin nombre' }} · {{ $product['code'] ?? 'Sin código' }} · {{ $product['price'] ?? 'Sin precio' }} {{ $product['currency'] ?? 'Sin moneda' }}</option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endif
+                                @foreach($selectedItems as $item)
+                                    <option value="{{ $item->id }}" data-data="{{ json_encode($item->comparisonOption()) }}" @selected((string) old('entries.'.$slot) === (string) $item->id)>{{ $item->data['name'] ?? 'Nombre no informado' }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -117,7 +131,7 @@
                     <input class="form-check-input" type="checkbox" name="equivalence_reviewed" value="1" id="equivalence-reviewed" required>
                     <label class="form-check-label" for="equivalence-reviewed">Revisé los detalles en origen y confirmo que los productos elegidos son equivalentes en modelo, variante y presentación.</label>
                 </div>
-                <button class="btn btn-primary">Comparar precios consultados</button>
+                <button class="btn btn-primary" @disabled($processedProductCount === 0)>Comparar precios procesados</button>
             </form>
         </div>
     </div>

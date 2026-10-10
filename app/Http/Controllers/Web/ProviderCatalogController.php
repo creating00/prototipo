@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Jobs\FetchProviderCatalog;
 use App\Models\Provider;
 use App\Models\ProviderCatalog;
+use App\Models\ProviderCatalogItem;
+use App\Models\ProviderCatalogSnapshot;
+use App\Services\Catalogs\CatalogProcessingService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,8 +39,14 @@ class ProviderCatalogController extends Controller
         $products = collect($catalog?->products ?? []);
         $page = max(1, (int) $request->query('page', 1));
         $entries = new \Illuminate\Pagination\LengthAwarePaginator($products->slice(($page - 1) * 30, 30), $products->count(), 30, $page, ['path' => $request->url(), 'query' => $request->query()]);
+        $processed = $catalog ? ProviderCatalogSnapshot::where('query_token', $catalog->token)->first() : null;
+        $history = ProviderCatalogSnapshot::orderByDesc('processed_at')->orderByDesc('id')
+            ->paginate(10, ['*'], 'history_page')->withQueryString();
+        $processedProductCount = ProviderCatalogItem::count();
+        $oldEntries = collect($request->old('entries', []))->filter(fn ($id) => is_scalar($id) && ctype_digit((string) $id))->take(8);
+        $selectedItems = ProviderCatalogItem::with('snapshot')->whereIn('id', $oldEntries)->get();
 
-        return view('admin.provider.catalogs', compact('providers', 'catalogs', 'selectedProvider', 'catalog', 'entries'));
+        return view('admin.provider.catalogs', compact('providers', 'catalogs', 'selectedProvider', 'catalog', 'entries', 'processed', 'history', 'processedProductCount', 'selectedItems'));
     }
 
     public function refresh(Provider $provider)
@@ -59,7 +68,7 @@ class ProviderCatalogController extends Controller
 
             return ProviderCatalog::updateOrCreate(['provider_id' => $provider->id], [
                 'token' => (string) Str::uuid(), 'status' => 'queued', 'source_url' => $provider->catalog_url,
-                'products' => [], 'message' => 'Consulta en cola. Se reemplazó el resultado anterior.',
+                'products' => [], 'message' => 'Consulta en cola. El historial procesado se conserva.',
                 'requested_at' => now(), 'completed_at' => null,
             ]);
         });
@@ -73,6 +82,49 @@ class ProviderCatalogController extends Controller
         return redirect()->route('web.provider-catalogs.index', ['provider' => $provider->id]);
     }
 
+    public function process(Request $request, Provider $provider, CatalogProcessingService $service)
+    {
+        $this->authorizeCatalog();
+        $this->authorize('update', $provider);
+        $validated = $request->validate(['token' => ['required', 'uuid']]);
+        $snapshot = $service->process($provider->id, $validated['token'], $request->user()->id);
+
+        return redirect()->route('web.provider-catalogs.index', ['provider' => $provider->id])
+            ->with('success', 'Consulta procesada: '.$snapshot->product_count.' productos guardados en el historial y disponibles en los combos de comparación.');
+    }
+
+    public function history(Request $request, ProviderCatalogSnapshot $snapshot)
+    {
+        $this->authorizeCatalog();
+        $entries = $snapshot->products()->orderBy('position')->paginate(30)->withQueryString();
+
+        return view('admin.provider.catalog-history', compact('snapshot', 'entries'));
+    }
+
+    public function products(Request $request)
+    {
+        $this->authorizeCatalog();
+        $validated = $request->validate(['q' => ['nullable', 'string', 'max:100'], 'page' => ['nullable', 'integer', 'min:1', 'max:100000']]);
+        $query = trim($validated['q'] ?? '');
+        $items = ProviderCatalogItem::with('snapshot')
+            ->join('provider_catalog_snapshots', 'provider_catalog_snapshots.id', '=', 'provider_catalog_items.snapshot_id')
+            ->when($query !== '', fn ($builder) => $builder->where(function ($builder) use ($query) {
+                $builder->where('provider_catalog_items.name', 'like', '%'.$query.'%')
+                    ->orWhere('provider_catalog_items.code', 'like', '%'.$query.'%')
+                    ->orWhere('provider_catalog_snapshots.provider_name', 'like', '%'.$query.'%');
+            }))
+            ->orderBy('provider_catalog_snapshots.provider_name')
+            ->orderBy('provider_catalog_snapshots.provider_id')
+            ->orderByDesc('provider_catalog_snapshots.queried_at')
+            ->orderByDesc('provider_catalog_snapshots.id')
+            ->orderBy('provider_catalog_items.position')
+            ->paginate(50, ['provider_catalog_items.*'])->withQueryString();
+        $options = $items->getCollection()->map(fn ($item) => $item->comparisonOption());
+        $optgroups = $options->unique('optgroup')->map(fn ($option) => ['value' => $option['optgroup'], 'label' => $option['provider']])->values();
+
+        return response()->json(['options' => $options, 'optgroups' => $optgroups, 'next_page_url' => $items->nextPageUrl(), 'total' => $items->total()]);
+    }
+
     public function compare(Request $request)
     {
         $this->authorizeCatalog();
@@ -81,25 +133,20 @@ class ProviderCatalogController extends Controller
         }
         $validated = $request->validate([
             'entries' => ['required', 'array', 'min:2', 'max:8'],
-            'entries.*' => ['required', 'string', 'distinct', 'max:100'],
+            'entries.*' => ['required', 'string', 'regex:/^[1-9][0-9]*$/D', 'distinct', 'max:20'],
             'equivalence_reviewed' => ['accepted'],
         ], ['equivalence_reviewed.accepted' => 'Confirmá que revisaste modelo, variante y presentación de los productos seleccionados.']);
         $rows = [];
         foreach ($validated['entries'] as $reference) {
-            $parts = explode(':', $reference);
-            if (count($parts) !== 3 || ! ctype_digit($parts[0]) || ! ctype_digit($parts[2])) {
-                throw ValidationException::withMessages(['entries' => 'Selección inválida.']);
+            $item = ProviderCatalogItem::with('snapshot')->find($reference);
+            if (! $item) {
+                throw ValidationException::withMessages(['entries' => 'El producto procesado seleccionado no está disponible.']);
             }
-            $catalog = ProviderCatalog::with('provider')->find($parts[0]);
-            if (! $catalog?->provider || ! hash_equals($catalog->token, $parts[1])
-                || ! in_array($catalog->status, ['partial', 'complete'], true)
-                || $catalog->provider->catalog_url !== $catalog->source_url
-                || ! isset($catalog->products[(int) $parts[2]])) {
-                throw ValidationException::withMessages(['entries' => 'La consulta seleccionada cambió o ya no está disponible. Volvé a seleccionar los productos.']);
-            }
-            $rows[] = ['provider' => $catalog->provider, 'queried_at' => $catalog->completed_at, 'product' => $catalog->products[(int) $parts[2]]];
+            $rows[] = ['provider_name' => $item->snapshot->provider_name, 'provider_id' => $item->snapshot->provider_id,
+                'queried_at' => $item->snapshot->queried_at, 'processed_at' => $item->snapshot->processed_at,
+                'snapshot_id' => $item->snapshot_id, 'product' => $item->data];
         }
-        if (collect($rows)->pluck('provider.id')->unique()->count() < 2) {
+        if (collect($rows)->pluck('provider_id')->unique()->count() < 2) {
             throw ValidationException::withMessages(['entries' => 'Elegí productos de al menos dos proveedores diferentes.']);
         }
         // No currency conversion, name similarity matching, or automatic equivalence.
