@@ -1,8 +1,55 @@
 import TomSelect from 'tom-select';
+import Swal from 'sweetalert2';
 import 'tom-select/dist/css/tom-select.bootstrap5.css';
 import '../../../css/modules/providers/catalogs.css';
 
 const optionsError = document.querySelector('[data-catalog-options-error]');
+let clearingCatalogs = false;
+
+// New visits start collapsed; pagination and progress reloads keep the current choice.
+const restoreSections = performance.getEntriesByType('navigation')[0]?.type === 'reload'
+    || ['#catalog-published-products', '#catalog-history'].includes(window.location.hash);
+document.querySelectorAll('[data-catalog-section]').forEach((section) => {
+    const storageKey = `catalog-section:${section.dataset.catalogSection}`;
+    const label = section.querySelector('[data-catalog-toggle-label]');
+    const updateLabel = () => {
+        label.textContent = section.open ? label.dataset.openLabel : label.dataset.closedLabel;
+    };
+    try {
+        section.open = restoreSections && sessionStorage.getItem(storageKey) === 'true';
+        sessionStorage.setItem(storageKey, String(section.open));
+    } catch { /* The native toggle still works when browser storage is unavailable. */ }
+    updateLabel();
+    section.addEventListener('toggle', () => {
+        updateLabel();
+        try {
+            sessionStorage.setItem(storageKey, String(section.open));
+        } catch { /* Keep the control usable without persistence. */ }
+    });
+});
+
+document.querySelector('[data-catalog-clear-form]')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const result = await Swal.fire({
+        title: '¿Limpiar todos los catálogos web?',
+        text: 'Se borrarán las vistas previas, los productos guardados y todo el historial de todos los proveedores. Las consultas en curso se cancelarán. Las URLs y el inventario se conservan. Esta acción no se puede deshacer.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, borrar todo el catálogo web',
+        cancelButtonText: 'Cancelar',
+        focusCancel: true,
+        customClass: { confirmButton: 'btn btn-danger', cancelButton: 'btn btn-secondary', actions: 'gap-3' },
+        buttonsStyling: false,
+    });
+    if (!result.isConfirmed) return;
+    clearingCatalogs = true;
+    form.querySelector('[name="confirm_clear"]').value = '1';
+    const button = form.querySelector('button');
+    button.disabled = true;
+    button.textContent = 'Limpiando catálogos…';
+    HTMLFormElement.prototype.submit.call(form);
+});
 
 function imagePlaceholder() {
     const placeholder = document.createElement('span');
@@ -12,6 +59,7 @@ function imagePlaceholder() {
 }
 
 function productOption(data, selected = false) {
+    if (!data.value) return dropdownMessage(data.text || 'Seleccionar producto');
     const container = document.createElement('div');
     container.className = `catalog-combo-option${selected ? ' catalog-combo-selected' : ''}`;
     if (data.image) {
@@ -33,7 +81,10 @@ function productOption(data, selected = false) {
     const metadata = document.createElement('small');
     metadata.className = 'catalog-combo-meta';
     metadata.textContent = `${data.provider} · ${data.code ?? 'Sin código'} · ${data.price ?? 'Sin precio'} ${data.currency ?? 'Sin moneda'} · ${data.queried_at}`;
-    copy.append(name, metadata);
+    const source = document.createElement('small');
+    source.className = 'catalog-combo-meta';
+    source.textContent = data.source_url || '';
+    copy.append(name, metadata, source);
     container.append(copy);
     return container;
 }
@@ -49,6 +100,10 @@ document.getElementById('catalog-provider')?.addEventListener('change', (event) 
     event.target.form.requestSubmit();
 });
 
+document.getElementById('catalog-source')?.addEventListener('change', (event) => {
+    event.target.form.requestSubmit();
+});
+
 function showCatalogProgress(selector) {
     const progress = document.querySelector(selector);
     progress?.classList.remove('d-none');
@@ -60,7 +115,7 @@ function showCatalogProgress(selector) {
 
 document.querySelector('[data-catalog-query-form]')?.addEventListener('submit', (event) => {
     showCatalogProgress('[data-catalog-query-progress]');
-    document.querySelector('[data-catalog-progress-label]').textContent = 'Iniciando consulta… Leyendo los productos publicados en la URL del proveedor.';
+    document.querySelector('[data-catalog-progress-label]').textContent = 'Consultando el catálogo del proveedor… Los productos aparecerán a medida que los recibamos.';
     event.target.querySelector('button').textContent = 'Consultando…';
 });
 
@@ -69,19 +124,20 @@ document.querySelector('[data-catalog-process-form]')?.addEventListener('submit'
     event.target.querySelector('button').textContent = 'Procesando…';
 });
 
-document.querySelectorAll('.catalog-comparison-select').forEach((select) => {
-    new TomSelect(select, {
+function initializeProductSearch(select, providerFilter) {
+    return new TomSelect(select, {
         plugins: ['virtual_scroll'],
         maxOptions: null,
         maxItems: 1,
         placeholder: 'Buscar productos procesados',
-        allowEmptyOption: true,
+        allowEmptyOption: false,
         preload: 'focus',
         lockOptgroupOrder: true,
         score: () => () => 1,
         firstUrl(query) {
             const url = new URL(select.dataset.productsUrl, window.location.origin);
             url.searchParams.set('q', query.trim());
+            if (providerFilter.value) url.searchParams.set('provider_id', providerFilter.value);
             return url.toString();
         },
         async load(query, callback) {
@@ -91,6 +147,8 @@ document.querySelectorAll('.catalog-comparison-select').forEach((select) => {
                 return;
             }
             const controller = new AbortController();
+            this.catalogRequests ??= new Set();
+            this.catalogRequests.add(controller);
             const timeout = setTimeout(() => controller.abort(), 15000);
             try {
                 const response = await fetch(url, {
@@ -99,17 +157,20 @@ document.querySelectorAll('.catalog-comparison-select').forEach((select) => {
                 });
                 if (!response.ok) throw new Error('No se pudo cargar el historial');
                 const data = await response.json();
+                if (select.tomselect !== this || controller.signal.aborted) return;
                 this.setNextUrl(query, data.next_page_url);
                 this.catalogLoadFailed = false;
                 optionsError?.classList.add('d-none');
                 callback(data.options, data.optgroups);
             } catch {
+                if (select.tomselect !== this) return;
                 this.setNextUrl(query, url);
                 this.catalogLoadFailed = true;
                 optionsError?.classList.remove('d-none');
                 callback([], []);
             } finally {
                 clearTimeout(timeout);
+                this.catalogRequests.delete(controller);
             }
         },
         onInitialize() {
@@ -131,6 +192,18 @@ document.querySelectorAll('.catalog-comparison-select').forEach((select) => {
             no_results: () => dropdownMessage('No hay productos procesados para esta búsqueda.'),
         },
     });
+}
+
+document.querySelectorAll('.catalog-comparison-provider').forEach((providerFilter) => {
+    const select = document.getElementById(providerFilter.dataset.productSelect);
+    initializeProductSearch(select, providerFilter);
+    providerFilter.addEventListener('change', () => {
+        select.tomselect.catalogRequests?.forEach((controller) => controller.abort());
+        select.tomselect.destroy();
+        select.replaceChildren(new Option('Seleccionar producto', ''));
+        optionsError?.classList.add('d-none');
+        initializeProductSearch(select, providerFilter).focus();
+    });
 });
 
 // Exclude optional empty slots; server validates every submitted reference again.
@@ -143,7 +216,7 @@ document.querySelector('[action$="provider-catalogs/compare"]')?.addEventListene
 // Refreshes only the local result screen, never initiates a provider query.
 if (document.querySelector('[data-catalog-page]')?.dataset.pending === 'true') {
     const refreshTimer = setInterval(() => {
-        if (![...document.querySelectorAll('.catalog-comparison-select')].some((select) => select.value || select.tomselect?.isFocused)) {
+        if (!clearingCatalogs && !Swal.isVisible() && ![...document.querySelectorAll('.catalog-comparison-select')].some((select) => select.value || select.tomselect?.isFocused)) {
             clearInterval(refreshTimer);
             window.location.reload();
         }

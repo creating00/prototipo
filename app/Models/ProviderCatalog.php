@@ -9,9 +9,16 @@ class ProviderCatalog extends Model
 {
     protected $guarded = [];
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $catalog) {
+            $catalog->source_key = hash('sha256', $catalog->source_url);
+        });
+    }
+
     protected function casts(): array
     {
-        return ['products' => 'array', 'requested_at' => 'datetime', 'completed_at' => 'datetime'];
+        return ['products' => 'array', 'pagination' => 'array', 'last_activity_at' => 'datetime', 'requested_at' => 'datetime', 'completed_at' => 'datetime'];
     }
 
     public function provider(): BelongsTo

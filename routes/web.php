@@ -101,6 +101,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         webResource('branches', BranchWebController::class);
         webResource('products', ProductWebController::class);
         Route::get('provider-catalogs', [\App\Http\Controllers\Web\ProviderCatalogController::class, 'index'])->name('web.provider-catalogs.index');
+        Route::delete('provider-catalogs', [\App\Http\Controllers\Web\ProviderCatalogController::class, 'clear'])->middleware('throttle:3,1')->name('web.provider-catalogs.clear');
         Route::get('provider-catalogs/products', [\App\Http\Controllers\Web\ProviderCatalogController::class, 'products'])->name('web.provider-catalogs.products');
         Route::get('provider-catalogs/history/{snapshot}', [\App\Http\Controllers\Web\ProviderCatalogController::class, 'history'])->name('web.provider-catalogs.history');
         Route::post('provider-catalogs/compare', [\App\Http\Controllers\Web\ProviderCatalogController::class, 'compare'])->name('web.provider-catalogs.compare');

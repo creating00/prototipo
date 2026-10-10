@@ -30,46 +30,66 @@ class ProviderCatalogController extends Controller
     {
         $this->authorizeCatalog();
         // A missing/stopped worker must not leave a permanently pending screen.
-        ProviderCatalog::where('status', 'queued')->where('requested_at', '<', now()->subMinutes(2))
-            ->update(['status' => 'failed', 'message' => 'La cola no finalizó la consulta en dos minutos. Verificá el worker y volvé a consultar.', 'completed_at' => now()]);
-        $providers = Provider::orderBy('business_name')->get();
-        $catalogs = ProviderCatalog::whereIn('provider_id', $providers->modelKeys())->get()->keyBy('provider_id');
+        ProviderCatalog::where('status', 'queued')->whereRaw('COALESCE(last_activity_at, requested_at) < ?', [now()->subMinutes(2)])
+            ->get()->each(function (ProviderCatalog $stalled) {
+                // Recheck the heartbeat so a page finishing concurrently cannot be expired.
+                ProviderCatalog::whereKey($stalled->id)->where('status', 'queued')
+                    ->whereRaw('COALESCE(last_activity_at, requested_at) < ?', [now()->subMinutes(2)])
+                    ->update(['status' => empty($stalled->products) ? 'failed' : 'partial', 'message' => 'La cola no registró avance en dos minutos. Verificá el worker y volvé a consultar. Los productos obtenidos se conservan como listado parcial.', 'completed_at' => now()]);
+            });
+        $providers = Provider::orderBy('business_name')->get()
+            ->filter(fn (Provider $provider) => collect($provider->catalogUrls())->contains(fn (string $url) => trim($url) !== ''))
+            ->values();
+        $catalogs = ProviderCatalog::whereIn('provider_id', $providers->modelKeys())->get();
         $selectedProvider = $providers->firstWhere('id', (int) $request->query('provider')) ?? $providers->first();
-        $catalog = $selectedProvider ? $catalogs->get($selectedProvider->id) : null;
+        $sourceUrls = $selectedProvider?->catalogUrls() ?? [];
+        $requestedUrl = $request->query('source_url');
+        $selectedSourceUrl = in_array($requestedUrl, $sourceUrls, true) ? $requestedUrl : ($sourceUrls[0] ?? null);
+        $sourceCatalogs = $catalogs->where('provider_id', $selectedProvider?->id)->keyBy('source_url');
+        $catalog = $selectedSourceUrl ? $sourceCatalogs->get($selectedSourceUrl) : null;
         $products = collect($catalog?->products ?? []);
         $page = max(1, (int) $request->query('page', 1));
-        $entries = new \Illuminate\Pagination\LengthAwarePaginator($products->slice(($page - 1) * 30, 30), $products->count(), 30, $page, ['path' => $request->url(), 'query' => $request->query()]);
+        $entries = new \Illuminate\Pagination\LengthAwarePaginator($products->slice(($page - 1) * 5, 5), $products->count(), 5, $page, ['path' => $request->url(), 'query' => $request->query(), 'fragment' => 'catalog-published-products']);
         $processed = $catalog ? ProviderCatalogSnapshot::where('query_token', $catalog->token)->first() : null;
         $history = ProviderCatalogSnapshot::orderByDesc('processed_at')->orderByDesc('id')
             ->paginate(10, ['*'], 'history_page')->withQueryString();
         $processedProductCount = ProviderCatalogItem::count();
+        $comparisonProviders = ProviderCatalogSnapshot::whereHas('products')
+            ->select('provider_id', DB::raw('MAX(provider_name) as provider_name'))
+            ->groupBy('provider_id')->orderBy('provider_name')->get();
         $oldEntries = collect($request->old('entries', []))->filter(fn ($id) => is_scalar($id) && ctype_digit((string) $id))->take(8);
         $selectedItems = ProviderCatalogItem::with('snapshot')->whereIn('id', $oldEntries)->get();
 
-        return view('admin.provider.catalogs', compact('providers', 'catalogs', 'selectedProvider', 'catalog', 'entries', 'processed', 'history', 'processedProductCount', 'selectedItems'));
+        return view('admin.provider.catalogs', compact('providers', 'catalogs', 'selectedProvider', 'sourceUrls', 'selectedSourceUrl', 'sourceCatalogs', 'catalog', 'entries', 'processed', 'history', 'processedProductCount', 'selectedItems', 'comparisonProviders'));
     }
 
-    public function refresh(Provider $provider)
+    public function refresh(Request $request, Provider $provider)
     {
         $this->authorizeCatalog();
         $this->authorize('update', $provider);
-        if (! $provider->catalog_url) {
+        if ($provider->catalogUrls() === []) {
             throw ValidationException::withMessages(['catalog_url' => 'Configurá primero la URL del catálogo del proveedor.']);
         }
         if (in_array(config('queue.default'), ['sync', 'null'], true)) {
             return back()->with('error', 'Configurá una cola asíncrona (por ejemplo database) y ejecutá su worker antes de consultar.');
         }
-        $catalog = DB::transaction(function () use ($provider) {
-            Provider::whereKey($provider->id)->lockForUpdate()->firstOrFail();
-            $current = ProviderCatalog::where('provider_id', $provider->id)->first();
-            if ($current?->status === 'queued' && $current->requested_at->gt(now()->subMinutes(2))) {
+        $validated = $request->validate(['source_url' => ['nullable', 'string', 'max:2048', new \App\Rules\CatalogUrl]]);
+        $sourceUrl = $validated['source_url'] ?? $provider->catalogUrls()[0];
+        $catalog = DB::transaction(function () use ($provider, $sourceUrl) {
+            $currentProvider = Provider::whereKey($provider->id)->lockForUpdate()->firstOrFail();
+            if (! in_array($sourceUrl, $currentProvider->catalogUrls(), true)) {
+                throw ValidationException::withMessages(['source_url' => 'La URL no está configurada para este proveedor.']);
+            }
+            $sourceKey = hash('sha256', $sourceUrl);
+            $current = ProviderCatalog::where('provider_id', $provider->id)->where('source_key', $sourceKey)->first();
+            if ($current?->status === 'queued' && ($current->last_activity_at ?? $current->requested_at)->gt(now()->subMinutes(2))) {
                 throw ValidationException::withMessages(['catalog' => 'Ya hay una consulta en curso para este proveedor.']);
             }
 
-            return ProviderCatalog::updateOrCreate(['provider_id' => $provider->id], [
-                'token' => (string) Str::uuid(), 'status' => 'queued', 'source_url' => $provider->catalog_url,
+            return ProviderCatalog::updateOrCreate(['provider_id' => $provider->id, 'source_key' => $sourceKey], [
+                'token' => (string) Str::uuid(), 'status' => 'queued', 'source_url' => $sourceUrl,
                 'products' => [], 'message' => 'Consulta en cola. El historial procesado se conserva.',
-                'requested_at' => now(), 'completed_at' => null,
+                'requested_at' => now(), 'completed_at' => null, 'pagination' => null, 'last_activity_at' => null,
             ]);
         });
         try {
@@ -79,7 +99,20 @@ class ProviderCatalogController extends Controller
             $catalog->update(['status' => 'failed', 'message' => 'No se pudo enviar la consulta a la cola.', 'completed_at' => now()]);
         }
 
-        return redirect()->route('web.provider-catalogs.index', ['provider' => $provider->id]);
+        return redirect()->route('web.provider-catalogs.index', ['provider' => $provider->id, 'source_url' => $sourceUrl]);
+    }
+
+    public function clear(Request $request, CatalogProcessingService $service)
+    {
+        $this->authorizeCatalog();
+        $this->authorize('clearCatalog', Provider::class);
+        abort_if(session('active_branch_id') === 'all', 403);
+        $this->authorize('providers.delete');
+        $request->validate(['confirm_clear' => ['required', 'accepted']]);
+        $service->clear();
+
+        return redirect()->route('web.provider-catalogs.index')
+            ->with('success', 'Se eliminaron las vistas previas, los productos y el historial de todos los catálogos web. Las URLs de proveedores y el inventario se conservan.');
     }
 
     public function process(Request $request, Provider $provider, CatalogProcessingService $service)
@@ -89,7 +122,7 @@ class ProviderCatalogController extends Controller
         $validated = $request->validate(['token' => ['required', 'uuid']]);
         $snapshot = $service->process($provider->id, $validated['token'], $request->user()->id);
 
-        return redirect()->route('web.provider-catalogs.index', ['provider' => $provider->id])
+        return redirect()->route('web.provider-catalogs.index', ['provider' => $provider->id, 'source_url' => $snapshot->source_url])
             ->with('success', 'Consulta procesada: '.$snapshot->product_count.' productos guardados en el historial y disponibles en los combos de comparación.');
     }
 
@@ -104,14 +137,20 @@ class ProviderCatalogController extends Controller
     public function products(Request $request)
     {
         $this->authorizeCatalog();
-        $validated = $request->validate(['q' => ['nullable', 'string', 'max:100'], 'page' => ['nullable', 'integer', 'min:1', 'max:100000']]);
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+            'page' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'provider_id' => ['nullable', 'integer', 'min:1'],
+        ]);
         $query = trim($validated['q'] ?? '');
         $items = ProviderCatalogItem::with('snapshot')
             ->join('provider_catalog_snapshots', 'provider_catalog_snapshots.id', '=', 'provider_catalog_items.snapshot_id')
+            ->when($validated['provider_id'] ?? null, fn ($builder, $providerId) => $builder->where('provider_catalog_snapshots.provider_id', $providerId))
             ->when($query !== '', fn ($builder) => $builder->where(function ($builder) use ($query) {
                 $builder->where('provider_catalog_items.name', 'like', '%'.$query.'%')
                     ->orWhere('provider_catalog_items.code', 'like', '%'.$query.'%')
-                    ->orWhere('provider_catalog_snapshots.provider_name', 'like', '%'.$query.'%');
+                    ->orWhere('provider_catalog_snapshots.provider_name', 'like', '%'.$query.'%')
+                    ->orWhere('provider_catalog_snapshots.source_url', 'like', '%'.$query.'%');
             }))
             ->orderBy('provider_catalog_snapshots.provider_name')
             ->orderBy('provider_catalog_snapshots.provider_id')

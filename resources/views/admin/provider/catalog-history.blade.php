@@ -2,7 +2,7 @@
 @section('page-title', 'Catálogo procesado: '.$snapshot->provider_name)
 @section('content')
 <div class="container-fluid">
-    <a class="btn btn-outline-secondary mb-3" href="{{ route('web.provider-catalogs.index', ['provider' => $snapshot->provider_id]) }}#catalog-history">Volver al historial y comparación</a>
+    <a class="btn btn-outline-secondary mb-3" href="{{ route('web.provider-catalogs.index', ['provider' => $snapshot->provider_id, 'source_url' => $snapshot->source_url]) }}#catalog-history">Volver al historial y comparación</a>
     <div class="card mb-4">
         <div class="card-header"><h5 class="mb-0">{{ $snapshot->provider_name }} · Registro #{{ $snapshot->id }}</h5></div>
         <div class="card-body">
