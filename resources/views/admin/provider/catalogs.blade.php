@@ -29,7 +29,7 @@
                 @can('update', $selectedProvider)
                     <div class="d-flex flex-wrap gap-2">
                         <a class="btn btn-outline-secondary" href="{{ route('web.providers.edit', $selectedProvider->id) }}">Editar URL</a>
-                        <form action="{{ route('web.providers.catalog.refresh', $selectedProvider->id) }}" method="POST">
+                        <form action="{{ route('web.providers.catalog.refresh', $selectedProvider->id) }}" method="POST" data-catalog-query-form>
                             @csrf
                             <button class="btn btn-primary" @disabled(!$selectedProvider->catalog_url || $catalog?->status === 'queued')>Consultar ahora</button>
                         </form>
@@ -45,6 +45,18 @@
             @else
                 <p>No hay proveedores registrados.</p>
             @endif
+            <div class="mt-3 {{ $catalog?->status === 'queued' ? '' : 'd-none' }}" data-catalog-query-progress aria-busy="{{ $catalog?->status === 'queued' ? 'true' : 'false' }}">
+                <p class="small mb-2" role="status" aria-live="polite" data-catalog-progress-label>Leyendo los productos del catálogo… Esperando la respuesta del proveedor.</p>
+                <div class="progress catalog-progress" role="progressbar" aria-label="Consulta de productos en curso">
+                    <div class="progress-bar catalog-progress-indeterminate"></div>
+                </div>
+            </div>
+            <div class="mt-3 d-none" data-catalog-process-progress aria-busy="false">
+                <p class="small mb-2" role="status" aria-live="polite">Procesando los productos… Guardando la consulta y sus productos en el historial.</p>
+                <div class="progress catalog-progress" role="progressbar" aria-label="Procesamiento de productos en curso">
+                    <div class="progress-bar bg-success catalog-progress-indeterminate"></div>
+                </div>
+            </div>
             @if($catalog)
                 @php($labels = ['queued' => 'En cola', 'complete' => 'Listado obtenido', 'partial' => 'Listado parcial', 'failed' => 'Error de consulta', 'unsupported' => 'Integración pendiente'])
                 <div class="alert {{ in_array($catalog->status, ['failed', 'unsupported']) ? 'alert-warning' : 'alert-info' }} mt-3 mb-0" role="status">

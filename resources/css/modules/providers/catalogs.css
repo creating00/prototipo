@@ -51,3 +51,29 @@
 .catalog-comparison-select + .ts-wrapper .ts-dropdown-content {
     max-height: 360px;
 }
+
+.catalog-progress {
+    height: 8px;
+    overflow: hidden;
+}
+
+.catalog-progress-indeterminate {
+    width: 35%;
+    animation: catalog-progress-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes catalog-progress-slide {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(286%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .catalog-progress-indeterminate {
+        width: 100%;
+        animation: none;
+    }
+}
