@@ -95,6 +95,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         webResource('categories', CategoryWebController::class);
         webResource('branches', BranchWebController::class);
         webResource('products', ProductWebController::class);
+        Route::get('provider-catalogs', [\App\Http\Controllers\Web\ProviderCatalogController::class, 'index'])->name('web.provider-catalogs.index');
+        Route::get('provider-catalogs/products', [\App\Http\Controllers\Web\ProviderCatalogController::class, 'products'])->name('web.provider-catalogs.products');
+        Route::get('provider-catalogs/history/{snapshot}', [\App\Http\Controllers\Web\ProviderCatalogController::class, 'history'])->name('web.provider-catalogs.history');
+        Route::post('provider-catalogs/compare', [\App\Http\Controllers\Web\ProviderCatalogController::class, 'compare'])->name('web.provider-catalogs.compare');
+        Route::post('providers/{provider}/catalog/process', [\App\Http\Controllers\Web\ProviderCatalogController::class, 'process'])->middleware('throttle:10,1')->name('web.providers.catalog.process');
+        Route::post('providers/{provider}/catalog/refresh', [\App\Http\Controllers\Web\ProviderCatalogController::class, 'refresh'])->middleware('throttle:10,1')->name('web.providers.catalog.refresh');
         webResource('providers', ProviderWebController::class);
         webResource('clients', ClientWebController::class);
         webResource('expenses', ExpenseWebController::class);

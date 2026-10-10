@@ -11,6 +11,7 @@ class ProviderService
     public function createProvider(array $data): Provider
     {
         $validated = $this->validateProviderData($data);
+
         return Provider::create($validated);
     }
 
@@ -36,7 +37,7 @@ class ProviderService
             ->map(function ($pp) {
                 return [
                     'id' => $pp->id,
-                    'name' => "{$pp->product->name} " . ($pp->provider_code ? "({$pp->provider_code})" : "(S/C)"),
+                    'name' => "{$pp->product->name} ".($pp->provider_code ? "({$pp->provider_code})" : '(S/C)'),
                     'price' => $pp->currentPrice->cost_price ?? 0,
                     'currency' => $pp->currentPrice->currency?->value ?? null,
                 ];
@@ -49,6 +50,10 @@ class ProviderService
         $validated = $this->validateProviderData($data, $provider->id);
 
         $provider->update($validated);
+        if ($provider->wasChanged('catalog_url')) {
+            \App\Models\ProviderCatalog::where('provider_id', $provider->id)->delete();
+        }
+
         return $provider->fresh();
     }
 
@@ -57,6 +62,7 @@ class ProviderService
         $provider = $this->getProviderById($id);
 
         $provider->delete();
+
         return ['message' => 'Provider deleted'];
     }
 
@@ -64,12 +70,13 @@ class ProviderService
     {
         $rules = [
             'business_name' => 'required|string',
-            'tax_id' => 'required|string|unique:providers,tax_id' . ($ignoreId ? ",$ignoreId" : ''),
+            'tax_id' => 'required|string|unique:providers,tax_id'.($ignoreId ? ",$ignoreId" : ''),
             'short_name' => 'nullable|string',
             'contact_name' => 'nullable|string',
             'email' => 'nullable|email',
             'phone' => 'nullable|string',
             'address' => 'nullable|string',
+            'catalog_url' => ['nullable', 'string', 'max:2048', new \App\Rules\CatalogUrl],
         ];
 
         $validator = Validator::make($data, $rules);

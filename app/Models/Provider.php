@@ -19,6 +19,7 @@ class Provider extends Model
         'email',
         'phone',
         'address',
+        'catalog_url',
     ];
 
     protected $appends = ['display_name'];

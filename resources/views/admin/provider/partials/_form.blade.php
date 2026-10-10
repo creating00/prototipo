@@ -28,6 +28,12 @@
 
 <hr class="my-3">
 
+<div class="mb-3">
+    <x-bootstrap.compact-input id="catalog_url" type="url" name="catalog_url" label="URL del catálogo web (opcional)"
+        placeholder="https://proveedor.com/catalogo" :value="old('catalog_url', $provider->catalog_url ?? '')" />
+    <small class="text-body-secondary">La consulta es bajo demanda. Cada sitio requiere un adaptador verificado; guardar una URL no garantiza extracción.</small>
+</div>
+
 {{-- Sección 2: Contacto --}}
 <h3 class="form-section-title">Datos de Contacto</h3>
 <div class="row g-3">

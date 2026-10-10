@@ -5,6 +5,9 @@
 @section('content')
     <div class="container-fluid">
         <x-adminlte.alert-manager />
+        @can('product_provider_prices.view')
+            <a class="btn btn-primary mb-3" href="{{ route('web.provider-catalogs.index') }}">Catálogos web y comparación de precios</a>
+        @endcan
         <div id="provider-orders-container" data-provider-order-url="{{ route('web.provider-orders.index') }}">
             <x-adminlte.data-table tableId="providers-table" title="Gestión de Proveedores" :headers="$headers"
                 :rowData="$rowData" :hiddenFields="$hiddenFields" withActions="true">
