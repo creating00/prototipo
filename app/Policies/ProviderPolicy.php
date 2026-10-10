@@ -2,11 +2,22 @@
 
 namespace App\Policies;
 
+use App\Enums\RoleLabel;
 use App\Models\User;
 
 class ProviderPolicy extends BasePolicy
 {
     protected string $resource = 'providers';
+
+    public function manageCatalogUrls(User $user): bool
+    {
+        return $user->hasAnyRole([RoleLabel::ADMIN->value, RoleLabel::PROVINCIAL_ADMIN->value]);
+    }
+
+    public function clearCatalog(User $user): bool
+    {
+        return $this->manageCatalogUrls($user);
+    }
 
     public function viewAny(User $user): bool
     {

@@ -11,6 +11,18 @@ use Illuminate\Validation\ValidationException;
 
 class CatalogProcessingService
 {
+    /** Locks follow the same provider-first order as refresh, processing and paginated jobs. */
+    public function clear(): void
+    {
+        DB::transaction(function () {
+            Provider::withTrashed()->select('id')->orderBy('id')->lockForUpdate()->get();
+            // Removing previews invalidates tokens; late jobs only update existing tokens.
+            ProviderCatalog::query()->delete();
+            ProviderCatalogItem::query()->delete();
+            ProviderCatalogSnapshot::query()->delete();
+        });
+    }
+
     /** Preserve the reviewed response atomically; repeated processing of the same token is idempotent. */
     public function process(int $providerId, string $token, int $userId): ProviderCatalogSnapshot
     {
@@ -20,9 +32,9 @@ class CatalogProcessingService
             if ($existing) {
                 return $existing;
             }
-            $catalog = ProviderCatalog::where('provider_id', $providerId)->lockForUpdate()->first();
+            $catalog = ProviderCatalog::where('provider_id', $providerId)->where('token', $token)->lockForUpdate()->first();
             if (! $catalog || ! hash_equals($catalog->token, $token)
-                || $catalog->source_url !== $provider->catalog_url
+                || ! in_array($catalog->source_url, $provider->catalogUrls(), true)
                 || ! in_array($catalog->status, ['partial', 'complete'], true)
                 || ! $catalog->completed_at || empty($catalog->products)) {
                 throw ValidationException::withMessages(['catalog' => 'La consulta cambió o no tiene productos listos para procesar. Consultá y revisá nuevamente el resultado.']);

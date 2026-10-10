@@ -33,6 +33,7 @@ class ProviderCatalogItem extends Model
             'image' => PublicUrl::displayLink($this->data['image'] ?? null),
             'queried_at' => $this->snapshot->queried_at->format('d/m/Y H:i:s'),
             'snapshot_id' => $this->snapshot_id,
+            'source_url' => $this->snapshot->source_url,
         ];
     }
 }

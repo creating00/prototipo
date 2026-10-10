@@ -20,9 +20,23 @@ class Provider extends Model
         'phone',
         'address',
         'catalog_url',
+        'catalog_urls',
     ];
 
     protected $appends = ['display_name'];
+
+    protected function casts(): array
+    {
+        return ['catalog_urls' => 'array'];
+    }
+
+    /** The legacy primary URL remains compatible with existing providers and clients. */
+    public function catalogUrls(): array
+    {
+        return array_values(array_unique(array_filter([
+            $this->catalog_url, ...($this->catalog_urls ?? []),
+        ], fn ($url) => is_string($url) && $url !== '')));
+    }
 
     public function getDisplayNameAttribute(): string
     {

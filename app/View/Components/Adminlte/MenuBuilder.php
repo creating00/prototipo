@@ -2,10 +2,9 @@
 
 namespace App\View\Components\Adminlte;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\View\Component;
-use Illuminate\Support\Facades\Auth;
-use App\Models\User;
 
 class MenuBuilder extends Component
 {
@@ -22,7 +21,7 @@ class MenuBuilder extends Component
         $user = Auth::user();
         $pendingOrdersCount = 0;
 
-        if ($user instanceof \App\Models\User && !is_null($user->branch_id)) {
+        if ($user instanceof \App\Models\User && ! is_null($user->branch_id)) {
 
             // Eloquent ya aplica el filtro de Soft Deletes por defecto.
             // Solo registros con deleted_at IS NULL serán contados.
@@ -34,8 +33,15 @@ class MenuBuilder extends Component
         $filteredItems = [];
 
         foreach ($items as $item) {
+            if (($item['href'] ?? null) === 'web.provider-catalogs.index') {
+                if (! $user || ! $user->can('viewAny', \App\Models\Provider::class) || ! $user->can('product_provider_prices.view')) {
+                    continue;
+                }
+                $item['active'] = request()->routeIs('web.provider-catalogs.*');
+            }
+
             // Ocultar sección de Usuarios si el usuario no tiene permiso de verlos
-            if (isset($item['label']) && $item['label'] === 'Usuarios' && (!$user || !$user->can('viewAny', \App\Models\User::class))) {
+            if (isset($item['label']) && $item['label'] === 'Usuarios' && (! $user || ! $user->can('viewAny', \App\Models\User::class))) {
                 continue;
             }
 
@@ -47,7 +53,7 @@ class MenuBuilder extends Component
                 if ($item['href'] === route('web.orders.index') && $pendingOrdersCount > 0) {
                     $item['badge'] = [
                         'value' => $pendingOrdersCount,
-                        'class' => 'badge text-bg-danger'
+                        'class' => 'badge text-bg-danger',
                     ];
                 }
             }
@@ -73,6 +79,7 @@ class MenuBuilder extends Component
         if (Str::startsWith($href, ['http://', 'https://', '/', '#'])) {
             return $href;
         }
+
         return route($href);
     }
 

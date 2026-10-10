@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 class ProviderWebController extends BaseProviderController
 {
     protected ProviderProductService $providerProductService;
+
     public function __construct(
         ProviderService $providerService,
         ProviderProductService $providerProductService
@@ -35,7 +36,7 @@ class ProviderWebController extends BaseProviderController
             // 'Email',
             'Teléfono',
             'Dirección',
-            'Creado en'
+            'Creado en',
         ];
         $hiddenFields = ['id'];
 
@@ -90,14 +91,17 @@ class ProviderWebController extends BaseProviderController
     public function create()
     {
         $this->authorize('create', Provider::class);
+
         return view('admin.provider.create');
     }
 
     public function store(Request $request)
     {
         $this->authorize('create', Provider::class);
+        $this->authorizeCatalogUrlChanges($request);
         try {
             $this->providerService->createProvider($request->all());
+
             return redirect()->route('web.providers.index')
                 ->with('success', 'Provider created successfully');
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -119,8 +123,10 @@ class ProviderWebController extends BaseProviderController
     {
         $provider = $this->providerService->getProviderById($id);
         $this->authorize('update', $provider);
+        $this->authorizeCatalogUrlChanges($request);
         try {
             $this->providerService->updateProvider($id, $request->all());
+
             return redirect()->route('web.providers.index')
                 ->with('success', 'Provider updated successfully');
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -136,6 +142,7 @@ class ProviderWebController extends BaseProviderController
         $this->authorize('delete', $provider);
         try {
             $this->providerService->deleteProvider($id);
+
             return redirect()->route('web.providers.index')
                 ->with('success', 'Provider deleted successfully');
         } catch (\Exception $e) {

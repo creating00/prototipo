@@ -1,10 +1,11 @@
 <?php
+
 // config/admin-side-menu.php
 
 return [
     'items' => [
         [
-            'type'  => 'header',
+            'type' => 'header',
             'title' => 'ADMINISTRACIÓN',
         ],
         [
@@ -25,13 +26,13 @@ return [
             'icon' => 'bi bi-cart-fill',
             'color' => 'text-neon-green',
             'label' => 'Ventas',
-            'href'  => 'web.sales.create-client',
+            'href' => 'web.sales.create-client',
         ],
         [
             'type' => 'single',
             'icon' => 'bi bi-receipt',
             'label' => 'Registro de Ventas',
-            'href'  => 'web.sales.index',
+            'href' => 'web.sales.index',
         ],
 
         // GASTOS
@@ -39,7 +40,7 @@ return [
             'type' => 'single',
             'icon' => 'bi bi-cash-coin',
             'label' => 'Gastos',
-            'href'  => 'web.expenses.index',
+            'href' => 'web.expenses.index',
         ],
 
         // PROVEEDORES
@@ -47,7 +48,13 @@ return [
             'type' => 'single',
             'icon' => 'bi bi-truck',
             'label' => 'Proveedores',
-            'href'  => 'web.providers.index',
+            'href' => 'web.providers.index',
+        ],
+        [
+            'type' => 'single',
+            'icon' => 'bi bi-journal-richtext',
+            'label' => 'Catálogos web',
+            'href' => 'web.provider-catalogs.index',
         ],
 
         // PRODUCTOS
@@ -55,14 +62,14 @@ return [
             'type' => 'single',
             'icon' => 'bi bi-box-seam',
             'label' => 'Productos',
-            'href'  => 'web.products.index',
+            'href' => 'web.products.index',
         ],
         // CATEGORIAS
         [
             'type' => 'single',
             'icon' => 'bi bi-tags',
             'label' => 'Categorias',
-            'href'  => 'web.categories.index',
+            'href' => 'web.categories.index',
         ],
 
         // CLIENTES
@@ -70,16 +77,16 @@ return [
             'type' => 'single',
             'icon' => 'bi bi-people-fill',
             'label' => 'Clientes',
-            'href'  => 'web.clients.index',
+            'href' => 'web.clients.index',
         ],
 
-        //PROMOCIONES
+        // PROMOCIONES
         [
             'type' => 'single',
             'icon' => 'bi bi-megaphone-fill',
             'color' => 'text-neon-green',
             'label' => 'Promociones',
-            'href'  => 'web.promotions.index',
+            'href' => 'web.promotions.index',
         ],
 
         // SUCURSALES
@@ -87,7 +94,7 @@ return [
             'type' => 'single',
             'icon' => 'bi bi-building',
             'label' => 'Sucursales',
-            'href'  => 'web.branches.index',
+            'href' => 'web.branches.index',
         ],
 
         // ANALÍTICO
@@ -95,7 +102,7 @@ return [
             'type' => 'single',
             'icon' => 'bi bi-graph-up-arrow',
             'label' => 'Analítico',
-            'href'  => 'web.analytics.index',
+            'href' => 'web.analytics.index',
         ],
 
         // PEDIDOS
@@ -103,13 +110,13 @@ return [
             'type' => 'single',
             'icon' => 'bi bi-list-check',
             'label' => 'Pedidos',
-            'href'  => 'web.orders.create-branch',
+            'href' => 'web.orders.create-branch',
         ],
         [
             'type' => 'single',
             'icon' => 'bi bi-journal-text',
             'label' => 'Registro de Pedidos',
-            'href'  => 'web.orders.index',
+            'href' => 'web.orders.index',
 
         ],
     ],
