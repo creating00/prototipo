@@ -85,4 +85,8 @@ jobs:
             php artisan route:cache
             php artisan view:cache
 
+            echo "🔄 Reiniciando workers e instalando cron de cola..."
+            php artisan queue:restart
+            bash scripts/install-queue-cron.sh
+
             echo "✅ Deploy TESTING completado"

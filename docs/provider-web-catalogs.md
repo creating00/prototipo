@@ -12,6 +12,8 @@ Desde **Proveedores → Catálogos web y comparación de precios**, consultá la
 
 Una cola `sync` o `null` no permite iniciar consultas. Si un worker no finaliza en dos minutos, la pantalla informa el problema y permite reintentar. Las respuestas de trabajos vencidos o reemplazados no sobrescriben la consulta vigente. Cambiar la URL invalida la vista previa; conserva el historial procesado.
 
+Los deploys de testing y master integran el reinicio de workers y el registro de cron para hosting compartido. Consultá [Cola de catálogos en Hostinger](deploy-queue.md) para los requisitos y el paso de hPanel cuando el hosting no permite registrar cron por SSH.
+
 ## Consultar y procesar
 
 1. Seleccioná el proveedor: la selección actualiza la pantalla, sin botón «Ver».
