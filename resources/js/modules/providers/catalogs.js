@@ -49,10 +49,24 @@ document.getElementById('catalog-provider')?.addEventListener('change', (event) 
     event.target.form.requestSubmit();
 });
 
+function showCatalogProgress(selector) {
+    const progress = document.querySelector(selector);
+    progress?.classList.remove('d-none');
+    progress?.setAttribute('aria-busy', 'true');
+    document.querySelectorAll('[data-catalog-query-form] button, [data-catalog-process-form] button').forEach((button) => {
+        button.disabled = true;
+    });
+}
+
+document.querySelector('[data-catalog-query-form]')?.addEventListener('submit', (event) => {
+    showCatalogProgress('[data-catalog-query-progress]');
+    document.querySelector('[data-catalog-progress-label]').textContent = 'Iniciando consulta… Leyendo los productos publicados en la URL del proveedor.';
+    event.target.querySelector('button').textContent = 'Consultando…';
+});
+
 document.querySelector('[data-catalog-process-form]')?.addEventListener('submit', (event) => {
-    const button = event.target.querySelector('button');
-    button.disabled = true;
-    button.textContent = 'Procesando…';
+    showCatalogProgress('[data-catalog-process-progress]');
+    event.target.querySelector('button').textContent = 'Procesando…';
 });
 
 document.querySelectorAll('.catalog-comparison-select').forEach((select) => {
@@ -128,8 +142,9 @@ document.querySelector('[action$="provider-catalogs/compare"]')?.addEventListene
 
 // Refreshes only the local result screen, never initiates a provider query.
 if (document.querySelector('[data-catalog-page]')?.dataset.pending === 'true') {
-    setTimeout(() => {
+    const refreshTimer = setInterval(() => {
         if (![...document.querySelectorAll('.catalog-comparison-select')].some((select) => select.value || select.tomselect?.isFocused)) {
+            clearInterval(refreshTimer);
             window.location.reload();
         }
     }, 10000);
