@@ -69,21 +69,22 @@ class FetchProviderCatalog implements ShouldQueue
                 return;
             }
             $state = $catalog->pagination ?? ['pages_read' => 0, 'total' => $page['total'], 'total_pages' => $page['total_pages'], 'from' => $page['from'],
-                'mode' => $page['mode'] ?? 'range', 'first_page' => $page['current_page']];
-            $numbered = ($state['mode'] ?? 'range') === 'numbered';
+                'mode' => $page['mode'] ?? 'range', 'first_page' => $page['current_page'], 'identity_mode' => $page['identity_mode'] ?? 'url_sku'];
+            $numbered = in_array($state['mode'] ?? 'range', ['numbered', 'linked'], true);
+            $identityMode = $state['identity_mode'] ?? 'url_sku';
             $products = $catalog->products ?? [];
             $seen = [];
             $seenUrls = [];
             foreach ($products as $product) {
-                $seen[$this->identity($product)] = true;
+                $seen[$this->identity($product, $identityMode)] = true;
                 if ($product['url'] ?? null) {
                     $seenUrls[$product['url']] = true;
                 }
             }
             $overlap = false;
             foreach ($page['products'] as $product) {
-                $overlap = $overlap || isset($seenUrls[$product['url'] ?? '']);
-                $key = $this->identity($product);
+                $key = $this->identity($product, $identityMode);
+                $overlap = $overlap || ($identityMode === 'dux_sku' ? isset($seen[$key]) : isset($seenUrls[$product['url'] ?? '']));
                 if (! isset($seen[$key])) {
                     $products[] = $product;
                     $seen[$key] = true;
@@ -114,7 +115,8 @@ class FetchProviderCatalog implements ShouldQueue
             }
             $continue = $state['next_url'] && ! $reason;
             $complete = ! $continue && ! $reason && ! $state['next_url'] && ($numbered
-                ? ($page['end_verified'] ?? false) && $state['first_page'] === 1 && $state['pages_read'] === $state['total_pages']
+                ? ($page['end_verified'] ?? false) && $state['first_page'] === 1
+                    && (($state['mode'] ?? null) === 'linked' ? $state['pages_read'] === $state['current_page'] : $state['pages_read'] === $state['total_pages'])
                 : $state['from'] === 1 && $state['total'] !== null && count($products) === $state['total'] && $state['to'] === $state['total']);
             $message = $state['pages_read'].' páginas leídas; '.count($products).' productos'
                 .($state['total'] !== null ? ' de '.$state['total'].' publicados' : '').'. ';
@@ -139,8 +141,11 @@ class FetchProviderCatalog implements ShouldQueue
         });
     }
 
-    private function identity(array $product): string
+    private function identity(array $product, string $mode = 'url_sku'): string
     {
+        if ($mode === 'dux_sku') {
+            return hash('sha256', isset($product['code']) && $product['code'] !== '' ? (string) $product['code'] : json_encode($product, JSON_THROW_ON_ERROR));
+        }
         // Exact published URL and SKU, never fuzzy name equivalence.
         $key = ($product['url'] ?? null) ? $product['url'].'|'.($product['code'] ?? '') : json_encode($product, JSON_THROW_ON_ERROR);
         $offers = $product['details']['offers'] ?? [];

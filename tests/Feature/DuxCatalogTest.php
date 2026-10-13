@@ -42,7 +42,7 @@ test('Dux pagination only follows published next links within the same catalog a
     }
 });
 
-test('Dux registry uses its adapter and stops after four published pages', function () {
+test('legacy direct Dux fetch stays bounded while the registry enables queue pagination', function () {
     $http = Mockery::mock(CatalogHttpClient::class);
     for ($page = 1; $page <= 4; $page++) {
         $url = 'https://catalogo.duxsoftware.com.ar/byteriojauno?productSearch=&page='.$page;
@@ -53,6 +53,7 @@ test('Dux registry uses its adapter and stops after four published pages', funct
     $this->app->instance(CatalogHttpClient::class, $http);
     $result = app(CatalogRegistry::class)->fetch('https://catalogo.duxsoftware.com.ar/byteriojauno?productSearch=&page=1');
     expect($result->status)->toBe('partial')->and($result->products)->toHaveCount(4);
+    expect(CatalogRegistry::paginatedAdapter('https://catalogo.duxsoftware.com.ar/byteriojauno?productSearch=&page=1'))->toBe(DuxAdapter::class);
 });
 
 test('Dux keeps earlier products if a subsequent page cannot be extracted', function () {
