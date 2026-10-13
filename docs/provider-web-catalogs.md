@@ -57,6 +57,18 @@ Verificación de múltiples URLs: 66 pruebas del módulo aprobadas (249 assertio
 
 `provider_catalogs` contiene solamente la última vista previa por proveedor y URL, con su avance de paginación. `provider_catalog_snapshots` conserva cada consulta procesada y `provider_catalog_items` conserva sus productos y datos publicados en JSON. El guardado es transaccional: si un producto no se puede guardar, no queda un historial incompleto. No se importan productos al inventario interno ni se procesan automáticamente las consultas existentes.
 
+### Dux: recorrer el catálogo o rubro por tandas
+
+La consulta desde la pantalla usa un trabajo de cola por página y ya no se detiene en cuatro páginas. Sigue el enlace público siguiente conservando catálogo, `id_rubro`, búsqueda y los demás filtros. Verifica la página activa, la cantidad de tarjetas frente a los registros JSON extraídos y el control siguiente deshabilitado al finalizar. Los SKU se usan para detectar repeticiones dentro de esta consulta de Dux; no prueban equivalencia entre proveedores.
+
+El límite es de 400 páginas, 20.000 productos y 10 MB acumulados. Un enlace inesperado, una repetición, un fallo de extracción o una interrupción dejan lo obtenido como parcial. Empezar en una página intermedia también queda parcial. El HTML examinado no publica un total estructurado de productos o páginas: se conservan esos valores nulos y no se calcula un total multiplicando páginas por 24.
+
+**Verificación real del 13/10/2026:** [rubro 128087 de Byte Rioja](https://catalogo.duxsoftware.com.ar/byteriojauno?id_rubro=128087&page=1), leído con `FetchProviderCatalog` y el cliente seguro en SQLite temporal en memoria: **1.297 productos y SKU distintos en 55 páginas**, todos con precio y moneda `PESOS`; **787 con imagen publicada**. Las primeras 54 páginas publicaron 24 productos cada una y la última publicó uno, con el control siguiente deshabilitado. El estado final fue `complete`. No se guardaron productos en la base del proyecto y no se garantiza cobertura de otros rubros ni de la tienda completa.
+
+Después del deploy, reiniciá workers con `php artisan queue:restart` y mantené activo el worker o cron. Esta corrección no agrega migraciones ni cambios de frontend. Solicitá **Consultar ahora** nuevamente y **Procesar** al terminar para guardar el resultado; los registros históricos de 96 productos se conservan. El método directo `DuxAdapter::fetch` mantiene su lectura acotada por compatibilidad; la pantalla y sus jobs usan `page` con continuaciones en la cola.
+
+Verificación de la paginación de Dux: 57 pruebas de Dux, i2C y Fast Cheap aprobadas (255 assertions), incluyendo lectura más allá de cuatro páginas, conservación de rubro, enlaces inesperados, límite 400, errores posteriores, SKU repetidos y señales de final ausentes. Pint aprobado. La suite general obtuvo 252 pruebas aprobadas y los dos fallos previos de `ExampleTest` e `InterBranchOrderTest` (1026 assertions).
+
 ### i2C: búsquedas y Repuestos por páginas
 
 Las URLs `/search/page/1/?q=modulos` y `/search/?q=modulos` permiten consultar la búsqueda por tandas. El adaptador sigue el enlace siguiente publicado, conserva la búsqueda y los demás filtros y verifica el contador de páginas. Se detiene en el final publicado o en la página 400 como máximo; también aplica los límites de 20.000 registros y 10 MB acumulados. No consulta páginas inexistentes para completar el límite.
@@ -73,7 +85,7 @@ Verificación de esta incorporación: **109 pruebas del módulo aprobadas (443 a
 
 Al incorporar Repuestos, las pruebas específicas de paginación de i2C y Fast Cheap sumaron **38 casos aprobados (166 assertions)**. La suite general obtuvo **208 pruebas aprobadas y los mismos dos fallos previos** (786 assertions); después de ajustar el selector a la sección de categoría publicada, se repitieron las pruebas específicas y la lectura real completa. Pint aprobado.
 
-## Fuentes verificadas el 9 y 10 de octubre de 2026
+## Fuentes verificadas el 9, 10 y 13 de octubre de 2026
 
 Se consultaron las URLs públicas sin credenciales y luego se ejecutaron los adaptadores mediante el cliente HTTP seguro de Laravel. Los conteos son evidencia de esa evaluación; pueden cambiar en origen.
 
@@ -84,11 +96,17 @@ Se consultaron las URLs públicas sin credenciales y luego se ejecutaron los ada
 | [Fast Cheap](https://www.fast-cheap.com.ar/) | 59 tarjetas de la portada en la evaluación inicial; posteriormente, 849 productos en 36 páginas de módulos (10/10/2026) | Adaptador específico del tema Kapee/WooCommerce. La consulta en cola sigue los enlaces de «Cargar más productos», verificando el contador de la categoría. La portada puede seguir siendo parcial. La Store API devolvió 403 y no se utiliza. No se consultan fichas individuales. El símbolo `$` queda sin moneda. Rangos de precio quedan sin importe único. |
 | [S&R](https://syrcelulares.com/) | 400 productos de la Store API pública | Solo URL principal; hasta cuatro páginas de 100 productos. La API declaró 611 productos durante la evaluación: el resultado es parcial. Los atributos y variantes se conservan en los datos de origen; no se inventa precio de cada variante. |
 | [Google Sheets](https://docs.google.com/spreadsheets/d/1c39kYssBH8TWE4JPZ8c4xy9OJ4RnsCme/edit?gid=1972998278) | 565 pares de nombre y precio en CSV | Solo este documento y pestaña. Formato específico de bloques con celdas adyacentes producto/precio; hasta 1000 productos. No se interpreta `$` como ARS o USD. Otros bloques o pestañas requieren otro adaptador. |
-| [Dux](https://catalogo.duxsoftware.com.ar/byteriojauno?productSearch=&page=1) | 96 productos en cuatro páginas, con nombre, SKU, precio, moneda `PESOS`, stock e imágenes cuando existen | Adaptador específico de los registros JSON de Next.js Flight embebidos en el HTML. No ejecuta JavaScript ni consulta APIs privadas. Sigue solo enlaces publicados de la misma búsqueda y catálogo, hasta cuatro páginas. Resultado parcial, sin detalles de variantes. El campo `url` de Dux es una imagen: el enlace de origen lleva a la página del catálogo, sin inventar un permalink de producto. |
+| [Dux](https://catalogo.duxsoftware.com.ar/byteriojauno?id_rubro=128087&page=1) | Evaluación inicial: 96 productos en cuatro páginas. Verificación del rubro 128087 (13/10): 1.297 productos en 55 páginas, con nombre, SKU, precio y moneda `PESOS`; 787 imágenes | Registros JSON de Next.js Flight embebidos en HTML, sin ejecutar JavaScript ni consultar APIs privadas. La pantalla sigue enlaces publicados mediante la cola, conservando catálogo y filtros, hasta 400 páginas. Verifica el final deshabilitado y detecta SKU repetidos. Sin detalles de variantes. El campo `url` de Dux es una imagen: el enlace de origen lleva a la página del catálogo, sin inventar un permalink de producto. |
 
 No se garantiza cobertura completa de una tienda a partir de su portada o de una página de búsqueda. La pantalla distingue consulta en cola, listado obtenido, listado parcial, error e integración pendiente; muestra fecha, alcance y motivo. Una extracción parcial de S&R conserva las páginas obtenidas si falla una posterior.
 
 ## Comparación
+
+El buscador **Buscar un producto en todos los catálogos** permite seleccionar un producto procesado y cargar candidatos en los ocho campos de comparación. Busca todas las palabras ingresadas en nombres y códigos; si no se ingresó texto, usa el nombre o código publicado del producto elegido. El producto seleccionado ocupa el primer campo, con su fecha original. Los candidatos de otros proveedores usan la consulta procesada más reciente de cada URL, conservando imágenes, precios y fechas. La consulta no accede a los sitios de proveedores ni guarda asociaciones.
+
+Un único candidato por proveedor queda precargado **para revisión**; si hay varias coincidencias, el proveedor queda asignado y el combo ofrece sus candidatos sin seleccionar ninguno. Se muestran hasta ocho proveedores y veinte candidatos iniciales por proveedor, con aviso si hay más y posibilidad de refinar la búsqueda en el combo. Las coincidencias por nombre o código no prueban equivalencia: la confirmación manual sigue siendo obligatoria y se desmarca al cambiar productos o proveedores. Elegir otro producto en el buscador general reemplaza las selecciones; una búsqueda fallida conserva las anteriores.
+
+Verificación del buscador general: 31 pruebas de búsqueda e historial aprobadas (201 assertions) y cuatro pruebas Node del módulo JavaScript con controles aislados, incluyendo respuestas atrasadas y cambios manuales durante una consulta. La suite general obtuvo 239 pruebas aprobadas y los dos fallos previos de `ExampleTest` e `InterBranchOrderTest` (967 assertions). Pint, Vite y compilación de Blade y rutas aprobados.
 
 Cada campo de producto tiene un filtro **Filtrar proveedor**. Elegí un proveedor para buscar únicamente en sus productos procesados o conservá **Todos los proveedores con productos guardados**. El filtro incluye proveedores con historial aunque se haya retirado su URL o dado de baja al proveedor; excluye vistas previas sin procesar. Cambiarlo limpia la selección de ese campo y reinicia su búsqueda y paginación. Los otros productos elegidos se conservan.
 
@@ -104,14 +122,17 @@ Los adaptadores implementan `App\Services\Catalogs\CatalogAdapter` y devuelven `
 
 Para lectura por tandas, implementá `PaginatedCatalogAdapter` y registrá únicamente los hosts y rutas verificados en `CatalogRegistry::paginatedAdapter`. `FetchProviderCatalog` coordina las continuaciones y conserva el avance. El modo `range` verifica rangos y total de productos; `numbered` verifica contador de páginas y final publicado. Los conteos ausentes quedan nulos: no se deduce un total de productos multiplicando páginas por tamaño de grilla.
 
+El modo `linked`, usado por Dux, verifica números consecutivos, página activa y control de fin explícito, sin exigir un total de páginas ausente. `identity_mode` permite detectar los SKU repetidos de Dux aunque el enlace del producto sea la página de origen; los otros adaptadores conservan su identidad por URL/SKU.
+
 El cliente rechaza credenciales, IP literales, puertos no estándar y direcciones DNS privadas/reservadas. Valida cada redirección y fija la IP pública en cURL para evitar DNS rebinding; no utiliza proxy, sesión ni cookies. Límites: 2 MB por respuesta incluso descomprimida, tres redirecciones, tres segundos de conexión, ocho por solicitud y 50 para el conjunto de solicitudes de un adaptador. Los jobs tienen un intento y 65 segundos. No descarga imágenes, no ejecuta JavaScript y no elude CAPTCHA ni autenticación. Dux se decodifica como JSON, nunca mediante `eval`; si cambia el formato, se informa un error y se conservan las páginas previas obtenidas durante esa consulta.
 
 Verificación local:
 
 ```sh
 php vendor/bin/pint app/Services/Catalogs app/Jobs/FetchProviderCatalog.php app/Http/Controllers/Web/ProviderCatalogController.php app/Rules/CatalogUrl.php app/Models/ProviderCatalog.php tests/Feature/ProviderCatalogTest.php database/migrations/2026_10_09_000001_add_provider_web_catalogs.php
-php artisan test tests/Feature/ProviderCatalogTest.php tests/Feature/ProviderCatalogHistoryTest.php tests/Feature/ProviderCatalogUrlsTest.php tests/Feature/DuxCatalogTest.php tests/Feature/FastCheapPaginationTest.php tests/Feature/I2cCatalogPaginationTest.php
+php artisan test tests/Feature/ProviderCatalogTest.php tests/Feature/ProviderCatalogHistoryTest.php tests/Feature/ProviderCatalogUrlsTest.php tests/Feature/DuxCatalogTest.php tests/Feature/DuxCatalogPaginationTest.php tests/Feature/FastCheapPaginationTest.php tests/Feature/I2cCatalogPaginationTest.php
 composer run test
+node --test tests/Frontend/catalog-general-search.test.cjs
 npm run build
 ```
 

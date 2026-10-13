@@ -5,6 +5,8 @@ import '../../../css/modules/providers/catalogs.css';
 
 const optionsError = document.querySelector('[data-catalog-options-error]');
 let clearingCatalogs = false;
+let comparisonSearchController = null;
+let applyingGeneralSearch = false;
 
 // New visits start collapsed; pagination and progress reloads keep the current choice.
 const restoreSections = performance.getEntriesByType('navigation')[0]?.type === 'reload'
@@ -77,14 +79,28 @@ function productOption(data, selected = false) {
     const copy = document.createElement('span');
     copy.className = 'catalog-combo-copy';
     const name = document.createElement('span');
+    name.className = 'catalog-combo-name';
     name.textContent = data.text || 'Nombre no informado';
+    const price = document.createElement('strong');
+    const hasPrice = data.price !== null && data.price !== undefined && data.price !== '';
+    price.className = `catalog-combo-price${hasPrice ? '' : ' catalog-combo-price-missing'}`;
+    price.setAttribute('aria-label', hasPrice ? 'Precio publicado' : 'Precio no informado');
+    const amount = document.createElement('span');
+    amount.textContent = hasPrice ? data.price : 'Precio no informado';
+    price.append(amount);
+    if (hasPrice) {
+        const currency = document.createElement('span');
+        currency.className = 'catalog-combo-currency';
+        currency.textContent = data.currency || 'Moneda no informada';
+        price.append(currency);
+    }
     const metadata = document.createElement('small');
     metadata.className = 'catalog-combo-meta';
-    metadata.textContent = `${data.provider} · ${data.code ?? 'Sin código'} · ${data.price ?? 'Sin precio'} ${data.currency ?? 'Sin moneda'} · ${data.queried_at}`;
+    metadata.textContent = `${data.provider} · ${data.code ?? 'Sin código'} · ${data.queried_at}`;
     const source = document.createElement('small');
     source.className = 'catalog-combo-meta';
     source.textContent = data.source_url || '';
-    copy.append(name, metadata, source);
+    copy.append(name, price, metadata, source);
     container.append(copy);
     return container;
 }
@@ -124,7 +140,7 @@ document.querySelector('[data-catalog-process-form]')?.addEventListener('submit'
     event.target.querySelector('button').textContent = 'Procesando…';
 });
 
-function initializeProductSearch(select, providerFilter) {
+function initializeProductSearch(select, providerFilter, settings = {}) {
     return new TomSelect(select, {
         plugins: ['virtual_scroll'],
         maxOptions: null,
@@ -136,7 +152,7 @@ function initializeProductSearch(select, providerFilter) {
         score: () => () => 1,
         firstUrl(query) {
             const url = new URL(select.dataset.productsUrl, window.location.origin);
-            url.searchParams.set('q', query.trim());
+            url.searchParams.set('q', query.trim() || select.dataset.candidateQuery || '');
             if (providerFilter.value) url.searchParams.set('provider_id', providerFilter.value);
             return url.toString();
         },
@@ -184,6 +200,11 @@ function initializeProductSearch(select, providerFilter) {
         onDropdownOpen() {
             if (this.catalogLoadFailed) this.load(this.lastValue);
         },
+        onChange() {
+            const confirmation = document.getElementById('equivalence-reviewed');
+            if (confirmation) confirmation.checked = false;
+            if (!applyingGeneralSearch) comparisonSearchController?.abort();
+        },
         render: {
             option: (data) => productOption(data),
             item: (data) => productOption(data, true),
@@ -191,20 +212,114 @@ function initializeProductSearch(select, providerFilter) {
             no_more_results: () => dropdownMessage('Fin de los productos procesados para esta búsqueda.'),
             no_results: () => dropdownMessage('No hay productos procesados para esta búsqueda.'),
         },
+        ...settings,
     });
+}
+
+function resetProductSearch(select, providerFilter, settings = {}) {
+    select.tomselect.catalogRequests?.forEach((controller) => controller.abort());
+    select.tomselect.destroy();
+    select.replaceChildren(new Option('Seleccionar producto', ''));
+    return initializeProductSearch(select, providerFilter, settings);
+}
+
+function candidateScore(query) {
+    const words = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+    return (data) => {
+        const text = `${data.text || ''} ${data.code || ''}`.toLocaleLowerCase();
+        return words.every((word) => text.includes(word)) ? 1 : 0;
+    };
 }
 
 document.querySelectorAll('.catalog-comparison-provider').forEach((providerFilter) => {
     const select = document.getElementById(providerFilter.dataset.productSelect);
     initializeProductSearch(select, providerFilter);
     providerFilter.addEventListener('change', () => {
-        select.tomselect.catalogRequests?.forEach((controller) => controller.abort());
-        select.tomselect.destroy();
-        select.replaceChildren(new Option('Seleccionar producto', ''));
+        comparisonSearchController?.abort();
+        delete select.dataset.candidateQuery;
+        providerFilter.parentElement.querySelector('[data-catalog-candidate-status]').textContent = '';
+        document.getElementById('equivalence-reviewed').checked = false;
         optionsError?.classList.add('d-none');
-        initializeProductSearch(select, providerFilter).focus();
+        resetProductSearch(select, providerFilter).focus();
     });
 });
+
+const generalSearch = document.getElementById('catalog-general-search');
+const generalStatus = document.querySelector('[data-catalog-general-status]');
+if (generalSearch) {
+    initializeProductSearch(generalSearch, { value: '' }, {
+        placeholder: 'Buscar por nombre o código en todos los proveedores',
+        onType(query) { this.catalogSearchText = query.trim(); },
+        async onChange(value) {
+            comparisonSearchController?.abort();
+            if (!value) {
+                comparisonSearchController = null;
+                generalStatus.textContent = '';
+                generalSearch.closest('div').removeAttribute('aria-busy');
+                return;
+            }
+            const controller = new AbortController();
+            comparisonSearchController = controller;
+            const timeout = setTimeout(() => controller.abort(), 15000);
+            generalStatus.textContent = 'Buscando candidatos en los proveedores…';
+            generalSearch.closest('div').setAttribute('aria-busy', 'true');
+            try {
+                const url = new URL(generalSearch.dataset.suggestionsUrl, window.location.origin);
+                url.searchParams.set('entry_id', value);
+                url.searchParams.set('q', this.catalogSearchText || '');
+                const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal });
+                if (!response.ok) throw new Error('No se encontraron candidatos');
+                const data = await response.json();
+                if (controller.signal.aborted || comparisonSearchController !== controller || this.getValue() !== value) return;
+                applyingGeneralSearch = true;
+                document.getElementById('equivalence-reviewed').checked = false;
+                document.querySelectorAll('.catalog-comparison-provider').forEach((filter, index) => {
+                    const select = document.getElementById(filter.dataset.productSelect);
+                    const group = data.groups[index];
+                    if (group && ![...filter.options].some((option) => option.value === group.provider_id)) {
+                        filter.add(new Option(group.provider, group.provider_id));
+                    }
+                    filter.value = group?.provider_id || '';
+                    select.dataset.candidateQuery = group ? data.search : '';
+                    const combo = resetProductSearch(select, filter, group ? {
+                        preload: false,
+                        options: group.options,
+                        optgroups: [{ value: group.provider_id, label: group.provider }],
+                        score: candidateScore,
+                    } : {});
+                    const status = filter.parentElement.querySelector('[data-catalog-candidate-status]');
+                    if (!group) {
+                        status.textContent = '';
+                        return;
+                    }
+                    if (group.selected) combo.setValue(group.selected);
+                    combo.refreshOptions(false);
+                    status.textContent = group.selected
+                        ? 'Candidato seleccionado. Requiere revisión de modelo, variante y presentación.'
+                        : 'Hay varias coincidencias. Elegí el producto correcto; requiere revisión.';
+                    if (group.has_more) status.textContent += ' Buscá un nombre o código más específico para reducir los resultados.';
+                });
+                generalStatus.textContent = `${data.groups.length} proveedores cargados. Revisá los candidatos antes de comparar.`;
+                if (data.groups.length === 1) generalStatus.textContent += ' No se encontraron candidatos en otros proveedores; probá una búsqueda más amplia.';
+                if (data.providers_truncated) generalStatus.textContent += ' Hay más proveedores; se muestran hasta ocho.';
+            } catch {
+                if (comparisonSearchController !== controller) return;
+                generalStatus.textContent = controller.signal.aborted
+                    ? 'La búsqueda se interrumpió. Podés volver a seleccionar el producto.'
+                    : 'No se pudieron cargar los candidatos. Las selecciones anteriores se conservan; volvé a intentar.';
+            } finally {
+                applyingGeneralSearch = false;
+                clearTimeout(timeout);
+                if (comparisonSearchController === controller) {
+                    generalSearch.closest('div').removeAttribute('aria-busy');
+                    if (controller.signal.aborted && generalStatus.textContent === 'Buscando candidatos en los proveedores…') {
+                        generalStatus.textContent = 'La búsqueda se interrumpió. Podés volver a seleccionar el producto.';
+                    }
+                }
+            }
+        },
+    });
+}
 
 // Exclude optional empty slots; server validates every submitted reference again.
 document.querySelector('[action$="provider-catalogs/compare"]')?.addEventListener('submit', () => {
@@ -216,7 +331,7 @@ document.querySelector('[action$="provider-catalogs/compare"]')?.addEventListene
 // Refreshes only the local result screen, never initiates a provider query.
 if (document.querySelector('[data-catalog-page]')?.dataset.pending === 'true') {
     const refreshTimer = setInterval(() => {
-        if (!clearingCatalogs && !Swal.isVisible() && ![...document.querySelectorAll('.catalog-comparison-select')].some((select) => select.value || select.tomselect?.isFocused)) {
+        if (!clearingCatalogs && !Swal.isVisible() && !generalSearch?.value && !generalSearch?.tomselect?.isFocused && ![...document.querySelectorAll('.catalog-comparison-select')].some((select) => select.value || select.tomselect?.isFocused)) {
             clearInterval(refreshTimer);
             window.location.reload();
         }

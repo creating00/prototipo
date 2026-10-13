@@ -9,6 +9,9 @@ class CatalogRegistry
     public static function paginatedAdapter(string $url): ?string
     {
         $host = strtolower(parse_url($url, PHP_URL_HOST) ?? '');
+        if ($host === 'catalogo.duxsoftware.com.ar' && preg_match('~^/[a-zA-Z0-9_-]+/?$~D', parse_url($url, PHP_URL_PATH) ?? '')) {
+            return DuxAdapter::class;
+        }
         if (in_array($host, ['www.fast-cheap.com.ar', 'fast-cheap.com.ar'], true)) {
             return FastCheapAdapter::class;
         }

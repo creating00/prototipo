@@ -193,4 +193,16 @@ class ProviderCatalogController extends Controller
 
         return view('admin.provider.catalog-comparison', compact('groups'));
     }
+
+    public function suggestions(Request $request, \App\Services\Catalogs\CatalogComparisonSearch $search)
+    {
+        $this->authorizeCatalog();
+        $validated = $request->validate([
+            'entry_id' => ['required', 'integer', 'min:1'],
+            'q' => ['nullable', 'string', 'max:100'],
+        ]);
+        $item = ProviderCatalogItem::with('snapshot')->findOrFail($validated['entry_id']);
+
+        return response()->json($search->candidates($item, $validated['q'] ?? ''));
+    }
 }

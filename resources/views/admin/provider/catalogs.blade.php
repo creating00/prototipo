@@ -185,6 +185,14 @@
             <p>Elegí entre 2 y 8 productos procesados de proveedores distintos. Los combos incluyen todo el historial, agrupado por proveedor, con imagen, fecha y URL consultada. Buscá por nombre, código, proveedor o URL de categoría; desplazate para cargar más resultados.</p>
             <p class="small text-body-secondary">{{ $processedProductCount }} productos guardados. Comparás precios de las fechas indicadas, que pueden ser diferentes; revisá modelo, variante, presentación y condiciones en origen.</p>
             <div class="alert alert-warning d-none" role="alert" data-catalog-options-error>No se pudieron cargar los productos procesados. Cerrá y volvé a abrir el combo para reintentar.</div>
+            <div class="border rounded p-3 mb-3 bg-body-tertiary">
+                <label class="form-label fw-semibold" for="catalog-general-search">Buscar un producto en todos los catálogos</label>
+                <select id="catalog-general-search" class="form-select" data-products-url="{{ route('web.provider-catalogs.products') }}" data-suggestions-url="{{ route('web.provider-catalogs.suggestions') }}">
+                    <option value="">Buscar por nombre o código</option>
+                </select>
+                <p class="small text-body-secondary mt-2 mb-0">Elegí un producto para cargar candidatos de hasta ocho proveedores en los campos de abajo. Las coincidencias requieren revisión; no confirman equivalencia. Esta búsqueda reemplaza las selecciones actuales.</p>
+                <div class="small mt-2" role="status" aria-live="polite" data-catalog-general-status></div>
+            </div>
             <form method="POST" action="{{ route('web.provider-catalogs.compare') }}">
                 @csrf
                 <div class="row g-3">
@@ -204,6 +212,7 @@
                                     <option value="{{ $item->id }}" data-data="{{ json_encode($item->comparisonOption()) }}" @selected((string) old('entries.'.$slot) === (string) $item->id)>{{ $item->data['name'] ?? 'Nombre no informado' }}</option>
                                 @endforeach
                             </select>
+                            <div class="small text-warning-emphasis mt-1" data-catalog-candidate-status></div>
                         </div>
                     @endfor
                 </div>

@@ -8,7 +8,7 @@ use RuntimeException;
 use Throwable;
 
 /** Dux publishes Product props in Next.js Flight records alongside the visible placeholders. */
-class DuxAdapter implements CatalogAdapter
+class DuxAdapter implements CatalogAdapter, PaginatedCatalogAdapter
 {
     public function __construct(private CatalogHttpClient $http) {}
 
@@ -99,6 +99,92 @@ class DuxAdapter implements CatalogAdapter
         return null;
     }
 
+    public function page(string $url): array
+    {
+        $parts = $this->listingParts($url);
+        if ($parts['page'] > 400) {
+            throw new RuntimeException('Dux admite páginas de 1 a 400 por consulta.');
+        }
+        $response = $this->http->get($url, ['catalogo.duxsoftware.com.ar']);
+        if (! $this->sameListing($url, $response['url']) || $this->listingParts($response['url'])['page'] !== $parts['page']) {
+            throw new RuntimeException('Dux redirigió a otro catálogo, rubro, búsqueda o página.');
+        }
+
+        return $this->parsePage($response['body'], $response['url']);
+    }
+
+    public function parsePage(string $html, string $url): array
+    {
+        $current = $this->listingParts($url)['page'];
+        $products = $this->parse($html, $url);
+        if ($products === []) {
+            throw new RuntimeException('Dux no publicó datos de productos legibles en esta página. La búsqueda puede estar vacía o el formato puede haber cambiado.');
+        }
+        $xpath = ProductData::dom($html);
+        $cards = $xpath->query('//*[@data-testid="card-product-info"]');
+        $reason = count($products) !== $cards->length ? 'No se pudieron extraer todos los productos de la página publicada por Dux.' : null;
+        if (collect($products)->contains(fn ($product) => ($product['code'] ?? null) === null || $product['code'] === '')) {
+            $reason ??= 'Dux publicó productos sin SKU verificable; el listado requiere revisión.';
+        }
+        $next = null;
+        $end = false;
+        $controls = $xpath->query('//*[self::a or self::div][i[contains(concat(" ", normalize-space(@class), " "), " pi-angle-right ")]]');
+        if ($controls->length !== 1) {
+            $reason ??= 'Dux no publicó un control siguiente o final reconocible.';
+        } else {
+            $control = $controls->item(0);
+            $pagination = $control->parentNode;
+            $active = $xpath->query('.//div[contains(concat(" ", normalize-space(@class), " "), " z-10 ")]', $pagination);
+            if ($active->length !== 1 || trim($active->item(0)->textContent) !== (string) $current) {
+                $reason ??= 'La página activa publicada por Dux no coincide con la solicitada.';
+            }
+            if ($control->nodeName === 'a' && $control->hasAttribute('href')) {
+                try {
+                    $next = (string) UriResolver::resolve(new Uri($url), new Uri($control->getAttribute('href')));
+                    if (! $this->sameListing($url, $next) || $this->listingParts($next)['page'] !== $current + 1) {
+                        throw new RuntimeException('Enlace inesperado');
+                    }
+                } catch (Throwable) {
+                    $next = null;
+                    $reason = 'El enlace siguiente de Dux cambió de dominio, catálogo, rubro, filtros o número de página.';
+                }
+            } elseif ($control->nodeName === 'div' && in_array('pointer-events-none', preg_split('/\s+/', $control->getAttribute('class')), true)) {
+                $end = true;
+            } else {
+                $reason ??= 'No se pudo verificar el final del listado de Dux.';
+            }
+        }
+
+        return ['products' => $products, 'next_url' => $next, 'current_page' => $current, 'total_pages' => null,
+            'total' => null, 'from' => null, 'to' => null, 'reason' => $reason, 'mode' => 'linked', 'identity_mode' => 'dux_sku',
+            'end_verified' => $end,
+            'notice' => 'Dux: moneda conservada como se publica; el enlace de origen lleva a la página del catálogo. No se consultan fichas ni detalles de variantes.'];
+    }
+
+    private function listingParts(string $url): array
+    {
+        $parts = app(PublicUrl::class)->parts($url);
+        parse_str($parts['query'] ?? '', $query);
+        $page = $query['page'] ?? '1';
+        if ($parts['host'] !== 'catalogo.duxsoftware.com.ar' || ! preg_match('~^/[a-zA-Z0-9_-]+/?$~D', $parts['path'] ?? '')
+            || ! is_scalar($page) || ! preg_match('/^[1-9][0-9]{0,4}$/D', (string) $page)) {
+            throw new RuntimeException('Dux: usá la URL pública de un catálogo y un número de página válido.');
+        }
+        unset($query['page']);
+        ksort($query);
+
+        return ['scheme' => $parts['scheme'], 'path' => $parts['path'], 'filters' => $query, 'page' => (int) $page];
+    }
+
+    private function sameListing(string $left, string $right): bool
+    {
+        $a = $this->listingParts($left);
+        $b = $this->listingParts($right);
+
+        return $a['scheme'] === $b['scheme'] && $a['path'] === $b['path'] && $a['filters'] === $b['filters'];
+    }
+
+    /** Legacy bounded direct fetch; catalog queue jobs use page() and continue up to 400 pages. */
     public function fetch(string $url): CatalogResult
     {
         $parts = parse_url($url);
