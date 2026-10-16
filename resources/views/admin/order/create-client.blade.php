@@ -38,7 +38,6 @@
         ])
     </x-adminlte.form>
 
-    @include('admin.client.partials._modal-create')
     @include('admin.product.partials._modal-create')
 @endsection
 

@@ -31,7 +31,9 @@
     </x-adminlte.form>
 
     @include('admin.product.partials._modal_product_search')
-    @include('admin.client.partials._modal-create')
+    @if ($order->source !== \App\Enums\OrderSource::Manual)
+        @include('admin.client.partials._modal-create')
+    @endif
     @include('admin.product.partials._modal-create')
 @endsection
 

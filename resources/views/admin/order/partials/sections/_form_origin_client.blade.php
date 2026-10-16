@@ -31,19 +31,27 @@
     </div>
     @endif
 
+    @if ((int) $sourceValue === \App\Enums\OrderSource::Manual->value)
+        <input type="hidden" name="client_id" value="{{ old('client_id', $order?->customer_id ?? $defaultClientId ?? $clients->firstWhere('document', config('app.default_client_document'))?->id) }}">
+    @else
     {{-- Cliente Destinatario --}}
     <div id="client-select-wrapper" class="compact-select-wrapper">
         <x-adminlte.select-with-action name="client_id" label="Cliente" :options="$clients->pluck('display_name', 'id')->toArray()"
             placeholder="Seleccione un cliente" :value="old('client_id', $order->customer_id ?? $defaultClientId)" buttonColor="primary" buttonIcon="fas fa-user-plus"
             buttonLabel="F2" buttonTitle="Agregar nuevo cliente" buttonId="btn-new-client" required />
     </div>
+    @endif
 
     {{-- Sucursal a la que se hace el pedido (Referencia) --}}
     <div id="target-branch-select-wrapper" class="compact-select-wrapper">
-        <label class="compact-select-label fw-bold small">
-            Sucursal a la que le hicieron el pedido (Referencia)
+        <label for="target_branch_id" class="form-label fw-bold small mb-2">
+            Sucursal de referencia
+            @if ($isMultiDestination)
+                <span class="text-danger">*</span>
+            @endif
         </label>
-        <x-adminlte.select name="target_branch_id" label="" :options="['' => 'Seleccione una sucursal de referencia'] + ($destinationBranches ?? collect())->pluck('name', 'id')->toArray()" :value="old('target_branch_id', $order?->target_branch_id)" :required="$isMultiDestination" />
+        <x-adminlte.select name="target_branch_id" label="" :options="['' => 'Seleccione una sucursal'] + ($destinationBranches ?? collect())->pluck('name', 'id')->toArray()" :value="old('target_branch_id', $order?->target_branch_id)" :required="$isMultiDestination" aria-describedby="target-branch-help" />
+        <small id="target-branch-help" class="text-muted d-block mt-2">Sucursal que recibió el pedido del cliente.</small>
     </div>
 
     {{-- Estado del Pedido --}}

@@ -19,6 +19,16 @@
         .card-footer .input-group-text {
             font-weight: bold;
         }
+
+        #target-branch-select-wrapper .choices__list--single {
+            height: auto;
+            white-space: normal;
+        }
+
+        #target-branch-select-wrapper .choices__list--single .choices__item {
+            overflow-wrap: anywhere;
+            line-height: 1.4;
+        }
     </style>
 @endpush
 
