@@ -202,7 +202,8 @@ class OrderService
                 $orderData['items'],
                 (int) $orderData['branch_id'],
                 null,
-                $orderData['customer_type'] ?? null
+                $orderData['customer_type'] ?? null,
+                (int) $orderData['source'] === OrderSource::Manual->value
             );
             $order = $this->createOrderRecord($orderData);
 
@@ -266,7 +267,8 @@ class OrderService
                 $orderData['items'],
                 (int) $orderData['branch_id'],
                 $order,
-                $orderData['customer_type'] ?? $order->customer_type
+                $orderData['customer_type'] ?? $order->customer_type,
+                (int) $orderData['source'] === OrderSource::Manual->value
             );
 
             // Mantenemos sin descuento de stock durante las modificaciones antes de enviar al stock
@@ -854,7 +856,7 @@ class OrderService
         $order->update($data);
     }
 
-    protected function normalizeOrderItemCostsForUser(array $items, int $branchId, ?Order $order = null, ?string $customerType = null): array
+    protected function normalizeOrderItemCostsForUser(array $items, int $branchId, ?Order $order = null, ?string $customerType = null, bool $isManual = false): array
     {
         if ($this->currentUser()?->hasRole(RoleLabel::PROVINCIAL_ADMIN->value)) {
             return $items;
@@ -862,7 +864,7 @@ class OrderService
 
         $existingItems = $order?->items?->keyBy(fn ($item) => $item->product_id.':'.($item->destination_branch_id ?? '')) ?? collect();
 
-        return array_map(function (array $item) use ($branchId, $existingItems, $customerType) {
+        return array_map(function (array $item) use ($branchId, $existingItems, $customerType, $isManual) {
             $productId = (int) $item['product_id'];
             $existingItem = $existingItems->get($productId.':'.($item['destination_branch_id'] ?? ''));
 
@@ -876,7 +878,7 @@ class OrderService
             }
 
             $product = \App\Models\Product::findOrFail($productId);
-            if ($customerType === 'App\Models\Branch') {
+            if ($isManual || $customerType === 'App\Models\Branch') {
                 $priceModel = $product->purchasePriceModel($branchId)
                     ?? $product->purchasePriceModel(null);
             } else {

@@ -37,14 +37,10 @@ class ProductController extends BaseProductController
         );
     }
 
-    private function resolvePriceModel(Product $product, ?string $branchId, string $context, bool $isRepair, ?string $customerType = null)
+    private function resolvePriceModel(Product $product, ?string $branchId, string $context, bool $isRepair)
     {
         if ($context === 'order') {
-            if ($customerType === 'App\Models\Branch') {
-                return $product->purchasePriceModel($branchId) ?? $product->purchasePriceModel(null);
-            }
-
-            return $product->salePriceModel($branchId) ?? $product->salePriceModel(null);
+            return $product->purchasePriceModel($branchId) ?? $product->purchasePriceModel(null);
         }
 
         $price = match ($context) {
@@ -75,7 +71,6 @@ class ProductController extends BaseProductController
         $categoryId = $request->get('category_id');
         $isRepair = $request->boolean('is_repair');
         $context = $request->get('context', 'order');
-        $customerType = $request->get('customer_type');
 
         $product = Product::where('code', $code)
             ->when($isMultiDestination, fn ($q) => $q->whereHas('productBranches', fn ($branches) => $branches->where('branch_id', $branchId)))
@@ -87,7 +82,7 @@ class ProductController extends BaseProductController
         }
 
         // Buscamos el modelo de precio según contexto con fallback
-        $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair, $customerType);
+        $priceEntry = $this->resolvePriceModel($product, $branchId, $context, $isRepair);
 
         $finalPrice = $priceEntry?->amount ?? 0;
         $currency = $priceEntry?->currency ?? \App\Enums\CurrencyType::ARS;
@@ -148,7 +143,6 @@ class ProductController extends BaseProductController
         $search = $request->get('q');
         $isRepair = $request->boolean('is_repair');
         $context = $request->get('context', 'sale');
-        $customerType = $request->get('customer_type');
 
         $query = Product::with(['category', 'productBranches.prices']);
         if ($isMultiDestination) {
