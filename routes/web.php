@@ -163,6 +163,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'create-branch' => 'createBranch',
         ]);
 
+        Route::post('sales/send-to-branch', \App\Http\Controllers\Web\CartTransferController::class)->name('web.sales.send-to-branch');
         Route::get('sales/{id}/details', [SaleWebController::class, 'show'])->name('web.sales.show');
         Route::get('/sales/{sale}/ticket', [SaleReceiptController::class, 'ticket'])
             ->name('sales.ticket');

@@ -34,6 +34,7 @@ class Order extends Model
         'cancelled_at',
         'cancelled_by',
         'target_branch_id',
+        'cart_transfer_key',
     ];
 
     protected $casts = [

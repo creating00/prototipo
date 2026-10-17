@@ -46,7 +46,7 @@ class OrderTransferService
     }
 
     /** The caller holds the order lock and transaction throughout the transfer. */
-    public function transfer(Order $order): void
+    public function transfer(Order $order, bool $updatePurchasePrices = true): void
     {
         $origin = Branch::findOrFail($order->branch_id);
         $items = $order->items()->with('destinationBranch')->orderBy('product_id')->orderBy('destination_branch_id')->get();
@@ -73,7 +73,9 @@ class OrderTransferService
         foreach ($items as $item) {
             $product = $products[$item->product_id];
             $this->stockService->addStock($product, $item->quantity, $item->destination_branch_id);
-            $this->stockService->updatePurchasePrice($product, $item->destination_branch_id, (float) $item->unit_price, $item->currency->value);
+            if ($updatePurchasePrices) {
+                $this->stockService->updatePurchasePrice($product, $item->destination_branch_id, (float) $item->unit_price, $item->currency->value);
+            }
             $item->update(['stock_sent_at' => $sentAt]);
         }
         $order->update(['is_stock_sent' => true, 'stock_sent_at' => $sentAt, 'status' => OrderStatus::Confirmed]);

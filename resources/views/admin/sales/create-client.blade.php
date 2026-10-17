@@ -21,6 +21,15 @@
             <x-adminlte.form id="saleForm" action="{{ route('web.sales.store') }}" title="Nueva Venta">
                 <x-slot:headerActions>
                     <a href="{{ route('web.sales.index') }}" class="btn btn-sm btn-default mr-1">Cancelar</a>
+                    @can('createBranch', \App\Models\Order::class)
+                        <button type="button" id="send-to-branch" class="btn btn-sm btn-outline-success mr-1"
+                            x-bind:disabled="submitting || {{ $cartTransferBranches->isEmpty() ? 'true' : 'false' }}" data-url="{{ route('web.sales.send-to-branch') }}"
+                            data-token="{{ \Illuminate\Support\Str::uuid() }}" data-origin-id="{{ $currentBranchId }}"
+                            data-branches="{{ $cartTransferBranches->toJson() }}"
+                            @disabled($cartTransferBranches->isEmpty())>
+                            <i class="fas fa-truck mr-1"></i> Enviar a sucursal
+                        </button>
+                    @endcan
                     <button type="submit" form="saleForm" class="btn btn-sm btn-primary" x-bind:disabled="submitting">
                         <i class="fas fa-save mr-1"></i>
                         <span x-show="!submitting">Procesar Pago <span class="kbd-shortcut">F12</span></span>
