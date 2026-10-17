@@ -131,6 +131,8 @@ class SaleWebController extends BaseSaleController
                 ->get()
                 ->pluck('full_description', 'id'),
             'currentBranchId' =>  $effectiveBranchId,
+            'cartTransferBranches' => \App\Models\Branch::where('province_id', $originBranch?->province_id)
+                ->where('id', '!=', $effectiveBranchId)->orderBy('name')->get(['id', 'name']),
         ];
 
         if ($customerType === 'App\Models\Client') {
