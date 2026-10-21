@@ -89,7 +89,7 @@ export function initCartTransfer() {
                 title: "Envío registrado",
                 text: `Pedido ${data.order_number}. El stock se actualizó en ambas sucursales.`,
                 confirmButtonText: "Nueva venta",
-                showDenyButton: true,
+                showDenyButton: Boolean(data.orders_url),
                 denyButtonText: "Ver pedidos",
                 allowOutsideClick: false,
                 allowEscapeKey: false,

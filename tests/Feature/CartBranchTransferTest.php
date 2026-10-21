@@ -10,6 +10,7 @@ use App\Models\Province;
 use App\Models\User;
 use App\Services\OrderService;
 use App\Services\Product\ProductStockService;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -134,13 +135,65 @@ test('a stock failure on a later product rolls back the entire cart', function (
         ->and($product->fresh()->getStock($this->origin->id))->toBe(1);
 });
 
-test('only provincial users can send a cart and the page limits its destinations', function () {
+test('the page limits transfer destinations to the origin province', function () {
     $this->get(route('web.sales.create-client'))->assertOk()->assertSee('id="send-to-branch"', false)
         ->assertViewHas('cartTransferBranches', fn ($branches) => $branches->modelKeys() === [$this->destination->id]);
+});
+
+test('every available role can send from the cart with its existing order access', function (RoleLabel $role) {
+    Role::findOrCreate($role->value);
+    $user = User::factory()->create(['branch_id' => $this->origin->id]);
+    $user->assignRole($role->value);
+    $user->givePermissionTo(Permission::findOrCreate('sales.create_client'));
+    $this->actingAs($user);
+    $canViewOrders = Gate::allows('viewAny', Order::class);
+    $canCreateOrders = Gate::allows('createBranch', Order::class);
+
+    $this->get(route('web.sales.create-client'))->assertOk()->assertSee('id="send-to-branch"', false);
+    $this->postJson($this->url, $this->payload)->assertOk()
+        ->assertJsonPath('orders_url', $canViewOrders ? route('web.orders.purchases') : null);
+
+    expect(Gate::allows('viewAny', Order::class))->toBe($canViewOrders)
+        ->and(Gate::allows('createBranch', Order::class))->toBe($canCreateOrders)
+        ->and($this->product->fresh()->getStock($this->origin->id))->toBe(6)
+        ->and($this->product->fresh()->getStock($this->destination->id))->toBe(7);
+})->with(RoleLabel::cases());
+
+test('sending a cart does not grant a seller access to registered orders', function () {
     $seller = User::factory()->create(['branch_id' => $this->origin->id]);
+    $seller->assignRole(Role::findOrCreate(RoleLabel::SELLER->value));
     $seller->givePermissionTo(Permission::findOrCreate('sales.create_client'));
-    $this->actingAs($seller)->postJson($this->url, $this->payload)->assertForbidden();
-    $this->get(route('web.sales.create-client'))->assertOk()->assertDontSee('id="send-to-branch"', false);
+    $this->actingAs($seller);
+    $this->get(route('web.orders.purchases'))->assertForbidden();
+    $this->postJson($this->url, $this->payload)->assertOk()->assertJsonPath('orders_url', null);
+    $order = Order::sole();
+
+    expect(Gate::allows('view', $order))->toBeFalse()
+        ->and(Gate::allows('sendToStock', $order))->toBeFalse();
+    $this->get(route('web.orders.purchases'))->assertForbidden();
+    $this->get(route('web.orders.purchases.details', $order))->assertForbidden();
+    $this->assertDatabaseCount('sales', 0);
+    $this->assertDatabaseCount('payments', 0);
+
+    // The existing view permission continues to grant the same access.
+    $seller->givePermissionTo('orders.view');
+    expect(Gate::allows('view', $order))->toBeTrue();
+    $this->get(route('web.orders.purchases'))->assertOk()->assertSee($order->order_number);
+});
+
+test('cart transfers remain unavailable without sale creation permission', function () {
+    $user = User::factory()->create(['branch_id' => $this->origin->id]);
+    $this->actingAs($user)->postJson($this->url, $this->payload)->assertForbidden();
+    $this->assertDatabaseCount('orders', 0);
+    expect($this->product->fresh()->getStock($this->origin->id))->toBe(10);
+});
+
+test('a seller cannot use a forged provincial session to transfer from another origin', function () {
+    $seller = User::factory()->create(['branch_id' => $this->destination->id]);
+    $seller->assignRole(Role::findOrCreate(RoleLabel::SELLER->value));
+    $seller->givePermissionTo(Permission::findOrCreate('sales.create_client'));
+    $this->actingAs($seller)->withSession(['active_branch_id' => $this->origin->id]);
+    $this->postJson($this->url, $this->payload)->assertUnprocessable()->assertJsonValidationErrors('branch_id');
     $this->assertDatabaseCount('orders', 0);
 });
 

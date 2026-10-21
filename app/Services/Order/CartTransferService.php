@@ -27,7 +27,6 @@ class CartTransferService
     public function send(array $data): Order
     {
         Gate::authorize('createClient', Sale::class);
-        Gate::authorize('createBranch', Order::class);
 
         $origin = Branch::find($this->currentBranchId());
         if ($this->isConsolidatedMode() || ! $origin
@@ -95,7 +94,6 @@ class CartTransferService
                 'cart_transfer_key' => $key,
                 'notes' => 'Envío entre sucursales desde el carrito de Crear Venta.',
             ]);
-            Gate::authorize('sendToStock', $order);
             $order->update(['totals' => $this->items->syncDestinations($order, $items)]);
             $this->transfers->transfer($order, updatePurchasePrices: false);
 
