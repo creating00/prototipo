@@ -16,7 +16,6 @@ class CartTransferController extends Controller
     public function __invoke(Request $request, CartTransferService $service): JsonResponse
     {
         Gate::authorize('createClient', Sale::class);
-        Gate::authorize('createBranch', Order::class);
 
         $data = $request->validate([
             'branch_id' => ['required', 'integer'],
@@ -33,7 +32,7 @@ class CartTransferController extends Controller
         return response()->json([
             'order_number' => $order->order_number,
             'redirect_url' => route('web.sales.create-client'),
-            'orders_url' => route('web.orders.purchases'),
+            'orders_url' => Gate::allows('viewAny', Order::class) ? route('web.orders.purchases') : null,
         ]);
     }
 }
